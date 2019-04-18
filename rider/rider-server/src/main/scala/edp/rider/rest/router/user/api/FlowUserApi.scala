@@ -41,6 +41,7 @@ import org.apache.commons.collections.CollectionUtils
 import org.apache.kafka.common.TopicPartition
 import slick.jdbc.MySQLProfile.api._
 
+import scala.collection.mutable.ListBuffer
 import scala.collection.{JavaConversions, JavaConverters}
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
@@ -154,7 +155,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(simple.sinkConfig.getOrElse(""), simple.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
-                      val flowPriority = Await.result(flowDal.findByFilter(flow => flow.active===true && flow.streamId === simple.streamId),minTimeOut).seq.maxBy(flow=>flow.priorityId).priorityId+1
+                      val flowPrioritySeq = Await.result(flowDal.findByFilter(flow => flow.active===true && flow.streamId === simple.streamId),minTimeOut).seq
+                      val flowPriority=if(flowPrioritySeq.isEmpty) 1 else  flowPrioritySeq.maxBy(flow=>flow.priorityId).priorityId+1
                       val flowInsertSeq =
                         if (Await.result(streamDal.findById(streamId), minTimeOut).head.functionType != "hdfslog")
                           Seq(Flow(0, simple.flowName, simple.projectId, simple.streamId, flowPriority,simple.sourceNs.trim, simple.sinkNs.trim, simple.parallelism, simple.consumedProtocol.trim, simple.sinkConfig,
@@ -750,8 +752,14 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                val response = Await.result(feedbackErrDal.findByFilter(feedbackErr => feedbackErr.flowId === flowId),minTimeOut)
-                complete(OK,ResponseJson[Seq[FeedbackErr]](getHeader(200, session), response))
+                val response = Await.result(feedbackErrDal.findByFilter(feedbackErr => feedbackErr.flowId === flowId),minTimeOut).map(feedbackErr => {
+                  val flow=Await.result(flowDal.findByFilter(flow => flow.id=== feedbackErr.flowId),minTimeOut).headOption.get
+                  new SimpleFeedbackErr(feedbackErr.id,feedbackErr.projectId,feedbackErr.batchId,feedbackErr.streamId,
+                    flow.flowName,feedbackErr.sourceNamespace,feedbackErr.sinkNamespace,feedbackErr.dataType,feedbackErr.errorPattern,
+                    feedbackErr.topics,feedbackErr.errorCount,feedbackErr.errorMaxWaterMarkTs,feedbackErr.errorMinWaterMarkTs,
+                    feedbackErr.errorInfo,feedbackErr.dataInfo,feedbackErr.feedbackTime,feedbackErr.createTime)
+                })
+                complete(OK,ResponseJson[Seq[SimpleFeedbackErr]](getHeader(200, session), response))
               }else{
                 riderLogger.error(s"user ${
                   session.userId
@@ -785,30 +793,40 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                       val topics = JavaConverters.asScalaIteratorConverter(JSON.parseArray(feedbackError.get.topics).iterator()).asScala.toSeq
                       val topicList = topics.map(topic=>JsonUtils.json2caseClass[FeedbackErrTopicInfo](topic.toString)).seq
                       var rst=true
-                      topicList.foreach(topicInfo=>{
-                        val kafkaConsumer=WormholeKafkaConsumer.initConsumer(instance.connUrl,FlowUtils.getFlowName(feedbackError.get.flowId,feedbackError.get.sourceNamespace,feedbackError.get.sinkNamespace),None,RiderConfig.kerberos.enabled)
+                      val partitionResults:ListBuffer[FeedbackPartitionResult]=new ListBuffer[FeedbackPartitionResult]()
+                        topicList.foreach(topicInfo=>{
                         WormholeKafkaProducer.init(instance.connUrl,None,RiderConfig.kerberos.enabled)
                         topicInfo.partitionOffset.map(parOffset=>{
+                          val kafkaConsumer=WormholeKafkaConsumer.initConsumer(instance.connUrl,FlowUtils.getFlowName(feedbackError.get.flowId,feedbackError.get.sourceNamespace,feedbackError.get.sinkNamespace),None,RiderConfig.kerberos.enabled)
+                          val startTime=DateUtils.currentyyyyMMddHHmmss
                           val consumerRecordIterator=WormholeKafkaConsumer.consumeRecordsFromSpecialOffset(kafkaConsumer,new TopicPartition(topicInfo.topicName,parOffset.num),parOffset.from,10000).iterator()
+                          var isSuccess=true
+                          var backFillRecordCount=0
                           while (consumerRecordIterator.hasNext){
                             val consumeRecord=consumerRecordIterator.next()
                             if(consumeRecord.offset()<= parOffset.to && consumeRecord.key().indexOf(feedbackError.get.sourceNamespace)>=0){
                               try{
                                   if(rechargeType.protocolType.equals("all")){
                                     WormholeKafkaProducer.sendMessage(topicInfo.topicName,consumeRecord.value(),Some(consumeRecord.key()),instance.connUrl)
-                                  }else if(consumeRecord.key().startsWith(rechargeType.protocolType)){
+                                  }else if(consumeRecord.key().indexOf(rechargeType.protocolType)>=0){
                                     WormholeKafkaProducer.sendMessage(topicInfo.topicName,consumeRecord.value(),Some(consumeRecord.key()),instance.connUrl)
                                   }
+                                  backFillRecordCount += 1
                               }catch{
                                 case e: Throwable =>
                                   riderLogger.error(e.getMessage)
                                   rst=false
+                                  isSuccess=false
                               }
                             }
                           }
+                          kafkaConsumer.close()
+                          val partitionResult=new FeedbackPartitionResult(topicInfo.topicName,parOffset.num,startTime,DateUtils.currentyyyyMMddHHmmss,backFillRecordCount,isSuccess)
+                          partitionResults += partitionResult
                         })
                       })
-                      val resultLog=new RechargeResultLog(0L,feedbackError.get.id,"",session.userId.toString,DateUtils.currentyyyyMMddHHmmss,DateUtils.currentyyyyMMddHHmmss,if(rst) 1 else 0)
+
+                      val resultLog=new RechargeResultLog(0L,feedbackError.get.id,JsonUtils.caseClass2json(partitionResults),session.userId.toString,DateUtils.currentyyyyMMddHHmmss,DateUtils.currentyyyyMMddHHmmss,if(rst) 1 else 0)
                       rechargeResultLogDal.insert(resultLog)
                       complete(OK,setSuccessResponse(session))
                     }else{
