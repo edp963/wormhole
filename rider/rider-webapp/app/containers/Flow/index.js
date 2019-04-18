@@ -2213,16 +2213,17 @@ export class Flow extends React.Component {
         <Modal
           title={'Drift'}
           visible={driftModalVisible}
-          wrapClassName="ant-modal-small stream-start-renew-modal"
+          wrapClassName="stream-start-renew-modal"
           onCancel={this.closeDriftDialog}
           onOk={this.submitDrift}
           confirmLoading={driftDialogConfirmLoading}
           afterClose={this.driftDialogClosed}
+          width="80%"
         >
           <Form className="ri-workbench-form workbench-flow-form">
             <FormItem
               label="Stream"
-              labelCol={{span: 5}}
+              labelCol={{span: 3}}
               wrapperCol={{span: 19}}
               help={driftVerifyTxt}
               validateStatus={driftVerifyStatus}
