@@ -97,5 +97,10 @@
 .ant-tooltip-inner {
   max-width: 300px;
   max-height: 400px;
-  overflow: scroll;
+  overflow-y: scroll;
+  -ms-overflow-style: none;
+  overflow: -moz-scrollbars-none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
