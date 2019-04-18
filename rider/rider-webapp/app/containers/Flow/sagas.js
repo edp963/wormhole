@@ -101,7 +101,7 @@ import {
   deleteUserTopicLoaded,
   adminLogsInfoLoaded,
   logsInfoLoaded,
-  // rechargeHistoryLoaded,
+  rechargeHistoryLoaded,
   confirmReChangeLoaded
 } from './action'
 
@@ -794,7 +794,7 @@ export function* postPerformanceWatcher () {
 export function* getRechargeHistory ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/errors/${payload.id}/log`)
-    yield put(confirmReChangeLoaded(result.payload))
+    yield put(rechargeHistoryLoaded(result.payload))
     payload.resolve(result.payload)
   } catch (err) {
     yield put(flowsLoadingError(err))
