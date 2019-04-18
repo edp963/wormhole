@@ -63,6 +63,7 @@ class Data2KuduSink extends SinkProcessor {
           }
 
           if (insertList.nonEmpty) {
+            logger.info(s"iud do sink kudu insertList size: ${insertList.length}")
             val errorsCount = KuduConnection.doInset(tableName, database, connectionConfig.connectionUrl, schemaMap, insertList)
             if (errorsCount > 0) {
               allErrorsCount = allErrorsCount + errorsCount
@@ -70,6 +71,7 @@ class Data2KuduSink extends SinkProcessor {
             }
           }
           if (updateList.nonEmpty) {
+            logger.info(s"iud do sink kudu updateList size: ${updateList.length}")
             val errorsCount = KuduConnection.doUpdate(tableName, database, connectionConfig.connectionUrl, schemaMap, updateList)
             if (errorsCount > 0) {
               allErrorsCount = allErrorsCount + errorsCount
