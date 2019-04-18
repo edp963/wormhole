@@ -78,7 +78,7 @@
         <zookeeper.version>3.4.6</zookeeper.version>
         <jackson.version>2.6.5</jackson.version>
         <json4s.version>3.2.11</json4s.version>
-        <kudu.version>1.7.0</kudu.version>
+        <kudu.version>1.8.0</kudu.version>
 
         <guava.version>19.0</guava.version>
         <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
