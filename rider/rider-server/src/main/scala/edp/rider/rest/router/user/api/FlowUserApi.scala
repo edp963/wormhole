@@ -155,7 +155,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(simple.sinkConfig.getOrElse(""), simple.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
-                      val flowPriority = Await.result(flowDal.findByFilter(flow => flow.active===true && flow.streamId === simple.streamId),minTimeOut).seq.maxBy(flow=>flow.priorityId).priorityId+1
+                      val flowPrioritySeq = Await.result(flowDal.findByFilter(flow => flow.active===true && flow.streamId === simple.streamId),minTimeOut).seq
+                      val flowPriority=if(flowPrioritySeq.isEmpty) 1 else  flowPrioritySeq.maxBy(flow=>flow.priorityId).priorityId+1
                       val flowInsertSeq =
                         if (Await.result(streamDal.findById(streamId), minTimeOut).head.functionType != "hdfslog")
                           Seq(Flow(0, simple.flowName, simple.projectId, simple.streamId, flowPriority,simple.sourceNs.trim, simple.sinkNs.trim, simple.parallelism, simple.consumedProtocol.trim, simple.sinkConfig,
@@ -807,7 +808,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                               try{
                                   if(rechargeType.protocolType.equals("all")){
                                     WormholeKafkaProducer.sendMessage(topicInfo.topicName,consumeRecord.value(),Some(consumeRecord.key()),instance.connUrl)
-                                  }else if(consumeRecord.key().startsWith(rechargeType.protocolType)){
+                                  }else if(consumeRecord.key().indexOf(rechargeType.protocolType)>=0){
                                     WormholeKafkaProducer.sendMessage(topicInfo.topicName,consumeRecord.value(),Some(consumeRecord.key()),instance.connUrl)
                                   }
                                   backFillRecordCount += 1
