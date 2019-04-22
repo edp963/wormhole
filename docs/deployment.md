@@ -201,13 +201,29 @@ maintenance = {
 #}
 ```
 
-#### Flink CheckPoint配置
+#### Flink 高可用配置
 
-wormhole 0.6及之后版本支持flink checkpoint配置。
+wormhole 0.6.1及之后版本支持flink 高可用配置。
+
+（1）flink checkpoint配置
 
 如果flink.checkpoint.enable=false则不使用checkpoint，默认为不适用。
 
 如果使用checkpoint则需要配置flink.checkpoint.enable=true，另外还可以设置checkpoint的间隔时间和存储系统。通过flink.checkpoint.interval可设置checkpoint的间隔时间，默认为60000ms。通过flink.stateBackend可设置checkpoint的存储位置。
+
+（2）flink配置
+
+配置flink高可用，需要配置flink-conf.yaml文件
+
+```
+high-availability: zookeeper
+
+high-availability.storageDir: hdfs:///flink/ha/
+
+high-availability.zookeeper.quorum: ip:port
+
+high-availability.zookeeper.path.root: /flink
+```
 
 #### Feedback State存储位置配置
 
