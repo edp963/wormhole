@@ -14,7 +14,7 @@ description: Wormhole Deployment page
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
-- Flink-client （支持版本 1.5.1）(若使用Flink引擎，须部署Flink-client)
+- Flink-client （wormhole 0.6.1之前版本支持flink 1.5.1版本，wormhole 0.6.1及之后版本支持flink 1.7.2版本）(若使用Flink引擎，须部署Flink-client)
 
 #### 依赖服务
 
@@ -34,7 +34,7 @@ mysql-connector-java-{your-db-version}.jar
 
 #### 下载安装包
 
-**下载 wormhole-0.6.1.tar.gz 包 (链接:https://pan.baidu.com/s/1kKFPbbdFZdLIXAYLLcZzYQ  密码:49p9)，或者自编译**
+**下载 wormhole-0.6.1.tar.gz 包 (链接:https://pan.baidu.com/s/1qQQMfHyTEiq6QaMA-IKxaQ  密码:skc0)，或者自编译**
 
 ```
 下载wormhole-0.6.1.tar.gz安装包
