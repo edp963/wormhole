@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
   `table_keys` VARCHAR(100) NULL,
+  `priority_id` BIGINT NULL,
   `desc` VARCHAR(1000) NULL,
   `status` VARCHAR(200) NOT NULL,
   `started_time` TIMESTAMP NULL,
@@ -430,59 +431,6 @@ CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `feedback_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `protocol_type` VARCHAR(200) NOT NULL,
-  `ums_ts` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  `stream_id` BIGINT NOT NULL,
-  `topic_name` VARCHAR(200) NOT NULL,
-  `partition_num` INT NOT NULL,
-  `partition_offsets` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  PRIMARY KEY (`id`),
-  KEY `streamIndex` (`stream_id`),
-  KEY `timeIndex` (`feedback_time`)
-)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-alter table `feedback_stream_offset`  modify column `partition_offsets` VARCHAR(5000);
-
-
-CREATE TABLE IF NOT EXISTS `feedback_stream_error` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `protocol_type` VARCHAR(200) NOT NULL,
-  `ums_ts` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  `stream_id`   BIGINT NOT NULL,
-  `status`    VARCHAR(32) NOT NULL,
-  `result_desc` VARCHAR(5000) NOT NULL,
-  `topics` VARCHAR(2000) NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  PRIMARY KEY (`id`)
-)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-alter table `feedback_stream_error` modify column `result_desc` varchar(5000);
-alter table `feedback_stream_error` add column `topics` VARCHAR(2000) NULL after `result_desc`;
-
-CREATE TABLE IF NOT EXISTS `feedback_flow_error` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `protocol_type` VARCHAR(200) NOT NULL,
-  `ums_ts` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
---   `batch_id` VARCHAR(32) NOT NULL,
-  `stream_id` BIGINT default 0,
-  `source_namespace`  VARCHAR(1000) NOT NULL,
-  `sink_namespace`  VARCHAR(1000) NOT NULL,
-  `error_count`   INT NOT NULL,
-  `error_max_watermark_ts` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  `error_min_watermark_ts` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  `error_info` VARCHAR(5000) NULL,
-  `topics` VARCHAR(2000) NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
-  PRIMARY KEY (`id`)
-)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-alter table `feedback_flow_error` modify column `error_info` varchar(5000) NULL;
-alter table `feedback_flow_error` add column `topics` VARCHAR(2000) NULL after `error_info`;
--- alter table `feedback_flow_error` add column `batch_id` VARCHAR(32) NOT NULL after `ums_ts`;
 
 
 CREATE TABLE IF NOT EXISTS `feedback_directive` (
