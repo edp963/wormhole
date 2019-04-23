@@ -171,7 +171,7 @@ object KuduConnection extends Serializable {
 
   def doQueryByKeyListInBatch(tableName: String, database: String, url: String, keyName: String, tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                               queryFieldsName: Seq[String], batchSize: Int): mutable.HashMap[String, Map[String, (Any, String)]] = {
-    logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
+    logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName+",tupleList.size:"+tupleList.size+",queryFieldsName:"+queryFieldsName+",batchSize:"+batchSize)
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
     var client: KuduClient = null
     try {
@@ -195,10 +195,9 @@ object KuduConnection extends Serializable {
         }
       })
 
-      val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
-        .setProjectedColumnNames(queryFieldsName) //指定输出列
-
       dataList.grouped(batchSize).foreach(data => {
+        val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
+          .setProjectedColumnNames(queryFieldsName) //指定输出列
         val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName), data)
         scannerBuilder.addPredicate(kuduPredicate)
         val scanner = scannerBuilder.build()
@@ -234,7 +233,7 @@ object KuduConnection extends Serializable {
     } finally {
       closeClient(client)
     }
-    logger.info("doQueryByKeyListInBatch Finish!!!")
+    logger.info("doQueryByKeyListInBatch Finish!!!"+queryResultMap.size)
     queryResultMap
   }
 
