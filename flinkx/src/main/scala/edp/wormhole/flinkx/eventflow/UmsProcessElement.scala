@@ -9,6 +9,7 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, FlinkxUtils, WormholeFlinkxC
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
+import edp.wormhole.util.DateUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
@@ -95,7 +96,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
   }
 
   def moinitorRow(tuple: Seq[String], protocolType: String, schema: Seq[UmsField]): Unit = {
-    val umsTs = UmsFieldType.umsFieldValue(tuple, schema, "ums_ts_").asInstanceOf[DateTime].getMillis
+    val umsTs = DateUtils.dt2date(UmsFieldType.umsFieldValue(tuple, schema, "ums_ts_").asInstanceOf[DateTime]).getTime
 
     summary.inc()
     lastTopicInfo = config.kafka_input.kafka_topics.map(config => config.topic_name + ":" + config.topic_partition).mkString("[", ",", "]")
