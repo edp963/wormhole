@@ -171,7 +171,7 @@ object KuduConnection extends Serializable {
 
   def doQueryByKeyListInBatch(tableName: String, database: String, url: String, keyName: String, tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                               queryFieldsName: Seq[String], batchSize: Int): mutable.HashMap[String, Map[String, (Any, String)]] = {
-    logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName+",tupleList.size:"+tupleList.size+",queryFieldsName:"+queryFieldsName+",batchSize:"+batchSize)
+    logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
     var client: KuduClient = null
     try {
@@ -233,7 +233,7 @@ object KuduConnection extends Serializable {
     } finally {
       closeClient(client)
     }
-    logger.info("doQueryByKeyListInBatch Finish!!!"+queryResultMap.size)
+    logger.info("doQueryByKeyListInBatch Finish!!!")
     queryResultMap
   }
 

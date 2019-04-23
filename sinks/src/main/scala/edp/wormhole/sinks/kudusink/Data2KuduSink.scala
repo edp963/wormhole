@@ -62,13 +62,6 @@ class Data2KuduSink extends SinkProcessor {
             })
           }
 
-//          if(tableKeys.head=="pboc_rep_id"&&keys2UmsIdMap.contains("17970105")){
-            logger.info("tupleList:"+tupleList)
-            logger.info("queryMap:"+keys2UmsIdMap)
-            logger.info("updateList:"+updateList)
-            logger.info("insertList:"+insertList)
-//          }
-
           if (insertList.nonEmpty) {
             val errorsCount = KuduConnection.doInset(tableName, database, connectionConfig.connectionUrl, schemaMap, insertList)
             if (errorsCount > 0) {
