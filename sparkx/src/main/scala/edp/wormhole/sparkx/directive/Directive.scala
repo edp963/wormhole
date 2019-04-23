@@ -21,8 +21,8 @@
 
 package edp.wormhole.sparkx.directive
 
-import edp.wormhole.sparkx.common.{KafkaTopicConfig, PartitionOffsetConfig, WormholeConfig}
-import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
+import edp.wormhole.sparkx.common.{KafkaTopicConfig, PartitionOffsetConfig, TopicType, WormholeConfig}
+import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, OffsetPersistenceManager}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{Ums, UmsFieldType}
 import org.apache.spark.streaming.kafka010.WormholeDirectKafkaInputDStream
@@ -30,13 +30,13 @@ import org.apache.spark.streaming.kafka010.WormholeDirectKafkaInputDStream
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-trait Directive extends EdpLogging{
+trait Directive extends EdpLogging {
 
-  def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
-
+  def flowStartProcess(ums: Ums): String = {
+    null
   }
 
-  def doDirectiveTopic(config: WormholeConfig, stream: WormholeDirectKafkaInputDStream[String, String]):Unit = {
+  def doDirectiveTopic(config: WormholeConfig, stream: WormholeDirectKafkaInputDStream[String, String]): Unit = {
     val addTopicList = ListBuffer.empty[(KafkaTopicConfig, Long)]
     val delTopicList = mutable.ListBuffer.empty[(String, Long)]
     if (OffsetPersistenceManager.directiveList.size() > 0) {
@@ -56,7 +56,9 @@ trait Directive extends EdpLogging{
             case e: Throwable => logAlert("unsubscribeTopic error" + unsubscribeTopic, e)
           }
       }
-
+      val initialTopics = addTopicList.filter(topic => topic._1.topic_type == TopicType.INITIAL).map(_._1.topic_name)
+      ConfMemoryStorage.initialTopicSet ++= initialTopics
+      ConfMemoryStorage.initialTopicSet --= delTopicList.map(_._1)
       val addTpMap = mutable.HashMap.empty[(String, Int), (Long, Long)]
       addTopicList.foreach(topic => {
         val topicName = topic._1.topic_name
@@ -73,8 +75,6 @@ trait Directive extends EdpLogging{
   }
 
 
-
-
   def topicSubscribeParse(ums: Ums, config: WormholeConfig, stream: WormholeDirectKafkaInputDStream[String, String]): ListBuffer[(KafkaTopicConfig, Long)] = {
     val payloads = ums.payload_get
     val schemas = ums.schema.fields_get
@@ -83,12 +83,16 @@ trait Directive extends EdpLogging{
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
       val topicName = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_name").toString
       val topicRate = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_rate").toString.toInt
+      val topicType =
+        if (UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_type") != null)
+          UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_type").toString
+        else TopicType.INCREMENT.toString
       val partitionsOffset = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "partitions_offset").toString
       val partitionsOffsetSeq = partitionsOffset.split(",").map(partitionOffset => {
         val partitionOffsetArray = partitionOffset.split(":")
         PartitionOffsetConfig(partitionOffsetArray(0).toInt, partitionOffsetArray(1).toLong)
       })
-      topicConfigList += ((KafkaTopicConfig(topicName, topicRate, partitionsOffsetSeq), directiveId))
+      topicConfigList += ((KafkaTopicConfig(topicName, topicRate, partitionsOffsetSeq, TopicType.topicType(topicType)), directiveId))
     })
 
     topicConfigList

@@ -53,7 +53,7 @@ object SinkProcess extends Serializable {
     val sinkDataStream = dataStream.process(new SinkProcessElement(schemaMapWithUmsType,exceptionConfig,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace), config, initialTs, swiftsTs, sinkTag))
 
     val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
-    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config))
+    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig))
 
     sinkDataStream
   }

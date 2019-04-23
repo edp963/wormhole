@@ -24,18 +24,21 @@ package edp.wormhole.sparkxinterface.swifts
 import edp.wormhole.util.swifts.SwiftsSql
 
 case class SwiftsProcessConfig(//projection:String,
-                               swiftsSql:Option[Array[SwiftsSql]] = None,
+                               swiftsSql: Option[Array[SwiftsSql]] = None,
                                validityConfig: Option[ValidityConfig] = None,
-                               datasetShow:Option[Boolean] = None,
-                               datasetShowNum:Option[Int] = None,
-                               specialConfig:Option[String] = None)
+                               datasetShow: Option[Boolean] = None,
+                               datasetShowNum: Option[Int] = None,
+                               specialConfig: Option[String] = None)
 
+case class SwiftsSpecialProcessConfig(`lookup_batch_size`: Option[Int] = None) {
+  lazy val batchSize = `lookup_batch_size`.getOrElse(1000)
+}
 
-case class ValidityConfig(checkColumns:Array[String],
-                          checkRule:String,
-                          rule_mode:String,
-                          ruleParams:String,
-                          againstAction:String)
+case class ValidityConfig(checkColumns: Array[String],
+                          checkRule: String,
+                          rule_mode: String,
+                          ruleParams: String,
+                          againstAction: String)
 
 
 

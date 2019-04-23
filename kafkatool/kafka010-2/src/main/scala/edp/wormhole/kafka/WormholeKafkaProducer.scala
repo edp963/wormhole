@@ -25,10 +25,13 @@ import java.util.Properties
 
 import edp.wormhole.util.config.KVConfig
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.apache.kafka.common.serialization.StringSerializer
+import org.apache.log4j.Logger
+
 import scala.collection.mutable
 
 object WormholeKafkaProducer extends Serializable {
+
+  private lazy val logger = Logger.getLogger(this.getClass)
 
   @volatile private var producerMap: mutable.HashMap[String, KafkaProducer[String, String]] = new mutable.HashMap[String, KafkaProducer[String, String]]
 
@@ -41,7 +44,7 @@ object WormholeKafkaProducer extends Serializable {
     props
   }
 
-  def init(brokers: String, kvConfig: Option[Seq[KVConfig]],kerberos:Boolean=false): Unit = {
+  def init(brokers: String, kvConfig: Option[Seq[KVConfig]], kerberos: Boolean = false): Unit = {
 
     if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
       synchronized {
@@ -53,9 +56,9 @@ object WormholeKafkaProducer extends Serializable {
             })
           }
 
-          if(kerberos){
-            props.put("security.protocol","SASL_PLAINTEXT")
-            props.put("sasl.kerberos.service.name","kafka")
+          if (kerberos) {
+            props.put("security.protocol", "SASL_PLAINTEXT")
+            props.put("sasl.kerberos.service.name", "kafka")
           }
 
           props.put("bootstrap.servers", brokers)
@@ -71,7 +74,7 @@ object WormholeKafkaProducer extends Serializable {
 
   private def send(topic: String, message: String, key: Option[String], brokers: String): Any = {
     try {
-     // println("producerMap"+producerMap.toString()+",brokers:"+brokers)
+      // println("producerMap"+producerMap.toString()+",brokers:"+brokers)
       sendInternal(topic, message, key, brokers)
     } catch {
       case _: Throwable =>
@@ -85,6 +88,8 @@ object WormholeKafkaProducer extends Serializable {
 
   private def send(topic: String, partition: Int, message: String, key: Option[String], brokers: String): Any = {
     try {
+      println(s"broker:${brokers},partition:${partition},key:${key},msg:${message}")
+      logger.info(s"broker:${brokers},partition:${partition},key:${key},msg:${message}")
       sendInternal(topic, partition, message, key, brokers)
     } catch {
       case _: Throwable =>

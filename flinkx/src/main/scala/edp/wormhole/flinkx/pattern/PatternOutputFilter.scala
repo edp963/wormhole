@@ -1,7 +1,10 @@
 package edp.wormhole.flinkx.pattern
 
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
-import edp.wormhole.ums.UmsProtocolUtils
+import java.util.UUID
+
+import edp.wormhole.common.feedback.ErrorPattern
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
+import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
 import org.apache.flink.api.common.functions.RichFilterFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.types.Row
@@ -16,8 +19,20 @@ class PatternOutputFilter(exceptionConfig: ExceptionConfig, config: WormholeFlin
           feedbackDataInfo(schemaName, pos, value._2)
       }
       val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
-      val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, "")
-      new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
+
+      val errorMsg = FlinkxUtils.getFlowErrorMessage(dataInfo,
+        exceptionConfig.sourceNamespace,
+        exceptionConfig.sinkNamespace,
+        1,
+        null,
+        UUID.randomUUID().toString,
+        UmsProtocolType.DATA_INCREMENT_DATA.toString,
+        exceptionConfig.flowId,
+        exceptionConfig.streamId,
+        ErrorPattern.FlowError)
+
+//      val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, "")
+      new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(errorMsg)
     }
     value._1
   }

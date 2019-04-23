@@ -21,17 +21,14 @@
 
 package edp.rider.monitor
 
-import java.io.IOException
-import java.text.SimpleDateFormat
-
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
-import akka.http.scaladsl.model.{HttpMethods, HttpRequest, Uri, _}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
-import edp.rider.common.{RiderConfig, RiderEs, RiderLogger, RiderMonitor}
-import edp.rider.rest.persistence.entities.{Interval, MonitorInfo, MonitorInfoES}
+import edp.rider.common.{RiderConfig, RiderEs, RiderLogger}
+import edp.rider.rest.persistence.entities.{Interval, MonitorInfo}
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
 import org.json4s.JsonAST.{JNothing, JNull}
@@ -48,22 +45,32 @@ object ElasticSearch extends RiderLogger {
       createEsIndex()
     else
       riderLogger.warn(s"application.conf didn't config elasticsearch, so won't initial elasticsearch index, store wormhole stream and flow feedback_stats data")
-//    if (grafana != null)
-//      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
-//        RiderConfig.grafana.adminToken,
-//        RiderConfig.grafana.esDataSourceName,
-//        RiderConfig.es.url,
-//        RiderConfig.es.wormholeIndex,
-//        RiderConfig.es.user,
-//        RiderConfig.es.pwd)
-//    else
-//      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
+    //    if (grafana != null)
+    //      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+    //        RiderConfig.grafana.adminToken,
+    //        RiderConfig.grafana.esDataSourceName,
+    //        RiderConfig.es.url,
+    //        RiderConfig.es.wormholeIndex,
+    //        RiderConfig.es.user,
+    //        RiderConfig.es.pwd)
+    //    else
+    //      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
 
   }
 
   private def getESUrl: String = {
     try {
       s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/${RiderConfig.es.wormholeType}/"
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"ES url config get from application.conf failed", e)
+        ""
+    }
+  }
+
+  private def getESBulkUrl: String = {
+    try {
+      s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/${RiderConfig.es.wormholeType}/_bulk"
     } catch {
       case e: Exception =>
         riderLogger.error(s"ES url config get from application.conf failed", e)
@@ -81,15 +88,32 @@ object ElasticSearch extends RiderLogger {
     }
   }
 
+  private def getESTypeUrl: String = {
+    try {
+      s"${getESIndexUrl}${RiderConfig.es.wormholeType}"
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"ES index config get failed ", e)
+        ""
+    }
+  }
 
-  def insertFlowStatToES(stats: MonitorInfo) = {
-    val url = getESUrl
-    //    riderLogger.info("es url: " + url)
-    val postBody: String = JsonUtils.caseClass2json(stats)
-    //    riderLogger.info("es insert: " + postBody)
-    asyncToES(postBody, url, HttpMethods.POST)
-    //    syncToES(postBody, url, HttpMethods.POST)
 
+  def insertFlowStatToES(records: List[MonitorInfo]) = {
+    if (records.nonEmpty) {
+      val url = getESBulkUrl
+      val jsonSeq = new ListBuffer[String]
+      records.foreach(record => {
+        val meta = s"""{ "index" : { "_index" : "${RiderConfig.es.wormholeIndex}", "_type" : "${RiderConfig.es.wormholeType}"} }"""
+        val mes = JsonUtils.caseClass2json(record)
+        jsonSeq.append(meta)
+        jsonSeq.append(mes)
+      })
+      val postBody = jsonSeq.mkString("\n") + "\n"
+      //      riderLogger.info(s"es url: $url")
+      //      riderLogger.info("es insert: " + postBody)
+      syncToES(postBody, url, HttpMethods.POST)
+    }
   }
 
   def queryESFlowMax(projectId: Long, streamId: Long, flowId: Long, columnName: String): (Boolean, String) = {
@@ -104,7 +128,7 @@ object ElasticSearch extends RiderLogger {
       riderLogger.debug(s"queryESFlowMax url $url $postBody")
       val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
       //    riderLogger.info(s"queryESFlowMax $response")
-      if (response._1 == true) {
+      if (response._1) {
         try {
           val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
           //val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), s"_source")
@@ -152,14 +176,14 @@ object ElasticSearch extends RiderLogger {
     } else (false, "")
   }
 
-  def compactPostBody(projectId: Long, modelType:Long,content:Long,startTime: String, endTime: String):String =
+  def compactPostBody(projectId: Long, modelType: Long, content: Long, startTime: String, endTime: String): String =
     modelType match {
-      case 0 =>ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
+      case 0 => ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
         .replace("#PROJECT_ID#", projectId.toString)
         .replace("#FLOW_ID#", content.toString)
         .replace("#START_TIME#", startTime)
         .replace("#END_TIME#", endTime)
-      case 1 =>ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
+      case 1 => ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
         .replace("#PROJECT_ID#", projectId.toString)
         .replace("#STREAM_ID#", content.toString)
         .replace("#START_TIME#", startTime)
@@ -167,8 +191,8 @@ object ElasticSearch extends RiderLogger {
     }
 
 
-  def queryESMonitor(postBody:String)={
-    val list=ListBuffer[MonitorInfo]()
+  def queryESMonitor(postBody: String) = {
+    val list = ListBuffer[MonitorInfo]()
     if (RiderConfig.es != null) {
 
       val url = getESUrl + "_search"
@@ -177,30 +201,24 @@ object ElasticSearch extends RiderLogger {
       if (response._1) {
         val tuple = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits").children
         implicit val json4sFormats: Formats = DefaultFormats
-        tuple.distinct.foreach(jvalue=>{
-          val value=JsonUtils.getJValue(jvalue,s"_source")
-          val interval=JsonUtils.getJValue(value,s"interval")
+        tuple.distinct.foreach(jvalue => {
+          val value = JsonUtils.getJValue(jvalue, s"_source")
+          val interval = JsonUtils.getJValue(value, s"interval")
 
-          val result=if(interval!=JNothing)JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
-          else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
+          val result = JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+         //if (interval != JNothing)  else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
 
-          list+=result
+          list += result
         })
-      }else{
+      } else {
         riderLogger.error(s"Failed to get stream info from ES response")
       }
-      (response._1,list)
-    }else (false, list)
-  }
-
-  def changeMonitorInfoEsToMonitorInfo(monitor:MonitorInfoES)={
-    MonitorInfo(0,monitor.statsId,monitor.umsTs,monitor.projectId,monitor.streamId,monitor.streamName,monitor.flowId,monitor.flowNamespace,
-      monitor.rddCount,monitor.topics,monitor.throughput,monitor.dataGeneratedTs,monitor.rddTs,monitor.directiveTs,monitor.DataProcessTs,monitor.swiftsTs,monitor.sinkTs,monitor.doneTs,
-      Interval(monitor.intervalDataProcessToDataums,monitor.intervalDataProcessToRdd,monitor.intervalDataProcessToSwifts,monitor.intervalDataProcessToSink,monitor.intervalDataProcessToDone,monitor.intervalDataumsToDone,monitor.intervalRddToDone,monitor.intervalSwiftsToSink,monitor.intervalSinkToDone))
+      (response._1, list)
+    } else (false, list)
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
-    var deleted = 0
+    val deleted = 0
     val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESDELETED)
       .replace("#FROMDATE#", s""""$fromDate"""")
       .replace("#TODATE#", s""""$endDate"""")
@@ -222,7 +240,7 @@ object ElasticSearch extends RiderLogger {
   }
 
   def createEsIndex() = {
-    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeIndex}")
+    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESTYPE#", s"${RiderConfig.es.wormholeType}")
     val url = getESIndexUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
     //    riderLogger.info(s" query index exists response $existsResponse")
@@ -230,7 +248,7 @@ object ElasticSearch extends RiderLogger {
       riderLogger.info(s"ES index $url already exists")
     } else {
       riderLogger.info(s"createEsIndex url $url $body")
-      asyncToES(body, url, HttpMethods.PUT)
+      syncToES(body, url, HttpMethods.PUT)
     }
   }
 
@@ -272,7 +290,6 @@ object ElasticSearch extends RiderLogger {
     var tc = false
     var responseJson: JValue = JNull
     val uri = Uri.apply(url)
-    // val a = headers.`Content-Type`.apply(ContentTypes.`application/json`)
     val b = headers.Accept.apply(MediaTypes.`application/json`)
     val httpRequest: HttpRequest = HttpRequest(
       method,
@@ -281,41 +298,32 @@ object ElasticSearch extends RiderLogger {
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
-    //    riderLogger.info(s"httpRequest ${
-    //      httpRequest.toString
-    //    }.")
+    val response = Await.result(Http().singleRequest(httpRequest), timeOut)
     try {
-      val response = Await.result(Http().singleRequest(httpRequest), timeOut)
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-          riderLogger.debug(s"response.entity ${
-            response.entity.toString
-          }.")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
-                //                riderLogger.info(s"== jsonString ${
-                //                  jsonString
-                //                }.")
-                tc = true
                 responseJson = JsonUtils.json2jValue(jsonString)
+                if (JsonUtils.containsName(responseJson, "errors")) {
+                  if (JsonUtils.getBoolean(responseJson, "errors")) {
+                    riderLogger.error(s"ES request $postBody failed, $jsonString")
+                  } else {
+                    tc = true
+                  }
+                }else{
+                   tc=true
+                }
             }, Duration.Inf)
-        case StatusCodes.BadRequest => {
-          riderLogger.error(s"syncToES failed caused by incorrect latitude and longitude format")
-        }
-        case _ => Unmarshal(response.entity).to[String].flatMap {
-          entity =>
-            val error = s"Google GeoCoding request failed with status code ${
-              response.status
-            } and entity $entity"
-            Future.failed(new IOException(error))
+        case _ => {
+          riderLogger.error(s"ES request $postBody failed, ${Unmarshal(response.entity).to[String]}")
         }
       }
     } catch {
-      case e: Exception =>
-        riderLogger.error(s"Failed to get the response from ES when syncToES", e)
+      case ex: Exception =>
+        riderLogger.error(s"ES request $postBody failed", ex)
     }
-    //    riderLogger.info(s"====> syncToES return  $tc  $responseJson.")
     (tc, responseJson)
   }
 }

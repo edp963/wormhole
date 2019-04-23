@@ -28,7 +28,6 @@ import edp.rider.rest.util.CommonUtils.{maxTimeOut, minTimeOut}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -58,8 +57,8 @@ class FeedbackFlowErrDal(feedbackFlowErrTable: TableQuery[FeedbackFlowErrTable],
   }
 
   def deleteHistory(pastNdays: String) = {
-    val deleteSeq = Await.result(db.run(feedbackFlowErrTable.withFilter(_.feedbackTime <= pastNdays)
-      .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(feedbackFlowErrTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }

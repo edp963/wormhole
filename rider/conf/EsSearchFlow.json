@@ -24,7 +24,7 @@
             },
             {
               "range":{
-                "umsTs":{
+                "feedbackTime":{
                   "ge": "#START_TIME#",
                   "le": "#END_TIME#"
                 }
@@ -37,7 +37,7 @@
   },
   "sort": [
     {
-      "umsTs": {
+      "feedbackTime": {
         "order": "asc"
       }
     }

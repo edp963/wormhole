@@ -24,15 +24,18 @@ package edp.wormhole.sparkx.swifts.transform
 import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 
 import edp.wormhole.dbdriver.dbpool.DbConnection
-import edp.wormhole.sparkx.common.WormholeUtils
+import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.sparkx.common.SparkSchemaUtils._
+import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkxUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkx.swifts.custom.LookupKudu.getFieldsArray
 import edp.wormhole.swifts.SqlOptType
-import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.{UmsDataSystem, UmsFieldType, UmsSysField}
-import edp.wormhole.util.CommonUtils
+import edp.wormhole.ums.UmsFieldType.{UmsFieldType, _}
+import edp.wormhole.ums.{UmsDataSystem, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
+import edp.wormhole.util.{CommonUtils, DateUtils}
+import org.apache.kudu.client.KuduTable
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._
@@ -42,7 +45,89 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object DataFrameTransform extends EdpLogging {
-  def getDbJoinOrUnionDf(session: SparkSession, currentDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String, connectionConfig: ConnectionConfig, schemaStr: String, operate: SwiftsSql, sqlType: UmsDataSystem.Value): DataFrame = {
+  def getKUDUUnionDf(session: SparkSession,
+                     currentDf: DataFrame,
+                     sourceTableFields: Array[String],
+                     lookupTableFields: Array[String],
+                     sql: String,
+                     connectionConfig: ConnectionConfig,
+                     schemaStr: String,
+                     operate: SwiftsSql,
+                     batchSize: Option[Int] = None): DataFrame = {
+    logInfo("getKUDUUnionDf,batchSize="+batchSize)
+    val database = operate.lookupNamespace.get.split("\\.")(2)
+    val fromIndex = operate.sql.indexOf(" from ")
+    val afterFromSql = operate.sql.substring(fromIndex + 6).trim
+    val tmpTableName = afterFromSql.substring(0, afterFromSql.indexOf(" ")).trim
+    val tableName = KuduConnection.getTableName(tmpTableName, database)
+    KuduConnection.initKuduConfig(connectionConfig)
+    val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+    val table: KuduTable = client.openTable(tableName)
+    val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
+    KuduConnection.closeClient(client)
+
+    val resultSchema = currentDf.schema
+
+    val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
+
+      KuduConnection.initKuduConfig(connectionConfig)
+      val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+      val table: KuduTable = client.openTable(tableName)
+
+      val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
+      logInfo("getKUDUUnionDf,originalDatas.size="+originalDatas.size)
+      val resultDatas: ListBuffer[Row] = ListBuffer.empty[Row]
+      originalDatas.foreach(resultDatas.append(_))
+      val fieldsNameArray = getFieldsArray(operate.fields.get)
+      val selectFieldOriginalNameArray: Seq[String] = fieldsNameArray.map(_._1).toList
+      val original2AsNameMap: Map[String, String] = fieldsNameArray.map(tuple=>(tuple._2,tuple._1)).toMap
+
+      val sourceFieldNameArray = operate.sourceTableFields.get
+      val lookupFieldNameArray = operate.lookupTableFields.get
+      if (lookupFieldNameArray.length == 1) {
+        val keyType = UmsFieldType.umsFieldType(KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)(lookupFieldNameArray.head))
+        val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
+        keySchemaMap(lookupFieldNameArray.head) = (0, keyType, true)
+
+        originalDatas.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
+          logInfo("getKUDUUnionDf,originalDatas.grouped(batchSize.get).foreach,subList.size="+subList.size)
+          val tupleList: mutable.Seq[List[String]] = subList.map(row => {
+            sourceFieldNameArray.toList.map(field => {
+              val tmpKey = row.get(row.fieldIndex(field))
+              if (tmpKey == null) null.asInstanceOf[String]
+              else tmpKey.toString
+            })
+
+          }).filter((keys: Seq[String]) => {
+            !keys.contains(null)
+          })
+          val dataMapFromDb = KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
+            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray, batchSize.get)
+
+          getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
+        })
+      } else {
+        originalDatas.map(row => {
+          val tuple: Array[String] = sourceFieldNameArray.map(field => {
+            val tmpKey = row.get(row.fieldIndex(field))
+            if (tmpKey == null) null.asInstanceOf[String]
+            else tmpKey.toString
+          }).filter(key => {
+            key != null
+          })
+          val dataMapFromDb = KuduConnection.doQueryMultiByKey(operate.lookupTableFields.get, tuple.toList, tableSchemaInKudu,
+            client, table, selectFieldOriginalNameArray)
+
+          getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
+        })
+      }
+      resultDatas.toIterator
+    })
+
+    session.createDataFrame(joinedRow, resultSchema)
+  }
+
+  def getDbJoinOrUnionDf(session: SparkSession, currentDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String, connectionConfig: ConnectionConfig, schemaStr: String, operate: SwiftsSql, sqlType: UmsDataSystem.Value, batchSize: Option[Int] = None): DataFrame = {
     var index = -1
     val dbOutPutSchemaMap: Map[String, (String, Int)] = schemaStr.split(",").map(str => {
       val arr = str.split(":")
@@ -61,98 +146,106 @@ object DataFrameTransform extends EdpLogging {
     }
 
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
-      val originalData: ListBuffer[Row] = partition.to[ListBuffer]
-      val sourceJoinFieldsContent: Set[String] = originalData.map(row => {
-        val schema: Array[StructField] = row.schema.fields
-        val lookupFieldsLength = lookupTableFields.length
-        val fieldContent = sourceTableFields.map(fieldName => {
-          val index = row.fieldIndex(fieldName)
-          val value = WormholeUtils.getFieldContentByTypeForSql(row, schema, index)
-          if (value != null) value else "N/A"
-        }).mkString(",")
-        if (!fieldContent.contains("N/A")) {
-          if (lookupFieldsLength == 1) fieldContent else "(" + fieldContent + ")"
-        } else null
-      }).flatMap(Option[String]).toSet //delete join fields contained null
-
-
-      val executeSql: String =
-        sqlType match {
-          case UmsDataSystem.ORACLE =>
-            SqlBinding.getSlidingUnionSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
-          case UmsDataSystem.MYSQL | UmsDataSystem.ES | UmsDataSystem.MONGODB | UmsDataSystem.H2 | UmsDataSystem.PHOENIX | UmsDataSystem.VERTICA | UmsDataSystem.POSTGRESQL | UmsDataSystem.GREENPLUM =>
-            SqlBinding.getMysqlSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
-          case UmsDataSystem.CASSANDRA =>
-            if (sourceJoinFieldsContent.nonEmpty){
-              if(lookupTableFields.length==1)
-                SqlBinding.getCassandraSqlSingleField(sourceJoinFieldsContent, lookupTableFields(0), sql)
-              else
-                sql
-            } else null
-        }
-
-      var dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]] = mutable.HashMap.empty[String, ListBuffer[Array[String]]]
-
-      var resultSet: ResultSet = null
-      var conn: Connection = null
-      try {
-        var result: Iterator[Row] = ListBuffer.empty[Row].toIterator
-        logInfo("executeSql:" + executeSql)
-        conn = DbConnection.getConnection(connectionConfig)
-        val stmt = conn.createStatement
-        if (executeSql != null) {
-          if(sqlType==UmsDataSystem.CASSANDRA && lookupTableFields.length>1){
-            sourceJoinFieldsContent.foreach(eachJoinFieldsContent=>{
-              val cassandraquery = SqlBinding.getCassandraSqlMutilField(eachJoinFieldsContent,lookupTableFields, executeSql)
-//              logInfo("cassandraquery::"+cassandraquery)
-              resultSet = stmt.executeQuery(cassandraquery)
-              dataMapFromDb ++= getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
-            })
-          }else{
-            resultSet = stmt.executeQuery(executeSql)
-            dataMapFromDb = getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
-          }
-        }
-        if (originalData.nonEmpty) {
-          SqlOptType.toSqlOptType(operate.optType) match {
-            case SqlOptType.JOIN | SqlOptType.INNER_JOIN =>
-              result = getInnerJoinResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
-            case SqlOptType.LEFT_JOIN =>
-              result = getLeftJoinResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
-            case SqlOptType.UNION =>
-              result = getUnionResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
-            case _ =>
-          }
-        }
-        result
-      } catch {
-        case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
-          logError("SQLTransientConnectionException", e)
-          throw e
-        case e: Throwable =>
-          logError("execute select failed", e)
-          throw e
-      } finally {
-//        if (resultSet != null)
-//          try {
-//            resultSet.close()
-//          } catch {
-//            case e: Throwable => logError("resultSet.close", e)
-//          }
-        if (null != conn)
-          try {
-            conn.close()
-            conn == null
-          } catch {
-            case e: Throwable => logError("conn.close", e)
-          }
-      }
+      val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
+      if (batchSize.nonEmpty)
+        originalDatas.grouped(batchSize.get).flatMap(originalData => {
+          getDataByBatch(originalData, sourceTableFields, lookupTableFields, sql, connectionConfig, resultSchema, operate, sqlType, dbOutPutSchemaMap).toSeq
+        })
+      else
+        getDataByBatch(originalDatas, sourceTableFields, lookupTableFields, sql, connectionConfig, resultSchema, operate, sqlType, dbOutPutSchemaMap)
     })
 
-     session.createDataFrame(joinedRow, resultSchema)
+    session.createDataFrame(joinedRow, resultSchema)
   }
 
-  def getUnionResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
+  def getDataByBatch(originalData: ListBuffer[Row], sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String, connectionConfig: ConnectionConfig, resultSchema: StructType, operate: SwiftsSql, sqlType: UmsDataSystem.Value, dbOutPutSchemaMap: Map[String, (String, Int)]) = {
+    val sourceJoinFieldsContent: Set[String] = originalData.map(row => {
+      val schema: Array[StructField] = row.schema.fields
+      val lookupFieldsLength = lookupTableFields.length
+      val fieldContent = sourceTableFields.map(fieldName => {
+        val index = row.fieldIndex(fieldName)
+        val value = SparkxUtils.getFieldContentByTypeForSql(row, schema, index)
+        if (value != null) value else "N/A"
+      }).mkString(",")
+      if (!fieldContent.contains("N/A")) {
+        if (lookupFieldsLength == 1) fieldContent else "(" + fieldContent + ")"
+      } else null
+    }).flatMap(Option[String]).toSet //delete join fields contained null
+
+
+    val executeSql: String =
+      sqlType match {
+        case UmsDataSystem.ORACLE =>
+          SqlBinding.getSlidingUnionSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
+        case UmsDataSystem.MYSQL | UmsDataSystem.ES | UmsDataSystem.MONGODB | UmsDataSystem.H2 | UmsDataSystem.PHOENIX | UmsDataSystem.VERTICA | UmsDataSystem.POSTGRESQL | UmsDataSystem.GREENPLUM =>
+          SqlBinding.getMysqlSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
+        case UmsDataSystem.CASSANDRA =>
+          if (sourceJoinFieldsContent.nonEmpty) {
+            if (lookupTableFields.length == 1)
+              SqlBinding.getCassandraSqlSingleField(sourceJoinFieldsContent, lookupTableFields(0), sql)
+            else
+              sql
+          } else null
+      }
+
+    var dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]] = mutable.HashMap.empty[String, ListBuffer[Array[String]]]
+
+    var resultSet: ResultSet = null
+    var conn: Connection = null
+    try {
+      var result: Iterator[Row] = ListBuffer.empty[Row].toIterator
+      logInfo("executeSql:" + executeSql)
+      conn = DbConnection.getConnection(connectionConfig)
+      val stmt = conn.createStatement
+      if (executeSql != null) {
+        if (sqlType == UmsDataSystem.CASSANDRA && lookupTableFields.length > 1) {
+          sourceJoinFieldsContent.foreach(eachJoinFieldsContent => {
+            val cassandraquery = SqlBinding.getCassandraSqlMutilField(eachJoinFieldsContent, lookupTableFields, executeSql)
+            //              logInfo("cassandraquery::"+cassandraquery)
+
+            resultSet = stmt.executeQuery(cassandraquery)
+            dataMapFromDb ++= getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
+          })
+        } else {
+          resultSet = stmt.executeQuery(executeSql)
+          dataMapFromDb = getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
+        }
+      }
+      if (originalData.nonEmpty) {
+        SqlOptType.toSqlOptType(operate.optType) match {
+          case SqlOptType.JOIN | SqlOptType.INNER_JOIN =>
+            result = getInnerJoinResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
+          case SqlOptType.LEFT_JOIN =>
+            result = getLeftJoinResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
+          case SqlOptType.UNION =>
+            result = getUnionResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema).toIterator
+          case _ =>
+        }
+      }
+      result
+    } catch {
+      case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
+        logError("SQLTransientConnectionException", e)
+        throw e
+      case e: Throwable =>
+        logError("execute select failed", e)
+        throw e
+    } finally {
+      if (null != conn)
+        try {
+          conn.close()
+          conn == null
+        } catch {
+          case e: Throwable => logError("conn.close", e)
+        }
+    }
+  }
+
+  def getUnionResult(originalData: ListBuffer[Row],
+                     dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]],
+                     sourceTableFields: Array[String],
+                     dbOutPutSchemaMap: Map[String, (String, Int)],
+                     resultSchema: StructType): ListBuffer[Row] = {
     val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr = resultSchema.fieldNames.map(name => (name, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
     if (dataMapFromDb != null)
@@ -163,7 +256,7 @@ object DataFrameTransform extends EdpLogging {
               toTypedValue(tupleList(dbOutPutSchemaMap(name)._2), dataType)
             } else {
               if (UmsSysField.OP.toString == name) {
-                toTypedValue("i", dataType)
+                toTypedValue(UmsOpType.INSERT.toString, dataType)
               } else {
                 dataType match {
                   case IntegerType | LongType | FloatType | DoubleType | DecimalType.SYSTEM_DEFAULT => toTypedValue("0", dataType)
@@ -176,7 +269,59 @@ object DataFrameTransform extends EdpLogging {
           resultData.append(row)
         })
       }
-    resultData.toIterator
+    resultData
+  }
+
+  def getKuduUnionResult(originalData: ListBuffer[Row],
+                     dataMapFromDb: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]],
+                     sourceTableFields: Array[String],
+                     resultSchema: StructType,
+                     original2AsNameMap:Map[String,String]) = {
+    logInfo("getKuduUnionResult,dataMapFromDb.size="+dataMapFromDb.size+",originalData.size"+originalData.size)
+//    val resultData: ListBuffer[Row] = originalData
+    val originalSchemaArr: Array[(String, DataType)] = resultSchema.fieldNames.map(name => (name.toLowerCase, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
+    if (dataMapFromDb != null)
+      dataMapFromDb.foreach { case (_, tupleLists) =>
+        tupleLists.foreach(tupleMap => {
+          val outputArray = ListBuffer.empty[Any]
+          originalSchemaArr.foreach { case (name, originalType) =>
+            if (UmsSysField.OP.toString == name)
+              outputArray.append(
+                SparkSchemaUtils.s2sparkValue(UmsOpType.INSERT.toString, UmsFieldType.STRING))
+            else{
+              val asName = original2AsNameMap(name)
+              val tmpValue: (Any, String) = tupleMap(asName)
+//              logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
+              val newTmpValue=umsFieldType(tmpValue._2) match {
+                case STRING => if(tmpValue._1==null) "" else tmpValue._1.toString
+                case INT | LONG |  FLOAT | DOUBLE | DECIMAL | BINARY => if(tmpValue._1==null) "0" else tmpValue._1.toString
+                case DATE| DATETIME =>if(tmpValue._1==null) DateUtils.currentyyyyMMddHHmmss else tmpValue._1.toString
+                case BOOLEAN => if(tmpValue._1==null) "false" else tmpValue._1.toString
+              }
+
+              val (fieldValue, fieldType )= if(originalType.toString=="DateTimeType" ||originalType.toString=="TimestampType"){
+                val v = newTmpValue
+                val newValue = if(v.length==13){
+                  v.toLong*1000
+                }else if(v.length==19){
+                  v.toLong*1000*1000
+                }else{
+                  v.toLong
+                }
+                (DateUtils.yyyyMMddHHmmss(newValue),UmsFieldType.DATETIME)
+              }else{
+                (newTmpValue,umsFieldType(tmpValue._2))
+              }
+              logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
+              outputArray.append(
+                SparkSchemaUtils.s2sparkValue(if (tmpValue._1 == null) null else fieldValue, fieldType))
+            }
+
+          }
+          originalData.append(new GenericRowWithSchema(outputArray.toArray, resultSchema))
+        })
+      }
+//    originalData
   }
 
   def getLeftJoinResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
@@ -185,11 +330,11 @@ object DataFrameTransform extends EdpLogging {
       val sch: Array[StructField] = iter.schema.fields
       val originalJoinFields = sourceTableFields.map(joinFields => {
         val dataType = sch.filter(t => t.name == joinFields).head.dataType.toString
-        val field = iter.get(iter.fieldIndex(joinFields))//.toString
+        val field = iter.get(iter.fieldIndex(joinFields)) //.toString
         if (field != null) {
           if (dataType != "StringType") {
-          field.toString.split("\\.")(0)
-        } else field.toString
+            field.toString.split("\\.")(0)
+          } else field.toString
         } else "N/A" // source flow is empty in some fields
       }).mkString("_")
       if (dataMapFromDb == null || !dataMapFromDb.contains(originalJoinFields)) {
@@ -208,7 +353,7 @@ object DataFrameTransform extends EdpLogging {
         }
       }
     })
-   // orignialData.clear
+    // orignialData.clear
     resultData.toIterator
   }
 
@@ -244,7 +389,7 @@ object DataFrameTransform extends EdpLogging {
   def getDataMap(rs: ResultSet, dbOutPutSchemaMap: Map[String, (String, Int)], lookupTableFieldsAlias: Array[String]): mutable.HashMap[String, ListBuffer[Array[String]]] = {
     val dataTupleMap = mutable.HashMap.empty[String, mutable.ListBuffer[Array[String]]]
     while (rs.next) {
-      val tmpMap = mutable.HashMap.empty[String,String]
+      val tmpMap = mutable.HashMap.empty[String, String]
 
       val arrayBuf: Array[String] = Array.fill(dbOutPutSchemaMap.size) {
         ""
@@ -252,10 +397,10 @@ object DataFrameTransform extends EdpLogging {
       dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
         val value = rs.getObject(name)
         arrayBuf(index) = if (value != null) {
-          if(dataType==UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
           else value.toString
         } else null
-        tmpMap(name)=arrayBuf(index)
+        tmpMap(name) = arrayBuf(index)
       }
 
       val joinFieldsAsKey = lookupTableFieldsAlias.map(name => {
@@ -283,7 +428,7 @@ object DataFrameTransform extends EdpLogging {
       case e: Throwable =>
         logError("getMapDf", e)
         session.sqlContext.dropTempTable(tmpTableName)
-        null.asInstanceOf[DataFrame]
+        throw e
     }
   }
 
@@ -322,21 +467,20 @@ object DataFrameTransform extends EdpLogging {
   //  }
 
 
-
   //  def getCassandraUnionDf(session: SparkSession, sourceTableFields: Array[String], tmpLastDf: DataFrame, lookupTableFields: Array[String], sql: String, uuid: String, sourceNamespace: String, jsonSchema: String, connectionConfig: ConnectionConfig): DataFrame = {
-//    var condition = tmpLastDf(sourceTableFields(0)).isNotNull
-//    val length = sourceTableFields.length
-//    for (i <- 1 until length) {
-//      condition = condition && tmpLastDf(sourceTableFields(i)).isNotNull
-//    }
-//    val tmpDf = tmpLastDf.filter(condition)
-//    if (tmpDf.count() != 0) {
-//      val newSql = SqlBinding.getCassandraSql(session, tmpLastDf, sourceTableFields, lookupTableFields, sql)
-//      logInfo(uuid + ",CASSANDRA UNION1 newSql@:" + newSql)
-//      DataframeObtain.getUnionDf(tmpLastDf, session, sourceNamespace, jsonSchema, connectionConfig, newSql)
-//    } else {
-//      logInfo(uuid + ",CASSANDRA UNION1 tmpDf.count()==0")
-//      tmpLastDf
-//    }
-//  }
+  //    var condition = tmpLastDf(sourceTableFields(0)).isNotNull
+  //    val length = sourceTableFields.length
+  //    for (i <- 1 until length) {
+  //      condition = condition && tmpLastDf(sourceTableFields(i)).isNotNull
+  //    }
+  //    val tmpDf = tmpLastDf.filter(condition)
+  //    if (tmpDf.count() != 0) {
+  //      val newSql = SqlBinding.getCassandraSql(session, tmpLastDf, sourceTableFields, lookupTableFields, sql)
+  //      logInfo(uuid + ",CASSANDRA UNION1 newSql@:" + newSql)
+  //      DataframeObtain.getUnionDf(tmpLastDf, session, sourceNamespace, jsonSchema, connectionConfig, newSql)
+  //    } else {
+  //      logInfo(uuid + ",CASSANDRA UNION1 tmpDf.count()==0")
+  //      tmpLastDf
+  //    }
+  //  }
 }

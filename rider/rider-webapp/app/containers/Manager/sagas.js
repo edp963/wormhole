@@ -22,6 +22,8 @@ import { takeLatest, takeEvery } from 'redux-saga'
 import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_USER_STREAMS,
+  LOAD_FLOW_LIST,
+  SET_FLOW_PRIORITY,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_STREAM_DETAIL,
@@ -40,11 +42,14 @@ import {
   POST_USER_TOPIC,
   DELETE_USER_TOPIC,
   LOAD_UDFS,
-  LOAD_STREAM_CONFIGS
+  LOAD_STREAM_CONFIGS,
+  LOAD_YARN_UI
 } from './constants'
 
 import {
   userStreamsLoaded,
+  flowListLoaded,
+  flowListOfPrioritySubmited,
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
   streamDetailLoaded,
@@ -69,6 +74,7 @@ import {
 import request from '../../utils/request'
 import api from '../../utils/api'
 import { notifySagasError } from '../../utils/util'
+import { message } from 'antd'
 
 export function* getUserStreams ({ payload }) {
   try {
@@ -82,6 +88,43 @@ export function* getUserStreams ({ payload }) {
 
 export function* getUserStreamsWatcher () {
   yield fork(takeLatest, LOAD_USER_STREAMS, getUserStreams)
+}
+
+export function* getFlowList ({ payload }) {
+  try {
+    const flows = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/flows/order`)
+    yield put(flowListLoaded(flows.payload.flowPrioritySeq))
+    payload.resolve()
+  } catch (err) {
+    notifySagasError(err, 'getFlowList')
+  }
+}
+
+export function* getFlowListWatcher () {
+  yield fork(takeLatest, LOAD_FLOW_LIST, getFlowList)
+}
+
+export function* setPriority ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/flows/order`,
+      data: payload.flows
+    })
+    if (result.header && result.header.code !== 200) {
+      yield put(streamOperatedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header && result.header.code === 200) {
+      yield put(flowListOfPrioritySubmited(result.payload))
+      payload.resolve()
+    }
+  } catch (err) {
+    notifySagasError(err, 'setPriority')
+  }
+}
+
+export function* setPriorityWathcer () {
+  yield fork(takeEvery, SET_FLOW_PRIORITY, setPriority)
 }
 
 export function* getAdminAllStreams ({ payload }) {
@@ -425,8 +468,30 @@ export function* getUdfs ({payload}) {
 export function* getUdfsWatcher () {
   yield fork(takeEvery, LOAD_UDFS, getUdfs)
 }
+
+export function* getYarnUi ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/yarnUi`)
+    if (result.header.code === 200) {
+      payload.resolve(result.payload)
+    } else {
+      message.warning(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'getYarnUi')
+  }
+}
+
+export function* getYarnUiWatcher () {
+  yield fork(takeEvery, LOAD_YARN_UI, getYarnUi)
+}
 export default [
   getUserStreamsWatcher,
+  getFlowListWatcher,
+  setPriorityWathcer,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
   getStreamDetailWatcher,
@@ -445,5 +510,6 @@ export default [
   addUserTopicWatcher,
   removeUserTopicWatcher,
   getUdfsWatcher,
-  getStreamDefaultconfigsWatcher
+  getStreamDefaultconfigsWatcher,
+  getYarnUiWatcher
 ]

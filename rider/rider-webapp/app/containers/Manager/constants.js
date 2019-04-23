@@ -20,6 +20,10 @@
 
 export const LOAD_USER_STREAMS = 'rider/Manager/LOAD_USER_STREAMS'
 export const LOAD_USER_STREAMS_SUCCESS = 'rider/Manager/LOAD_USER_STREAMS_SUCCESS'
+export const LOAD_FLOW_LIST = 'rider/Manager/LOAD_FLOW_LIST'
+export const LOAD_FLOW_LIST_SUCCESS = 'rider/Manager/LOAD_FLOW_LIST_SUCCESS'
+export const SET_FLOW_PRIORITY = 'rider/Manager/SET_FLOW_PRIORITY'
+export const SET_FLOW_PRIORITY_SUCCESS = 'rider/Manager/SET_FLOW_PRIORITY_SUCCESS'
 export const LOAD_ADMIN_ALL_STREAMS = 'rider/Manager/LOAD_ADMIN_ALL_STREAMS'
 export const LOAD_ADMIN_ALL_STREAMS_SUCCESS = 'rider/Manager/LOAD_ADMIN_ALL_STREAMS_SUCCESS'
 export const LOAD_ADMIN_SINGLE_STREAM = 'rider/Manager/LOAD_ADMIN_SINGLE_STREAM'
@@ -59,3 +63,4 @@ export const DELETE_USER_TOPIC_SUCCESS = 'rider/Manager/DELETE_USER_TOPIC_SUCCES
 export const LOAD_UDFS = 'rider/Manager/LOAD_UDFS'
 export const LOAD_STREAM_CONFIGS = 'rider/Manager/LOAD_STREAM_CONFIGS'
 export const JUMP_STREAM_TO_FLOW_FILTER = 'rider/Manager/JUMP_STREAM_TO_FLOW_FILTER'
+export const LOAD_YARN_UI = 'rider/Manager/LOAD_YARN_UI'

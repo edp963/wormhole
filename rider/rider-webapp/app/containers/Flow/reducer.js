@@ -76,7 +76,11 @@ import {
   LOAD_SOURCEINPUT_ERROR,
   STARTFLINK_FLOWS,
   STARTFLINK_FLOWS_SUCCESS,
-  OPERATE_FLOWS_ERROR
+  OPERATE_FLOWS_ERROR,
+  LOAD_RECHARGE_HISTORY,
+  LOAD_RECHARGE_HISTORY_SUCCESS,
+  COMFIRM_RECHARGE,
+  COMFIRM_RECHARGE_SUCCESS
 } from './constants'
 import { fromJS } from 'immutable'
 
@@ -85,7 +89,9 @@ const initialState = fromJS({
   error: false,
   flowSubmitLoading: false,
   sourceToSinkExited: false,
-  flowStartModalLoading: false
+  flowStartModalLoading: false,
+  rechargeHistoryLoading: false,
+  confirmRechargeLoading: false
 })
 
 function flowReducer (state = initialState, { type, payload }) {
@@ -162,7 +168,7 @@ function flowReducer (state = initialState, { type, payload }) {
         }
       }
     case OPERATE_FLOW_ERROR:
-      return state
+      return state.set('confirmRechargeLoading', false)
     case LOAD_FLOW_DETAIL:
       return state
     case LOAD_FLOW_DETAIL_SUCCESS:
@@ -175,7 +181,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case QUERY_FLOW_SUCCESS:
       return state
     case LOAD_FLOWS_ERROR:
-      return state.set('error', payload.error)
+      return state.set('error', payload.error).set('rechargeHistoryLoading', false)
     case LOAD_SOURCELOG_DETAIL:
       return state.set('error', false)
     case LOAD_SOURCELOG_DETAIL_SUCCESS:
@@ -245,7 +251,15 @@ function flowReducer (state = initialState, { type, payload }) {
         .set('flows', flows.slice())
         .set('flowStartModalLoading', false)
     case OPERATE_FLOWS_ERROR:
-      return state.set('flowStartModalLoading', false)
+      return state.set('flowStartModalLoading', false).set('confirmRechargeLoading', false)
+    case LOAD_RECHARGE_HISTORY:
+      return state.set('rechargeHistoryLoading', true)
+    case LOAD_RECHARGE_HISTORY_SUCCESS:
+      return state.set('rechargeHistoryList', payload.list).set('rechargeHistoryLoading', false)
+    case COMFIRM_RECHARGE:
+      return state.set('confirmRechargeLoading', true)
+    case COMFIRM_RECHARGE_SUCCESS:
+      return state.set('confirmRechargeLoading', false)
     default:
       return state
   }

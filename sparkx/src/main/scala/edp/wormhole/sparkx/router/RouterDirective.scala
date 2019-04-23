@@ -21,8 +21,6 @@
 
 package edp.wormhole.sparkx.router
 
-import edp.wormhole.common.feedback.FeedbackPriority
-import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.directive.Directive
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage.routerMap
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
@@ -40,35 +38,43 @@ object RouterDirective extends Directive {
                                          target_kafka_broker: String,
                                          kafka_topic: String,
                                          directiveId: Long,
-                                         feedbackTopicName: String,
-                                         brokers: String,
-                                         data_type: String): Unit = {
+                                         data_type: String,
+                                         flowId:Long,
+                                         sourceIncrementTopicList:List[String]): String = {
     //[sourceNs,([sinkNs,(brokers,topic)],ums/json)]
     synchronized {
       if (routerMap.contains(sourceNamespace)) {
-        val sinkMap: mutable.Map[String, (String, String)] = routerMap(sourceNamespace)._1
-        sinkMap(sinkNamespace) = (target_kafka_broker, kafka_topic)
+        val sinkMap: mutable.Map[String, RouterFlowConfig] = routerMap(sourceNamespace)._1
+        sinkMap(sinkNamespace) = RouterFlowConfig(target_kafka_broker, kafka_topic,flowId,sourceIncrementTopicList)
       } else {
-        routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
+        routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> RouterFlowConfig(target_kafka_broker, kafka_topic,flowId,sourceIncrementTopicList)), data_type)
       }
-      WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+      feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId,flowId, "")
     }
   }
 
-  override def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
+  override def flowStartProcess(ums: Ums): String = {
     val payloads = ums.payload_get
     val schemas = ums.schema.fields_get
     val sourceNamespace = ums.schema.namespace.toLowerCase
-    payloads.foreach(tuple => {
+    val tuple = payloads.head
+    val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
+    val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
+    val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
+    try {
       val data_type = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
       val sinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
       val target_kafka_broker = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kafka_broker").toString.toLowerCase
       val kafka_topic = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kafka_topic").toString
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-      val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
-      registerFlowStartDirective(sourceNamespace, sinkNamespace, streamId, target_kafka_broker, kafka_topic, directiveId, feedbackTopicName, brokers, data_type)
-    })
-  }
 
+      val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
+      registerFlowStartDirective(sourceNamespace, sinkNamespace, streamId, target_kafka_broker, kafka_topic, directiveId, data_type,flowId,sourceIncrementTopicList)
+    } catch {
+      case e: Throwable =>
+        logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
+        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId,flowId, e.getMessage)
+    }
+  }
 
 }

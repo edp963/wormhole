@@ -34,7 +34,8 @@ import io.swagger.annotations.{ApiResponses, _}
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
     getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getTopics ~ getJvmConf ~
-    postUserDefinedTopic ~ getUdfs ~ postTopicsOffset ~ getDefaultConfig
+    postUserDefinedTopic ~ getUdfs ~ postTopicsOffset ~ getDefaultConfig ~ getYarnUi ~ getFlowPrioritiesByStreamId ~
+    updateFlowOrder
   //  ~ deleteUserDefinedTopic
 
   lazy val basePath = "projects"
@@ -311,4 +312,51 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getDefaultConfig: Route = modules.streamUserService.getDefaultConfig("streams")
+
+  // get /user/projects/1/streams/1/udfs
+  @Path("/projects/{id}/streams/{streamId}/yarnUi")
+  @ApiOperation(value = "get stream yarnUi", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getYarnUi: Route = modules.streamUserService.getYarnUi(basePath)
+
+  @Path("/projects/{id}/streams/{streamId}/flows/order")
+  @ApiOperation(value = "get all flow priority info of the stream", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getFlowPrioritiesByStreamId: Route = modules.streamUserService.getFlowPrioritiesByStreamId(basePath)
+
+  @Path("/projects/{id}/streams/{streamId}/flows/order")
+  @ApiOperation(value = "update flow priorities under stream", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowPriorities", value = "flow priorities to be updated", required = true, dataType = "edp.rider.rest.persistence.entities.FlowPriorities", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def updateFlowOrder: Route = modules.streamUserService.updateFlowOrder(basePath)
 }

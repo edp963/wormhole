@@ -1,7 +1,5 @@
 package edp.wormhole.flinkx.udf
 
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.table.api.Types
 import org.apache.flink.table.functions.ScalarFunction
 
 class UdfProxy0(udfName: String, udfClassName: String) extends ScalarFunction {

@@ -44,6 +44,7 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 import Select from 'antd/lib/select'
 import Form from 'antd/lib/form'
+import FlowErrorList from './errorModule/errorList'
 const FormItem = Form.Item
 const Option = Select.Option
 const { RangePicker } = DatePicker
@@ -55,7 +56,7 @@ import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
   loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo,
-  loadDriftList, postDriftList, verifyDrift, postFlowPerformance
+  loadDriftList, postDriftList, verifyDrift, postFlowPerformance, getErrorList
 } from './action'
 import { jumpStreamToFlowFilter } from '../Manager/action'
 import { loadSingleUdf } from '../Udf/action'
@@ -236,7 +237,10 @@ export class Flow extends React.Component {
       recordsChartOpt: {},
       latencyChartOpt: {},
       refreshTimer: null,
-      performanceModelTitle: 'performance'
+      performanceModelTitle: 'performance',
+      errorListVisible: false,
+      errorListModelTitle: 'Error List',
+      flowErrorList: []
     }
   }
 
@@ -533,8 +537,6 @@ export class Flow extends React.Component {
       },
       tooltip: {
         trigger: 'axis',
-        // alwaysShowContent: true,
-        // hideDelay: 9999,
         axisPointer: {
           type: 'cross',
           label: {
@@ -755,6 +757,17 @@ export class Flow extends React.Component {
       this.refreshPerformance()
     })
   }
+  onShowErrorList = (record) => (e) => {
+    this.getFlowErrorList(record.id)
+    this.setState({
+      errorListVisible: true
+    })
+  }
+  closeErrorListModal = () => {
+    this.setState({
+      errorListVisible: false
+    })
+  }
   closePerformanceDialog = () => {
     if (this.state.refreshTimer) {
       clearInterval(this.state.refreshTimer)
@@ -787,9 +800,6 @@ export class Flow extends React.Component {
   refreshPerformance = (performanceMenuRefreshChosen = this.state.performanceMenuRefreshChosen) => {
     const { projectIdGeted } = this.props
     const { chosenFlowId } = this.state
-    const now = new Date().getTime()
-    const endTime = now
-    const startTime = now - this.state.performanceMenuChosen.value
     if (performanceMenuRefreshChosen.value === 'off') {
       if (this.state.refreshTimer) {
         clearInterval(this.state.refreshTimer)
@@ -800,6 +810,9 @@ export class Flow extends React.Component {
         clearInterval(this.state.refreshTimer)
       }
       let timer = setInterval(() => {
+        const now = new Date().getTime()
+        const endTime = now
+        const startTime = now - this.state.performanceMenuChosen.value
         this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
       }, performanceMenuRefreshChosen.value)
       this.setState({refreshTimer: timer})
@@ -1342,15 +1355,26 @@ export class Flow extends React.Component {
       this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')()
     })
   }
+
+  getFlowErrorList = (flowId) => {
+    const { projectIdGeted } = this.props
+    this.props.onLoadErrorList(projectIdGeted, flowId, (result) => {
+      this.setState({
+        flowErrorList: result
+      })
+    })
+  }
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
       logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys,
       driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus,
-      performanceModalVisible } = this.state
+      performanceModalVisible, errorListVisible, flowErrorList } = this.state
     let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
+
+    const { projectIdGeted } = this.props
 
     const columns = [{
       title: 'ID',
@@ -1758,6 +1782,7 @@ export class Flow extends React.Component {
           const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
           const driftFormat = <FormattedMessage {...messages.flowTableDrift} />
           const chartFormat = <FormattedMessage {...messages.flowTableChart} />
+          const errorListFormat = <FormattedMessage {...messages.flowErrorList} />
 
           let strLog = ''
           if (record.streamType === 'flink') {
@@ -1773,7 +1798,11 @@ export class Flow extends React.Component {
             ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
             : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
           let strStart = ''
-          let strChart = ''
+          let strChart = (
+            <Tooltip title={chartFormat}>
+              <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowPerformance(record)}></Button>
+            </Tooltip>
+          )
           if (record.streamType === 'spark' || record.streamTypeOrigin === 'spark') {
             strStart = record.disableActions.includes('start')
               ? (
@@ -1788,12 +1817,6 @@ export class Flow extends React.Component {
                   </Tooltip>
                 </Popconfirm>
               )
-
-            strChart = (
-              <Tooltip title={chartFormat}>
-                <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowPerformance(record)}></Button>
-              </Tooltip>
-            )
           } else if (record.streamType === 'flink' || record.streamTypeOrigin === 'flink') {
             strStart = record.disableActions.includes('start')
               ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -1813,6 +1836,11 @@ export class Flow extends React.Component {
                 </Button>
               </Tooltip>
           }
+          let strErrorList = (
+            <Tooltip title={errorListFormat}>
+              <Button icon="exception" shape="circle" type="ghost" onClick={this.onShowErrorList(record)}></Button>
+            </Tooltip>
+          )
           let strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
@@ -1880,6 +1908,7 @@ export class Flow extends React.Component {
               {strDrift}
               {strLog}
               {strChart}
+              {strErrorList}
             </span>
           )
         }
@@ -2088,6 +2117,9 @@ export class Flow extends React.Component {
           <Line style={{height: '250px'}} id="latency" options={this.state.latencyChartOpt} />
         </div>
       ) : ''
+    const errorListComp = errorListVisible ? (
+      <FlowErrorList data={flowErrorList} projectIdGeted={projectIdGeted} />
+    ) : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -2181,16 +2213,17 @@ export class Flow extends React.Component {
         <Modal
           title={'Drift'}
           visible={driftModalVisible}
-          wrapClassName="ant-modal-small stream-start-renew-modal"
+          wrapClassName="stream-start-renew-modal"
           onCancel={this.closeDriftDialog}
           onOk={this.submitDrift}
           confirmLoading={driftDialogConfirmLoading}
           afterClose={this.driftDialogClosed}
+          width="80%"
         >
           <Form className="ri-workbench-form workbench-flow-form">
             <FormItem
               label="Stream"
-              labelCol={{span: 5}}
+              labelCol={{span: 3}}
               wrapperCol={{span: 19}}
               help={driftVerifyTxt}
               validateStatus={driftVerifyStatus}
@@ -2200,7 +2233,6 @@ export class Flow extends React.Component {
             </FormItem>
           </Form>
         </Modal>
-        {/* NOTE: performance */}
         <Modal
           title={this.state.performanceModelTitle}
           visible={performanceModalVisible}
@@ -2226,6 +2258,16 @@ export class Flow extends React.Component {
             logsFlowId={logsFlowId}
             ref={(f) => { this.streamLogs = f }}
           />
+        </Modal>
+        <Modal
+          title={this.state.errorListModelTitle}
+          visible={errorListVisible}
+          onCancel={this.closeErrorListModal}
+          footer={null}
+          width="98%"
+          style={{top: '30px'}}
+        >
+          {errorListComp}
         </Modal>
       </div>
     )
@@ -2272,7 +2314,8 @@ Flow.propTypes = {
   onSubmitDrift: PropTypes.func,
   onVerifyDrift: PropTypes.func,
   onSearchFlowPerformance: PropTypes.func,
-  jumpStreamToFlowFilter: PropTypes.func
+  jumpStreamToFlowFilter: PropTypes.func,
+  onLoadErrorList: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -2302,7 +2345,8 @@ export function mapDispatchToProps (dispatch) {
     onSubmitDrift: (projectId, flowId, streamId, resolve) => dispatch(postDriftList(projectId, flowId, streamId, resolve)),
     onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve)),
     onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) => dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve)),
-    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId))
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
+    onLoadErrorList: (project, flowId, resolve) => dispatch(getErrorList(project, flowId, resolve))
   }
 }
 

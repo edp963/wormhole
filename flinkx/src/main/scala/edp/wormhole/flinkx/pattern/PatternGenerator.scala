@@ -25,20 +25,17 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName._
 import edp.wormhole.flinkx.pattern.Quantifier.{OFTIMES, TYPE}
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.cep.nfa.AfterMatchSkipStrategy
+import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy
 import org.apache.flink.cep.scala.pattern.Pattern
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.types.Row
 
-import scala.collection.mutable.ListBuffer
-
-class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)],exceptionConfig: ExceptionConfig,config: WormholeFlinkxConfig) extends java.io.Serializable {
+class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)], exceptionConfig: ExceptionConfig, config: WormholeFlinkxConfig) extends java.io.Serializable {
   var pattern: Pattern[Row, Row] = _
   private var patternSeqSize = 0
   private lazy val patterns = patternSeq.getJSONArray(PATTERNS.toString)
 
   def getPattern: Pattern[Row, Row] = {
-
     for (i <- 0 until patterns.size()) {
       val patternJsonObject = patterns.getJSONObject(i)
       if (patternJsonObject.containsKey(PATTERNTYPE.toString)) {
@@ -89,7 +86,7 @@ class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInfor
   }
 
   private def packageConditions(conditions: JSONObject): Unit = {
-    val filter = new PatternCondition(schemaMap,exceptionConfig,config)
+    val filter = new PatternCondition(schemaMap, exceptionConfig, config)
     pattern = pattern.where(event => {
       filter.doFilter(conditions, event)
     })
@@ -100,23 +97,16 @@ class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInfor
       val quantifierType = quantifier.getString(TYPE.toString)
       val ofTimes = quantifier.getIntValue(OFTIMES.toString)
       println(ofTimes + "ofTimes")
-      if (Quantifier.quantifier(quantifierType) == Quantifier.TIMES)
-        pattern = pattern.times(ofTimes)
-      else pattern = pattern.timesOrMore(ofTimes)
-      // Todo 页面配置contiguity,在此进行解析
-      pattern = pattern.allowCombinations()
+      Quantifier.quantifier(quantifierType) match {
+        case Quantifier.TIMES => pattern = pattern.times(ofTimes)
+        case Quantifier.ONEORMORE => pattern = pattern.oneOrMore
+        case Quantifier.TIMESORMORE => pattern = pattern.timesOrMore(ofTimes)
+        case Quantifier.TIMESGREEDY => pattern = pattern.timesOrMore(ofTimes).greedy
+        case Quantifier.TIMESOPTIONAL => pattern = pattern.timesOrMore(ofTimes).optional
+        case _ =>
+      }
+      // Todo 页面配置contiguity,在此进行解析 allowCombinations()| consecutive()
       println(quantifierType + "@@" + ofTimes + "@@")
     }
-  }
-
-  def outputPatternNameList: Seq[String] = {
-    val patternNameListBuffer = ListBuffer.empty[String]
-    for (i <- 0 until patterns.size()) {
-      if (patterns.getJSONObject(i).getString(PATTERNTYPE.toString) != PatternType.NOTNEXT.toString
-        && patterns.getJSONObject(i).getString(PATTERNTYPE.toString) != PatternType.NOTFOLLOWEDBY.toString) {
-        patternNameListBuffer.append(s"p$i")
-      }
-    }
-    patternNameListBuffer
   }
 }

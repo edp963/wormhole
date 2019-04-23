@@ -24,12 +24,12 @@ package edp.rider.rest.persistence.dal
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common._
-import edp.rider.kafka.KafkaUtils._
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
@@ -48,6 +48,20 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def getStreamProjectMap(streamSeq: Seq[Stream]): Map[Long, String] = {
     val projectSeq = Await.result(db.run(projectTable.filter(_.id inSet streamSeq.map(_.projectId)).result).mapTo[Seq[Project]], minTimeOut)
     projectSeq.map(project => (project.id, project.name)).toMap
+  }
+
+  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult]): Unit = {
+    val streamMap = streams.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
+    val refreshStreamSeq = getStreamYarnAppStatus(streams, appInfoMap)
+    val updateStreamSeq = refreshStreamSeq.filter(stream => {
+      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
+        false
+      } else {
+        true
+      }
+    })
+    //riderLogger.info(s"updateStreamSeq ${updateStreamSeq}")
+    updateByRefresh(updateStreamSeq)
   }
 
   def refreshStreamStatus(streamId: Long): Option[Stream] = {
@@ -118,7 +132,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val streamIds = streamSeq.map(_.id)
-      val streamTopicMap = getStreamTopicsMap(streamIds)
+      val streamGroupIdMap = streamSeq.map(stream => (stream.id, stream.name)).toMap[Long, String]
+      val streamTopicMap = getStreamTopicsMap(streamIds, streamGroupIdMap)
       val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
       //      val streamZkUdfSeq = getZkStreamUdf(streamIds)
       val projectMap = getStreamProjectMap(streamSeq)
@@ -167,8 +182,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def updateByRefresh(streams: Seq[Stream]): Seq[Int] = {
     streams.map(stream =>
       Await.result(db.run(streamTable.filter(_.id === stream.id)
-        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime))
-        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime)).mapTo[Int], minTimeOut))
+        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {
@@ -218,11 +233,11 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     db.run(streamTable.filter(_.id === stream.id).update(stream))
   }
 
-  def updateStreamsTable(streams: Seq[Stream]) = {
+  def updateStreamsTable(streams: Seq[Stream]): Future[Unit] = {
     db.run(DBIO.seq(streams.map(stream => streamTable.filter(_.id === stream.id).update(stream)): _*))
   }
 
-  def getProjectStreamsUsedResource(projectId: Long) = {
+  def getProjectStreamsUsedResource(projectId: Long): (Int, Int, Seq[AppResource]) = {
     val streamSeq: Seq[Stream] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
     var usedCores = 0
     var usedMemory = 0
@@ -237,7 +252,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
           case StreamType.FLINK =>
             val config = json2caseClass[FlinkResourceConfig](stream.startConfig)
             usedCores += config.taskManagersNumber * config.perTaskManagerSlots
-            usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerSlots
+            usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerMemoryGB
             AppResource(stream.name, 0, config.jobManagerMemoryGB, config.taskManagersNumber, config.perTaskManagerMemoryGB, config.perTaskManagerSlots)
         }
       }
@@ -270,31 +285,30 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
   def getTopicsAllOffsets(streamId: Long): GetTopicsResponse = {
-    getStreamTopicsMap(Seq(streamId))(streamId)
+    val stream = Await.result(super.findById(streamId), minTimeOut).head
+    val map = mutable.HashMap.empty[Long, String]
+    map(streamId) = stream.name
+    getStreamTopicsMap(Seq(streamId), map.toMap)(streamId)
   }
 
-  def getStreamTopicsMap(streamIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
+  def getStreamTopicsMap(streamId: Long, streamName: String): GetTopicsResponse = {
+    val map = mutable.HashMap.empty[Long, String]
+    map(streamId) = streamName
+    getStreamTopicsMap(Seq(streamId), map.toMap)(streamId)
+  }
+
+  def getStreamTopicsMap(streamIds: Seq[Long], streamGroupIdMap: Map[Long, String]): Map[Long, GetTopicsResponse] = {
     val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
-      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
-      val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
-
-      val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, feedbackOffsetMap)
-      val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, feedbackOffsetMap)
-
-      //update offset in table
-      val autoRegisteredUpdateTopics = autoTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
-      val udfUpdateTopics = udfTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
-
-      streamInTopicDal.updateOffset(autoRegisteredUpdateTopics)
-      streamUdfTopicDal.updateOffset(udfUpdateTopics)
+      val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, streamGroupIdMap)
+      val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, streamGroupIdMap)
       (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
     }).toMap
-    //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
   }
-    //getStreamTopicsName for getSimpleStreamInfo
+
+  //getStreamTopicsName for getSimpleStreamInfo
   def getStreamTopicsName(streamIds: Long): (Long, Seq[String]) = {
     val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
@@ -305,41 +319,41 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
 
-  def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], feedbackOffsetMap: Map[String, String]): Seq[TopicAllOffsets] = {
+  def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], streamGroupIdMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
-      val consumed = formatConsumedOffsetByLatestOffset(feedbackOffsetMap(topic.name), latest)
+      val earliest = getEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
+      val latest = getLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
+      val consumed = getConsumerOffset(kafkaMap(topic.streamId), streamGroupIdMap(topic.streamId), topic.name, latest.split(",").length, RiderConfig.kerberos.enabled)
       TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
     })
   }
 
-  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
-    try {
-      val stream = Await.result(super.findById(streamId), minTimeOut).head
-
-      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
-
-      val topicOffsetMap = new mutable.HashMap[String, String]()
-      topicFeedbackSeq.foreach(topic => {
-        if (!topicOffsetMap.contains(topic.topicName)) {
-          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
-            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
-            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
-        }
-      })
-      topics.foreach(
-        topic => {
-          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
-        }
-      )
-      topicOffsetMap.toMap
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
-        throw ex
-    }
-  }
+//  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
+//    try {
+//      val stream = Await.result(super.findById(streamId), minTimeOut).head
+//
+//      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
+//
+//      val topicOffsetMap = new mutable.HashMap[String, String]()
+//      topicFeedbackSeq.foreach(topic => {
+//        if (!topicOffsetMap.contains(topic.topicName)) {
+//          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
+//            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
+//            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
+//        }
+//      })
+//      topics.foreach(
+//        topic => {
+//          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
+//        }
+//      )
+//      topicOffsetMap.toMap
+//    } catch {
+//      case ex: Exception =>
+//        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
+//        throw ex
+//    }
+//  }
 
 
 }

@@ -1,6 +1,6 @@
 {
   "protocol": {
-    "type": "feedback_directive"
+    "type": "feedback_flow_start_directive"
   },
   "schema": {
     "namespace": "",
@@ -24,6 +24,10 @@
         "type": "long",
         "nullable": false
       },{
+        "name": "flow_id",
+        "type": "long",
+        "nullable": false
+      },{
         "name": "result_desc",
         "type": "string",
         "nullable": true
@@ -32,7 +36,7 @@
   },
   "payload": [
     {
-      "tuple": [ "2016-06-01 01:00:11.345123", 1,"success",2 ,"成功"]
+      "tuple": [ "2016-06-01 01:00:11.345123", 1,"success",2 ,101,"成功"]
     }
   ]
 }

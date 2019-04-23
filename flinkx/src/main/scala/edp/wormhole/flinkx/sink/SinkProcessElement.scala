@@ -1,10 +1,13 @@
 package edp.wormhole.flinkx.sink
 
-import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+import java.util.UUID
+
+import edp.wormhole.common.feedback.ErrorPattern
+import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, FlinkxUtils, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.FeedbackUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
+import edp.wormhole.ums.{Ums, UmsProtocolType, UmsProtocolUtils, UmsTuple}
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
@@ -49,7 +52,18 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
         }
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
-        ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+        val errorMsg = FlinkxUtils.getFlowErrorMessage(dataInfo,
+          exceptionConfig.sourceNamespace,
+          exceptionConfig.sinkNamespace,
+          1,
+          ex,
+          UUID.randomUUID().toString,
+          UmsProtocolType.DATA_INCREMENT_DATA.toString,
+          exceptionConfig.flowId,
+          exceptionConfig.streamId,
+          ErrorPattern.FlowError)
+
+        ctx.output(sinkTag, errorMsg)
     }
     out.collect(Seq(value))
   }

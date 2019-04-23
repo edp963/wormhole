@@ -21,41 +21,40 @@
 
 package edp.wormhole.sparkx.hdfslog
 
-import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
-import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.directive.Directive
+import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
+import edp.wormhole.ums.{DataTypeEnum, Ums, UmsFeedbackStatus, UmsFieldType}
 import edp.wormhole.util.DateUtils
 
 object HdfsDirective extends Directive {
-  override def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
+  override def flowStartProcess(ums: Ums): String = {
     val payloads = ums.payload_get
     val schemas = ums.schema.fields_get
-    payloads.foreach(tuple => {
-      val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
-      val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-      val namespace_rule = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "namespace_rule").toString.toLowerCase
-      val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
-      val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
-      try {
-        if (dataParseStr != null) {
-          val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-          HdfsMainProcess.jsonSourceMap(namespace_rule) = (parseResult.fieldsInfo, parseResult.twoFieldsArr, parseResult.schemaField)
-        }
-        val hour_duration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
-        HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
-        WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+    val tuple = payloads.head
+    val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
+    val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
+    val namespace_rule = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "namespace_rule").toString.toLowerCase
+    val data_type = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
+    val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
+    val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+    val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
+    val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
+    val hourDuration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
+    try {
+      val parseResult: RegularJsonSchema = if (dataParseStr != null) {
+        JsonSourceConf.parse(dataParseStr)
+      } else RegularJsonSchema(null,null,null)
+      ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsLogFlowConfig(data_type, parseResult, flowId, sourceIncrementTopicList, hourDuration)
 
-      } catch {
-        case e: Throwable =>
-          logAlert("registerFlowStartDirective,sourceNamespace:" + namespace_rule, e)
-          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage), None, brokers)
+      //      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
+      feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, flowId, "")
 
-      }
-    })
+    } catch {
+      case e: Throwable =>
+        logAlert("registerFlowStartDirective,sourceNamespace:" + namespace_rule, e)
+        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId,flowId, e.getMessage)
+    }
   }
-
-
 }

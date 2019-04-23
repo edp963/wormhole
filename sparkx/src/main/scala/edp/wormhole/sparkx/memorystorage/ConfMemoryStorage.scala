@@ -26,33 +26,40 @@ import java.lang.reflect.Method
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
+import edp.wormhole.sparkx.hdfslog.HdfsLogFlowConfig
+import edp.wormhole.sparkx.router.RouterFlowConfig
+import edp.wormhole.sparkx.router.RouterMainProcess.logAlert
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable
-//import org.apache.spark.rdd.RDD
-
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object ConfMemoryStorage extends Serializable with EdpLogging {
 
-  //[sourceNs,([sinkNs,(brokers,topic)],ums/json)]
-  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, (String, String)], String)]
+  //[sourceNs,([sinkNs,(brokers,topic,flowId,incrementTopic)],ums/json)]
+  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, RouterFlowConfig], String)]
 
   //[connectionNamespace(Namespace 3 fields),(connectionUrl,username,password,kvconfig)]
   val dataStoreConnectionsMap = mutable.HashMap.empty[String, ConnectionConfig]
 
+  //Map[namespace(7fields),(json schema info1, json schema info2,flat data,flowid,incrementTopics)]
+  val hdfslogMap = mutable.HashMap.empty[String, HdfsLogFlowConfig]
+
   //[lookupNamespace,Seq[sourceNamespace,sinkNamespace]
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
 
-  //[sourceNamespace, [sinkNamespace, (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]
-  val flowConfigMap = mutable.LinkedHashMap.empty[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])]]
+  val initialTopicSet = mutable.HashSet.empty[String]
+
+  // (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]???
+  //[sourceNamespace, [sinkNamespace, FlowConfig]]
+  val flowConfigMap = mutable.LinkedHashMap.empty[String, mutable.LinkedHashMap[String, FlowConfig]]
 
   //sourceNamespace,sinkNamespace,minTs
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
@@ -148,7 +155,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getStreamLookupNamespaceAndTimeout(matchSourceNamespace: String, sinkNamespace: String): Seq[(String, Int)] = {
     val lookupNamespace2TimeoutList = ListBuffer.empty[(String, Int)]
     if (flowConfigMap.contains(matchSourceNamespace) && flowConfigMap(matchSourceNamespace).contains(sinkNamespace)) {
-      val flowConfig = flowConfigMap(matchSourceNamespace)(sinkNamespace)._1
+      val flowConfig = flowConfigMap(matchSourceNamespace)(sinkNamespace).swiftsProcessConfig
       if (flowConfig.nonEmpty && flowConfig.get.swiftsSql.nonEmpty) {
         val swiftsSql: Array[SwiftsSql] = flowConfig.get.swiftsSql.get
         swiftsSql.foreach(sqlConfig => {
@@ -178,6 +185,25 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     }
   }
 
+  def removeFromRouterMap(sourceNamespace: String, sinkNamespace: String): Unit = {
+    synchronized {
+      if (ConfMemoryStorage.routerMap.contains(sourceNamespace) && ConfMemoryStorage.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
+        ConfMemoryStorage.routerMap(sourceNamespace)._1.remove(sinkNamespace)
+        if (ConfMemoryStorage.routerMap(sourceNamespace)._1.isEmpty) {
+          ConfMemoryStorage.routerMap.remove(sourceNamespace)
+        }
+      }
+    }
+  }
+
+  def removeFromHdfslogMap(sourceNamespace: String): Unit = {
+    synchronized {
+      if (ConfMemoryStorage.hdfslogMap.contains(sourceNamespace)) {
+        ConfMemoryStorage.hdfslogMap.remove(sourceNamespace)
+      }
+    }
+  }
+
   def cleanStreamLookup(sourceNamespace: String, sinkNamespace: String): Unit = {
     lookup2SourceSinkNamespaceMap.foreach(kv => {
       if (kv._2.contains(sourceNamespace, sinkNamespace)) kv._2.remove((sourceNamespace, sinkNamespace))
@@ -187,18 +213,19 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
   def registerFlowConfigMap(sourceNamespace: String,
                             sinkNamespace: String,
-                            swiftsProcessConfig: Option[SwiftsProcessConfig],
-                            sinkProcessConfig: SinkProcessConfig,
-                            directiveId: Long,
-                            swiftsConfigStr: String,
-                            sinkConfigStr: String,
-                            consumptionDataTypeMap: Map[String, Boolean]
+                            flowConfig:FlowConfig
+                            //                            swiftsProcessConfig: Option[SwiftsProcessConfig],
+                            //                            sinkProcessConfig: SinkProcessConfig,
+                            //                            directiveId: Long,
+                            //                            swiftsConfigStr: String,
+                            //                            sinkConfigStr: String,
+                            //                            consumptionDataTypeMap: Map[String, Boolean]
                            ): Unit = {
     synchronized {
-      if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr, consumptionDataTypeMap))
-      else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr, consumptionDataTypeMap))
+      if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> flowConfig)
+      else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> flowConfig)
 
-      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2._3): _*)
+      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.priorityId): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
       //flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
     }
@@ -220,7 +247,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getSwiftsLogic(sourceNamespace: String, sinkNamespace: String): SwiftsProcessConfig = {
     if (flowConfigMap.contains(sourceNamespace)) {
       if (flowConfigMap(sourceNamespace).contains(sinkNamespace)) {
-        flowConfigMap(sourceNamespace)(sinkNamespace)._1.get
+        flowConfigMap(sourceNamespace)(sinkNamespace).swiftsProcessConfig.get
       } else {
         throw new Exception("Cannot resolve sinkNamespace, you may send other directive and replace original one.")
       }
@@ -231,14 +258,14 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
 
-//  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
-//    logInfo("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
-//    val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
-//    if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
-//      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
-//      logInfo("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
-//    }
-//  }
+  //  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
+  //    logInfo("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
+  //    val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
+  //    if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
+  //      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
+  //      logInfo("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
+  //    }
+  //  }
 
   def registerStreamLookupNamespaceMap(sourceNamespace: String, sinkNamespace: String, swiftsProcessConfig: Option[SwiftsProcessConfig]) {
     if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
@@ -264,20 +291,20 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       throw new Exception("Cannot find lookupnamespace: " + lookupNamespace + " in streamLookupNamespaceMap")
   }
 
-//  def getDataStoreConnectionsMap(namespace: String): ConnectionConfig = {
-//    val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
-//    if (dataStoreConnectionsMap.contains(connectionNs)) {
-//      dataStoreConnectionsMap(connectionNs)
-//    } else {
-//      throw new Exception("cannot resolve lookupNamespace, you do not send related directive.")
-//    }
-//  }
+  //  def getDataStoreConnectionsMap(namespace: String): ConnectionConfig = {
+  //    val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
+  //    if (dataStoreConnectionsMap.contains(connectionNs)) {
+  //      dataStoreConnectionsMap(connectionNs)
+  //    } else {
+  //      throw new Exception("cannot resolve lookupNamespace, you do not send related directive.")
+  //    }
+  //  }
 
   //  def existconnectionNamespace(connectionNamespace: String): Boolean = {
   //    dataStoreConnectionsMap.contains(connectionNamespace)
   //  }
 
-  def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])] = {
+  def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, FlowConfig] = {
     flowConfigMap(sourceNamespace)
   }
 
@@ -353,4 +380,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getRouterKeys: Set[String] = routerMap.keySet.toSet
 
   def getRouterMap = routerMap.toMap
+
+  def getHdfslogMap = hdfslogMap.toMap
+
+  def getDefaultMap = flowConfigMap.toMap
 }

@@ -21,24 +21,22 @@
 
 package edp.rider
 
-import java.util.Properties
-
+import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.kafka.ConsumerManager
+import edp.rider.common._
+import edp.rider.kafka.{CacheMap, KafkaUtils, RiderConsumer}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.RoutesApi
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.schedule.Scheduler
-import edp.rider.service.util.CacheMap
-import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
+import edp.rider.schedule.SchedulerActor
+import edp.rider.zookeeper.FeedbackDirectiveWatcher
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object RiderStarter extends App with RiderLogger {
@@ -55,23 +53,34 @@ object RiderStarter extends App with RiderLogger {
 
   DbModule.createSchema
 
-  if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
-    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
-
   val future = Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
 
   future.onComplete {
     case Success(_) =>
       riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
-      CacheMap.cacheMapInit
+      CacheMap.init
 
-      if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
-         ElasticSearch.initial(RiderConfig.es)
+      if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
+        Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
-      new ConsumerManager(modules)
+      if (RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
+        ElasticSearch.initial(RiderConfig.es)
+
+      val feedbackWatchActor = system.actorOf(Props[FeedbackDirectiveWatcher], "feedbackWatcher")
+      feedbackWatchActor ! FeedbackWatch
+      riderLogger.info(s"Wormhole Zookeeper feedback directive watcher started")
+
+      KafkaUtils.createRiderKafkaTopic()
+      val consumerActor = system.actorOf(Props[RiderConsumer], "riderConsumer")
+      consumerActor ! Consume
+
       riderLogger.info(s"WormholeServer Consumer started")
-      Scheduler.start
+
+      val schedulerActorDel: ActorRef = system.actorOf(Props[SchedulerActor])
+      system.scheduler.schedule(20.minute, 1.days, schedulerActorDel, HistoryDelete)
+      val schedulerActorRefresh: ActorRef = system.actorOf(Props[SchedulerActor])
+      system.scheduler.schedule(0.seconds, RiderConfig.refreshInterval.seconds, schedulerActorRefresh, RefreshYarn)
       riderLogger.info(s"Wormhole Scheduler started")
 
     case Failure(e) =>

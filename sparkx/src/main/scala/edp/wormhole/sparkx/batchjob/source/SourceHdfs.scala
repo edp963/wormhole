@@ -41,52 +41,88 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
   override def process(session: SparkSession, fromTime: String, toTime: String,
                        sourceNamespace: String, connectionConfig: ConnectionConfig,
                        specialConfig: Option[String]): DataFrame = {
+    val configuration = getConfiguration(connectionConfig)
+    val protocolTypeSet = getProtocolTypeSet(specialConfig)
+
+    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(configuration, connectionConfig.connectionUrl, sourceNamespace.toLowerCase, protocolTypeSet.toSet)
+    val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(configuration, hdfsPathList)
+    logInfo("dataPathList.length=" + dataPathList.length + ",namespace=" + sourceNamespace)
+
+    val startTime = if (fromTime == "19700101000000") null else fromTime
+    val endTime = if (toTime == "30000101000000") null else toTime
+    val filteredPathList: Seq[String] = HdfsLogReadUtil.getHdfsLogPathListBetween(configuration, dataPathList, startTime, endTime)
+    logInfo("filteredPathList.length=" + filteredPathList.length + ",namespace=" + sourceNamespace)
+
+    val ums = checkAndGetUms(filteredPathList, configuration)
+    logInfo("ums:" + ums.toString + ",namespace=" + sourceNamespace)
+
+    if (filteredPathList.nonEmpty) {
+      val strDS = session.read.textFile(filteredPathList: _*)
+        .repartition(session.sqlContext.getConf("spark.sql.shuffle.partitions").toInt)
+      val umsStrRDD: RDD[String] = strDS.rdd.mapPartitions { lineIt =>
+        var tmpContent = ""
+        lineIt.map(line => {
+          var rowContent = line.trim
+          val umsStrTuple = getUmsString(rowContent, tmpContent)
+          tmpContent = umsStrTuple._2
+          rowContent = umsStrTuple._1
+          rowContent
+        })
+      }.filter(_ != "N/A")
+
+      val rowRdd: RDD[Row] = umsStrRDD.mapPartitions(lineIt => {
+        lineIt.flatMap(umsStr => {
+          toUms(umsStr: String)
+        })
+      })
+      logInfo("!!!!!!!umsRDD.getNumPartitions:" + rowRdd.getNumPartitions)
+
+      val fields = ums.schema.fields_get
+      val allData: DataFrame = SparkSchemaUtils.createDf(session, fields, rowRdd)
+      filterData(allData, startTime, endTime)
+    } else {
+      logInfo("filteredPathList is empty,namespace=" + sourceNamespace)
+      null.asInstanceOf[DataFrame]
+    }
+  }
+
+  def filterData(allData: DataFrame, startTime: String, endTime: String): DataFrame = {
+    val fromTs = if (startTime == null) DateUtils.dt2timestamp(DateUtils.yyyyMMddHHmmss(DateUtils.unixEpochTimestamp)) else DateUtils.dt2timestamp(startTime)
+    val toTs = if (endTime == null) DateUtils.dt2timestamp(DateUtils.currentDateTime) else DateUtils.dt2timestamp(DateUtils.dt2dateTime(endTime))
+    val timeFilter = s"""${UmsSysField.TS.toString} >= '$fromTs' and ${UmsSysField.TS.toString} <= '$toTs'"""
+    logInfo("!!!!@filter condition: " + timeFilter)
+    allData.filter(timeFilter)
+  }
+
+  def toUms(umsStr: String): Seq[Row] = {
+    try {
+      val ums = UmsSchemaUtils.toUms(umsStr)
+      ums.payload_get.map(dataRow => {
+        val row: Option[Row] = SparkUtils.umsToSparkRowWrapper(ums.schema.namespace, ums.schema.fields_get, dataRow.tuple)
+        row.getOrElse(Row.empty)
+      })
+    } catch {
+      case e: Exception =>
+        logAlert(s"serialize line $umsStr to ums failed", e)
+        List {
+          Row.empty
+        }
+    }
+  }
+
+  def getProtocolTypeSet(specialConfig: Option[String]): mutable.Set[String] = {
     val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString.split(" ").mkString("")))
     val specialConfigObject = JSON.parseObject(specialConfigStr)
     val initial = specialConfigObject.getBoolean(InputDataProtocolBaseType.INITIAL.toString)
     val increment = specialConfigObject.getBoolean(InputDataProtocolBaseType.INCREMENT.toString)
-//    val (sourceNamenodeAddressSeq,sourceNamenodeIdSeq) = if(specialConfigObject.containsKey("sourceNamenodeHosts")){
-//      (specialConfigObject.getString("sourceNamenodeAddress"),specialConfigObject.getString("sourceNamenodeIds"))
-//    }else (null.asInstanceOf[String],null.asInstanceOf[String])
-
-    var sourceNamenodeHosts = null.asInstanceOf[String]
-    var sourceNamenodeIds = null.asInstanceOf[String]
-    if(connectionConfig.parameters.nonEmpty) connectionConfig.parameters.get.foreach(param=>{
-      if(param.key=="hdfs_namenode_hosts")sourceNamenodeHosts=param.value
-      if(param.key=="hdfs_namenode_ids")sourceNamenodeIds=param.value
-    })
-
-    val configuration = new Configuration()
-    val hdfsPath = connectionConfig.connectionUrl
-    val hdfsPathGrp = hdfsPath.split("//")
-    val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
-    configuration.set("fs.defaultFS", hdfsRoot)
-    configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
-    if(sourceNamenodeHosts != null) {
-      val clusterName = hdfsRoot.split("//")(1)
-      configuration.set("dfs.nameservices", clusterName)
-      configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
-      val namenodeAddressSeq = sourceNamenodeHosts.split(",")
-      val namenodeIdSeq = sourceNamenodeIds.split(",")
-      for (i <- 0 until namenodeAddressSeq.length){
-        configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
-      }
-      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
-    }
-
-    assert((!initial && !increment) != true, "initial and increment should not be false at the same time.")
-    val protocolTypeSet = mutable.HashSet.empty[String]
+    assert(initial || increment, "initial and increment should not be false at the same time.")
+    val protocolTypeSet: mutable.Set[String] = mutable.HashSet.empty[String]
     if (initial) protocolTypeSet += UmsProtocolType.DATA_INITIAL_DATA.toString
     if (increment) protocolTypeSet += UmsProtocolType.DATA_INCREMENT_DATA.toString
+    protocolTypeSet
+  }
 
-
-    val startTime = if (fromTime == "19700101000000") null else fromTime
-    val endTime = if (toTime == "30000101000000") null else toTime
-    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(configuration,connectionConfig.connectionUrl, sourceNamespace.toLowerCase, protocolTypeSet.toSet)
-    val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(configuration,hdfsPathList)
-    logInfo("dataPathList.length=" + dataPathList.length + ",namespace=" + sourceNamespace)
-    val filteredPathList = HdfsLogReadUtil.getHdfsLogPathListBetween(configuration,dataPathList, startTime, endTime)
-    //    filteredPathList.foreach(t => println("@@@@@@@@@@@" + t))
+  def checkAndGetUms(filteredPathList: Seq[String], configuration: Configuration): Ums = {
     var ums: Ums = null
     var i = 1
     assert(filteredPathList.nonEmpty, "path list size is 0, there is no matched data")
@@ -107,89 +143,60 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
           logAlert("umsContent=" + umsContent, e)
       }
     }
-
     assert(ums != null, "ums is null")
-    logInfo("ums:" + ums.toString + ",namespace=" + sourceNamespace)
-
-    logInfo("filteredPathList.length=" + filteredPathList.length + ",namespace=" + sourceNamespace)
-    if (filteredPathList.nonEmpty) {
-      val fileArray = new Array[RDD[Ums]](filteredPathList.length)
-      //      val finalUnionRdd = if (filteredPathList.length <= 100) {
-      filteredPathList.zipWithIndex.foreach {
-        case (eachFile, index) =>
-          val strRdd: RDD[String] = session.sparkContext.textFile(eachFile, 1) //.persist(StorageLevel.MEMORY_AND_DISK_SER)
-          logInfo("one file has partition num=" + strRdd.getNumPartitions + ",namespace=" + sourceNamespace)
-          fileArray(index) = strRdd.mapPartitionsWithIndex((indexparitition, lineIt) => {
-            println("arrayIndex:" + index + "   " + "partition index:" + indexparitition + "    " + "start:")
-            val successList = ListBuffer.empty[Ums]
-            //            val contentList = ListBuffer.empty[String]
-            var rowContent = ""
-            //            var kafkaKey = ""
-            //            var firstCondition = true
-            //            var secondCondition = false
-            lineIt.foreach(line => {
-              try {
-                rowContent = rowContent + line
-                if (rowContent.startsWith("{") && rowContent.endsWith("}")) {
-                  successList += UmsSchemaUtils.toUms(rowContent)
-                  rowContent = ""
-                }
-
-
-                //                secondCondition = line.endsWith("}")
-                //                var condition = false
-                //                conditionArr.foreach(bool => condition = condition || bool)
-                //                if (condition) {
-                //                  if (contentList.nonEmpty) {
-                //                contentList += line
-                //                    try {
-                //                      successList += UmsSchemaUtils.toUms(line)
-                //                    } catch {
-                //                      case e: Throwable => logAlert("json2caseClass content=" + line, e)
-                //                    }
-                //                  }
-                //                  kafkaKey = ""
-                //                  contentList.clear()
-                //                  val splitIndex = line.indexOf("{")
-                //                  kafkaKey = line.substring(0, splitIndex)
-                //                  contentList += line.substring(splitIndex)
-                //                } else {
-                //                  contentList += line
-                //                }
-              } catch {
-                case _: Throwable => logAlert("json2caseClass content=" + rowContent.mkString("\n"))
-              }
-            })
-            //            if (contentList.nonEmpty) {
-            //              try {
-            //                if (contentList.length == 1) successList += UmsSchemaUtils.toUms(contentList.head)
-            //                else successList += UmsSchemaUtils.toUms(contentList.mkString(" "))
-            //              } catch {
-            //                case e: Throwable => logAlert("contentList=" + contentList, e)
-            //              }
-            //            }
-
-            logInfo("successList.length=" + successList.length)
-            successList.toIterator
-          })
-          logInfo("index=" + index)
-      }
-
-      val finalUnionRdd = session.sparkContext.union(fileArray.toList)
-      println("!!!!!!!unionRdd.getNumPartitions:" + finalUnionRdd.getNumPartitions)
-
-      val fields = ums.schema.fields_get
-      val payloadRdd: RDD[Seq[String]] = finalUnionRdd.flatMap(_.payload_get.map(_.tuple))
-      val rowRdd: RDD[Row] = payloadRdd.flatMap(row => SparkUtils.umsToSparkRowWrapper(ums.schema.namespace, fields, row))
-      val allData = SparkSchemaUtils.createDf(session, fields, rowRdd)
-      val fromTs = if (startTime == null) DateUtils.dt2timestamp(DateUtils.yyyyMMddHHmmss(DateUtils.unixEpochTimestamp)) else DateUtils.dt2timestamp(startTime)
-      val toTs = if (endTime == null) DateUtils.dt2timestamp(DateUtils.currentDateTime) else DateUtils.dt2timestamp(DateUtils.dt2dateTime(endTime))
-      val timeFilter = s"""${UmsSysField.TS.toString} >= '$fromTs' and ${UmsSysField.TS.toString} <= '$toTs'"""
-      println("!!!!@filter condition: " + timeFilter)
-      allData.filter(timeFilter)
-    } else {
-      logInfo("filteredPathList is empty,namespace=" + sourceNamespace)
-      null.asInstanceOf[DataFrame]
-    }
+    ums
   }
+
+  def getConfiguration(connectionConfig: ConnectionConfig): Configuration = {
+    var sourceNamenodeHosts = null.asInstanceOf[String]
+    var sourceNamenodeIds = null.asInstanceOf[String]
+    if (connectionConfig.parameters.nonEmpty) connectionConfig.parameters.get.foreach(param => {
+      if (param.key == "hdfs_namenode_hosts") sourceNamenodeHosts = param.value
+      if (param.key == "hdfs_namenode_ids") sourceNamenodeIds = param.value
+    })
+
+    val configuration = new Configuration()
+    val hdfsPath = connectionConfig.connectionUrl
+    val hdfsPathGrp = hdfsPath.split("//")
+    val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
+    configuration.set("fs.defaultFS", hdfsRoot)
+    configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
+    if (sourceNamenodeHosts != null) {
+      val clusterName = hdfsRoot.split("//")(1)
+      configuration.set("dfs.nameservices", clusterName)
+      configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
+      val namenodeAddressSeq = sourceNamenodeHosts.split(",")
+      val namenodeIdSeq = sourceNamenodeIds.split(",")
+      for (i <- 0 until namenodeAddressSeq.length) {
+        configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
+      }
+      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+    }
+    configuration
+  }
+
+  def getUmsString(line: String, tmpContent: String): (String, String) = {
+    var innerTmpContent = tmpContent
+    var lineContent = line.trim
+    val rowStr = if (innerTmpContent.isEmpty) {
+      if (lineContent.startsWith("{") && lineContent.endsWith("}")) {
+        lineContent
+      } else {
+        innerTmpContent += lineContent
+        "N/A"
+      }
+    } else {
+      innerTmpContent += lineContent
+      if (innerTmpContent.startsWith("{") && innerTmpContent.endsWith("}")) {
+        val tmp = innerTmpContent
+        innerTmpContent = ""
+        tmp
+      } else {
+        "N/A"
+      }
+    }
+
+    (rowStr, innerTmpContent)
+  }
+
 }

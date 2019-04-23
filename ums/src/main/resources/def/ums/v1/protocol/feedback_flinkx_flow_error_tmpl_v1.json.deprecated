@@ -1,6 +1,6 @@
 {
   "protocol": {
-    "type": "feedback_flow_flinkx_error"
+    "type": "feedback_flinkx_flow_error"
   },
   "schema": {
     "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
@@ -39,7 +39,14 @@
   },
   "payload": [
     {
-      "tuple": [  "2016-06-01 01:00:11.345123",1,5,"oracle.oracle02.db.table.v2.dbpar01.tablepar01","ums_ts_:2016-05-01 01:00:11.345123;ums_id_:2;ums_op:i;name:Lily","abc" ]
+      "tuple": [
+        "2016-06-01 01:00:11.345123",
+        1,
+        5,
+        "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
+        "ums_ts_:2016-05-01 01:00:11.345123;ums_id_:2;ums_op:i;name:Lily",
+        "abc"
+      ]
     }
   ]
 }

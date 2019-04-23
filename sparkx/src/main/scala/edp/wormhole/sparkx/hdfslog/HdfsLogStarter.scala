@@ -49,7 +49,7 @@ object HdfsLogStarter extends App with EdpLogging { //todo set hdfslog metadata 
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  HdfsMainProcess.process(kafkaStream, config, appId)
+  HdfsMainProcess.process(kafkaStream, config, appId,kafkaInput)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)

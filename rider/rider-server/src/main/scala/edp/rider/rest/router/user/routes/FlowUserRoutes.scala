@@ -33,7 +33,8 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
 
   lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~
     lookupSqlPermVerifyRoute ~ postFlowTopicsOffset ~ postUserDefinedTopic ~ getTopics ~ getUdfs ~ startRoute ~
-    stopRoute ~ getLogRoute ~ getDriftStreamsRoute ~ getDriftFlowTipRoute ~ driftFlowRoute
+    stopRoute ~ getLogRoute ~ getDriftStreamsRoute ~ getDriftFlowTipRoute ~ driftFlowRoute ~ getFeedbackErrors ~
+    backFillFeedbackError ~ queryBackFillLog
 
   lazy val basePath = "projects"
 
@@ -96,7 +97,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "flow", value = "Flow Object", required = true, dataType = "edp.rider.rest.persistence.entities.Flow", paramType = "body")
+    new ApiImplicitParam(name = "flow", value = "Flow Object", required = true, dataType = "edp.rider.rest.persistence.entities.FlowUpdateInfo", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
@@ -290,5 +291,54 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def driftFlowRoute: Route = modules.flowUserService.driftFlow(basePath)
+
+  @Path("/{projectId}/flows/{flowId}/errors")
+  @ApiOperation(value = "get flow errors by flow id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getFeedbackErrors: Route = modules.flowUserService.getFeedbackErrors(basePath)
+
+  @Path("/{projectId}/errors/{errorId}/backfill")
+  @ApiOperation(value = "back fill error kafka message", notes = "", nickname = "", httpMethod = "POST")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "errorId", value = "error id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "protocolType", value = "protocol type", required = true, dataType = "edp.rider.rest.persistence.entities.RechargeType", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def backFillFeedbackError: Route = modules.flowUserService.backFillFeedbackError(basePath)
+
+  @Path("/{projectId}/errors/{errorId}/log")
+  @ApiOperation(value = "get error execution log by error id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "errorId", value = "error id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def queryBackFillLog: Route = modules.flowUserService.queryBackFillLog(basePath)
 }
 

@@ -280,7 +280,6 @@ export class NamespaceForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-
             <Col span={7}>
               <FormItem label="" style={{ marginLeft: '2px' }}>
                 {getFieldDecorator('nsSingleTableName', {})(
@@ -288,8 +287,8 @@ export class NamespaceForm extends React.Component {
                     placeholder={namespaceTablePlace}
                     onChange={(e) => this.props.onInitNsNameInputValue(e.target.value)}
                     disabled={disabledOrNot}
-                  />
-                )}
+                    />
+                  )}
               </FormItem>
             </Col>
             <Col span={7}>
@@ -312,14 +311,13 @@ export class NamespaceForm extends React.Component {
               </Tooltip>
             </Col>
           </span>
-
           <Col span={6} className={addTableClassTable}></Col>
           <Col span={17} className="ns-add-table-class" style={{ paddingLeft: '2px' }}>
             <Table
               className={`${addTableClassTable} ns-add-table`}
               dataSource={namespaceTableSource}
               columns={columns}
-              // showHeader={false}
+                  // showHeader={false}
               pagination={pagination}
               bordered
             />

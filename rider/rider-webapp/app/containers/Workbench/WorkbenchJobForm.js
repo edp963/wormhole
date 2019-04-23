@@ -43,6 +43,7 @@ import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Checkbox from 'antd/lib/checkbox'
 import Radio from 'antd/lib/radio'
+import Select from 'antd/lib/select'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
@@ -173,7 +174,8 @@ export class WorkbenchJobForm extends React.Component {
     const { jobDiffType, step, form, jobMode, fieldSelected, jobTranTableConfirmValue, onShowJobTransModal,
       onShowJobSinkConfigModal, jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
       onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs, jobSourceNsSys,
-      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue
+      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue,
+      initialSourceNsVersion
     } = this.props
     const { getFieldDecorator } = form
     const { sinkConfigClass, sourceNsData, sinkNsData, backfillSinkDSValue, backfillTopicValue } = this.state
@@ -501,6 +503,20 @@ export class WorkbenchJobForm extends React.Component {
                     displayRender={displayRenderNamespace}
                     onChange={(e, selectedOptions) => initialBackfillCascader(e, selectedOptions)}
                   />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Version" {...itemStyle}>
+                {getFieldDecorator('sourceNamespaceVersion', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('version', 'Version')
+                  }]
+                })(
+                  <Select style={{ width: 120 }} allowClear onFocus={initialSourceNsVersion}>
+                    {this.props.sourceNsVersionList.map((v, i) => (<Select.Option value={v} key={i}>{v}</Select.Option>))}
+                  </Select>
                 )}
               </FormItem>
             </Col>
@@ -846,7 +862,8 @@ WorkbenchJobForm.propTypes = {
   backfillSinkNsValue: PropTypes.string,
   clearSinkData: PropTypes.func,
   jobSourceNsSys: PropTypes.string,
-
+  sourceNsVersionList: PropTypes.array,
+  initialSourceNsVersion: PropTypes.func,
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string
 }

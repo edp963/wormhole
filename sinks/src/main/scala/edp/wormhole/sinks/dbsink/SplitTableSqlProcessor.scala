@@ -255,21 +255,29 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
     val subTkNames = if (namespace.dataSys == UmsDataSystem.MYSQL) subUpdateFieldNames.map(fieldName => s"`$fieldName`=?").mkString(",")
     else subUpdateFieldNames.map(n => n.toUpperCase).map(fieldName => s"$fieldName=?").mkString(",")
 
-    val masterSql = if (opType.startsWith("i")) s"INSERT INTO $mTableName ($masterColumnNames) VALUES " + (1 to masterBaseFieldNames.size).map(_ => "?").mkString("(", ",", ")")
-    else if (opType.startsWith("u")) s"UPDATE $mTableName SET $updateColumns WHERE $dataTkNames "
-    else s"delete from $mTableName  WHERE $dataTkNames "
+    val masterSql =
+      if (opType.startsWith("i")) {
+        if (namespace.dataSys == UmsDataSystem.ORACLE && specificConfig.oracle_sequence_config.nonEmpty) {
+          val fieldName = specificConfig.oracle_sequence_config.get.field_name
+          val sequenceName = specificConfig.oracle_sequence_config.get.sequence_name + ".NEXTVAL"
+          s"INSERT INTO $mTableName ($fieldName,$masterColumnNames) VALUES " + (1 to masterBaseFieldNames.size).map(_ => "?").mkString("(" + sequenceName + ",", ",", ")")
+        } else {
+          s"INSERT INTO $mTableName ($masterColumnNames) VALUES " + (1 to masterBaseFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+        }
+      } else if (opType.startsWith("u")) s"UPDATE $mTableName SET $updateColumns WHERE $dataTkNames "
+      else s"delete from $mTableName  WHERE $dataTkNames "
+
     val subSql = if (opType.split("_")(1).startsWith("i")) s"INSERT INTO $sTableName ($subColumnNames,${UmsSysField.ACTIVE.toString}) VALUES " + (1 to subBaseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
     else s"UPDATE $sTableName SET $subTkNames ,${UmsSysField.ACTIVE.toString}=? WHERE $dataTkNames "
 
-    val batchSize = specificConfig.`db.sql_batch_size.get`
-    val errorTupleList = specialExecuteSql(tupleList, masterSql, subSql, batchSize)
+    val errorTupleList = specialExecuteSql(tupleList, masterSql, subSql)
     val errorTuple2List = specialExecuteSql(errorTupleList, masterSql, subSql, 1)
     if (errorTuple2List.nonEmpty) errorTuple2List.foreach(data => logger.error("opType:" + opType + ",data:" + data))
     errorTuple2List
   }
 
 
-  def specialExecuteSql(tupleList: Seq[Seq[String]], masterSql: String, subSql: String, batchSize: Int): List[Seq[String]] = {
+  def specialExecuteSql(tupleList: Seq[Seq[String]], masterSql: String, subSql: String, retryCount: Int = 0): List[Seq[String]] = {
     def setPlaceholder(tuple: Seq[String], ps: PreparedStatement, sqlType: String, sql: String, insertFieldNames: List[String], updateFieldNames: List[String]) = {
       var parameterIndex: Int = 1
       if (sqlType == DataTable) {
@@ -333,32 +341,32 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
       conn.setAutoCommit(false)
       logger.info(s"@write list.size:${tupleList.length} masterSql $masterSql")
       logger.info(s"@write list.size:${tupleList.length} subSql $subSql")
-      tupleList.sliding(batchSize, batchSize).foreach(tuples => {
+      tupleList.foreach(tuples => {
         try {
           psMaster = conn.prepareStatement(masterSql)
-          tuples.foreach(tuple => {
-            setPlaceholder(tuple, psMaster, DataTable, masterSql, masterBaseFieldNames, masterUpdateFieldNames)
-            psMaster.addBatch()
-          })
+          //tuples.foreach(tuple => {
+          setPlaceholder(tuples, psMaster, DataTable, masterSql, masterBaseFieldNames, masterUpdateFieldNames)
+          psMaster.addBatch()
+          // })
           psMaster.executeBatch()
 
           psSub = conn.prepareStatement(subSql)
-          tuples.foreach(tuple => {
-            setPlaceholder(tuple, psSub, IdempotencyTable, subSql, subBaseFieldNames, subUpdateFieldNames)
-            psSub.addBatch()
-          })
+          //tuples.foreach(tuple => {
+          setPlaceholder(tuples, psSub, IdempotencyTable, subSql, subBaseFieldNames, subUpdateFieldNames)
+          psSub.addBatch()
+          // })
           psSub.executeBatch()
           conn.commit()
         } catch {
           case e: Throwable =>
             logger.warn("executeBatch error", e)
-            errorTupleList ++= tuples
-            if (batchSize == 1)
+            errorTupleList ++= tupleList
+            if (retryCount == 1)
               logger.info("violate tuple -----------" + tuples)
-            try{
+            try {
               conn.rollback()
-            }catch {
-              case e:Throwable=>logger.warn("rollback error",e)
+            } catch {
+              case e: Throwable => logger.warn("rollback error", e)
             }
         } finally {
           psMaster.clearBatch()

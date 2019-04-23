@@ -33,6 +33,7 @@ const TabPane = Tabs.TabPane
 import Steps from 'antd/lib/steps'
 const Step = Steps.Step
 import message from 'antd/lib/message'
+import Spin from 'antd/lib/spin'
 import Moment from 'moment'
 
 import {
@@ -78,7 +79,7 @@ import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
 import { loadResources } from '../Resource/action'
 import { loadSingleUdf } from '../Udf/action'
-import { loadJobSourceToSinkExist, addJob, queryJob, editJob, loadJobBackfillTopic } from '../Job/action'
+import { loadJobSourceToSinkExist, addJob, queryJob, editJob, loadJobBackfillTopic, getSourceNsVersion } from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading } from '../Manager/selectors'
@@ -128,8 +129,15 @@ export class Workbench extends React.Component {
       transConnectClass: 'hide',
       flowTransNsData: [],
       hasPattern: true,
-      outputType: 'agg',
-
+      outputType: 'detail',
+      outputFieldList: [
+        // {
+        //   function_type: 'max',
+        //   field_name: '1',
+        //   alias_name: '1',
+        //   _id: 0
+        // }
+      ],
       step2SinkNamespace: '',
       step2SourceNamespace: '',
 
@@ -225,7 +233,9 @@ export class Workbench extends React.Component {
         '2': 'backfill'
       },
       flowSourceNsSys: '',
-      jobSourceNsSys: ''
+      jobSourceNsSys: '',
+      sourceNsVersionList: [],
+      globalLoading: false
     }
   }
 
@@ -337,7 +347,37 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys })
+    const jobSourceNsSys = selectedOptions[selectedOptions.length - 1].nsSys
+    this.setState({jobSourceNsSys})
+    if (this.state.jobDiffType === 'backfill') {
+      this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys })
+    } else if (this.state.jobDiffType === 'default') {
+      this.setState({singleJobResult: {
+        sourceNs: `${jobSourceNsSys}.${value.join('.')}`
+      }})
+    }
+  }
+  initialSourceNsVersion = () => {
+    const { singleJobResult, sourceNsVersionList } = this.state
+    if (sourceNsVersionList.length > 0) return
+    if (!singleJobResult.sourceNs) {
+      message.warn('请先选择namespace')
+      return
+    }
+    const namespace = singleJobResult.sourceNs
+    const { projectId } = this.state
+    this.setState({globalLoading: true})
+    this.props.onLoadSourceNsVersion(projectId, namespace, result => {
+      this.setState({globalLoading: false})
+      if (!result) {
+        message.warn('hdfs没有该namespace的数据')
+        return
+      }
+      const arr = result.split(',')
+      arr.sort((a, b) => a - b)
+      // this.workbenchJobForm.setFieldsValue({sourceNamespaceVersion: arr[arr.length - 1]})
+      this.setState({sourceNsVersionList: arr})
+    })
   }
   initialRoutingCascader = (value, selectedOptions) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
@@ -416,7 +456,7 @@ export class Workbench extends React.Component {
       etpStrategyConfirmValue: '',
       etpStrategyRequestValue: {},
       cepPropData: {},
-      outputType: 'agg',
+      outputType: 'detail',
       transformMode: '',
       flowSubPanelKey: 'spark'
     }, () => {
@@ -567,6 +607,8 @@ export class Workbench extends React.Component {
   }
 
   showEditJobWorkbench = (job) => () => {
+    this.workbenchJobForm.resetFields()
+    this.setState({sourceNsVersionList: []})
     const { mapJobType } = this.state
     this.setState({ jobMode: 'edit', jobDiffType: job.jobType })
 
@@ -579,7 +621,6 @@ export class Workbench extends React.Component {
         const resultFinal = result.job
         resolve(resultFinal)
         const sourceConfigTemp = resultFinal.sourceConfig
-
         this.workbenchJobForm.setFieldsValue({
           protocol: JSON.parse(sourceConfigTemp).protocol,
           jobName: resultFinal.name,
@@ -716,10 +757,11 @@ export class Workbench extends React.Component {
         const jobSpecialConfigVal = resultFinal.tranConfig !== ''
           ? JSON.stringify(JSON.parse(resultFinal.tranConfig).swifts_specific_config)
           : ''
-
+        this.setState({jobSourceNsSys: sourceNsArr[0]})
         this.workbenchJobForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
           sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
+          sourceNamespaceVersion: sourceNsArr[4],
           sinkDataSystem: sinkNsArr[0],
           sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
@@ -795,15 +837,22 @@ export class Workbench extends React.Component {
       }
       this.props.onQueryFlow(requestData, (result) => {
         resolve(result)
-
-        const { streamId, streamName, streamType, consumedProtocol, flowName, tableKeys } = result
+        const { tranConfig, streamId, streamName, streamType, consumedProtocol, flowName, tableKeys, parallelism } = result
+        let tranConfigParse = {}
+        try {
+          tranConfigParse = JSON.parse(tranConfig)
+        } catch (error) {
+          console.error('warn: tranConfig parse error')
+        }
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: streamId,
           streamName: streamName,
           streamType: streamType,
           protocol: consumedProtocol.split(','),
           flowName,
-          tableKeys
+          tableKeys,
+          parallelism,
+          time_characteristic: tranConfigParse.time_characteristic || ''
         })
 
         const { id, projectId, sourceNs, sinkNs, status, active,
@@ -1237,7 +1286,7 @@ export class Workbench extends React.Component {
           etpStrategyConfirmValue: '',
           etpStrategyRequestValue: {},
           cepPropData: {},
-          outputType: 'agg',
+          outputType: 'detail',
           transformMode: '',
           flowSubPanelKey: value
         }, () => {
@@ -2004,9 +2053,9 @@ export class Workbench extends React.Component {
       desc: ''
     }
 
+    const sourceDataInfo = [jobSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], values.sourceNamespaceVersion, '*', '*'].join('.')
     if (jobMode === 'add') {
       // source data system 选择log后，根据接口返回的nsSys值，拼接 sourceDataInfo
-      const sourceDataInfo = [jobSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = jobDiffType === 'backfill' ? sourceDataInfo : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitJobData = {
@@ -2023,7 +2072,10 @@ export class Workbench extends React.Component {
         this.hideJobSubmit()
       })
     } else if (jobMode === 'edit') {
-      this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, {
+      const sourceNsData = {
+        sourceNs: sourceDataInfo
+      }
+      this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, sourceNsData, {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }), () => {
         message.success(locale === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)
@@ -2034,12 +2086,14 @@ export class Workbench extends React.Component {
   }
 
   hideJobSubmit = () => {
+    this.workbenchJobForm.resetFields()
     this.setState({
       jobMode: '',
       jobTranTagClassName: '',
       jobTranTableClassName: 'hide',
       fieldSelected: 'hide',
-      jobFormTranTableSource: []
+      jobFormTranTableSource: [],
+      sourceNsVersionList: []
     })
   }
 
@@ -2446,14 +2500,21 @@ export class Workbench extends React.Component {
         transformValue: record.transformType
       }, () => {
         let cepFormData = typeof record.tranConfigInfoSql === 'string' && JSON.parse(record.tranConfigInfoSql.split(';')[0])
-        let outputText = ''
+        let outputFieldList = this.state.outputFieldList
         if (cepFormData.output) {
           if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
-            outputText = cepFormData.output && cepFormData.output.field_list
+            outputFieldList = cepFormData.output && cepFormData.output.field_list
+            outputFieldList.forEach((v, i) => {
+              if (!v._id) {
+                v._id = Date.now() - i
+              }
+            })
           }
         }
+        const outputType = cepFormData.output && cepFormData.output.type
         this.setState({
-          outputType: cepFormData.output && cepFormData.output.type,
+          outputType,
+          outputFieldList,
           transformModalVisible: true
         }, () => {
           this.flowTransformForm.setFieldsValue({
@@ -2461,7 +2522,6 @@ export class Workbench extends React.Component {
             strategy: cepFormData.strategy,
             keyBy: cepFormData.key_by_fields,
             output: cepFormData.output && cepFormData.output.type,
-            outputText,
             editTransformId: record.order,
             transformation: record.transformType
           })
@@ -2531,23 +2591,6 @@ export class Workbench extends React.Component {
           case 'transformClassName':
             this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
             break
-          // case 'cep':
-          //   let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
-          //   let outputText = ''
-          //   if (cepFormData.output) {
-          //     if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
-          //       outputText = cepFormData.output && cepFormData.output.field_list
-          //     }
-          //   }
-          //   this.setState({cepPropData: this.state.flowFormTranTableSource[record.order - 1]})
-          //   this.flowTransformForm.setFieldsValue({
-          //     windowTime: cepFormData.max_interval_seconds || '',
-          //     strategy: cepFormData.strategy,
-          //     keyBy: cepFormData.key_by_fields,
-          //     output: cepFormData.output && cepFormData.output.type,
-          //     outputText
-          //   })
-          //   break
         }
       })
     }
@@ -2579,7 +2622,7 @@ export class Workbench extends React.Component {
     this.setState({
       transformMode: 'add',
       transformValue: '',
-      outputType: 'agg',
+      outputType: 'detail',
       cepPropData: {}
     }, () => {
       this.setState({transformModalVisible: true}, () => {
@@ -2762,7 +2805,7 @@ export class Workbench extends React.Component {
    */
   onTransformModalOk = () => {
     const { transformMode, transformSinkNamespaceArray, flowPatternCepDataSource } = this.state
-    this.flowTransformForm.validateFieldsAndScroll((err, values) => {
+    this.flowTransformForm.validateFieldsAndScroll({force: true}, (err, values) => {
       if (!err) {
         let transformConfigInfoString = ''
         let tranConfigInfoSqlString = ''
@@ -2901,7 +2944,35 @@ export class Workbench extends React.Component {
             break
           case 'cep':
             let windowTime = values.windowTime == null ? -1 : values.windowTime
-            let outputText = values.outputText == null ? '' : `${values.outputText}`
+            let outputFieldList = []
+            if (values.output === 'agg') {
+              const rowKeysMap = {}
+              Object.keys(values).forEach(v => {
+                if (!v.includes('outputAggSelect') && !v.includes('outputAggFieldName') && !v.includes('outputAggRename')) return
+                const flag = v.split('_')[1]
+                if (!rowKeysMap[flag]) {
+                  rowKeysMap[flag] = {}
+                }
+                if (v.includes('outputAggSelect')) {
+                  rowKeysMap[flag].function_type = values[v]
+                }
+                if (v.includes('outputAggFieldName')) {
+                  rowKeysMap[flag].field_name = values[v]
+                }
+                if (v.includes('outputAggRename')) {
+                  rowKeysMap[flag].alias_name = values[v]
+                }
+              })
+              Object.keys(rowKeysMap).forEach(v => {
+                outputFieldList.push(rowKeysMap[v])
+              })
+            } else if (values.output === 'filteredRow') {
+              let obj = {
+                function_type: values[`outputFilteredRowSelect`],
+                field_name: values[`outputFilteredRowSelectFieldName`] || ''
+              }
+              outputFieldList.push(obj)
+            }
             if (flowPatternCepDataSource && flowPatternCepDataSource.length === 0) {
               this.setState({hasPattern: false})
               return
@@ -2915,7 +2986,7 @@ export class Workbench extends React.Component {
               max_interval_seconds: windowTime,
               output: {
                 type: values.output,
-                field_list: outputText
+                field_list: outputFieldList
               },
               strategy: values.strategy,
               pattern_seq: partterSeq
@@ -3447,7 +3518,8 @@ export class Workbench extends React.Component {
       resultFieldsValue: 'all',
       backfillSinkNsValue: '',
       jobDiffType: 'default',
-      backfillTopicValueProp: ''
+      backfillTopicValueProp: '',
+      sourceNsVersionList: []
     }, () => {
       this.workbenchJobForm.setFieldsValue({
         // type: 'default',
@@ -3514,7 +3586,8 @@ export class Workbench extends React.Component {
       flowFormTranTableSource, jobFormTranTableSource, namespaceClassHide, userClassHide,
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
       etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
-      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern, outputType
+      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern,
+      outputType, outputFieldList
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
@@ -3531,440 +3604,445 @@ export class Workbench extends React.Component {
     return (
       <div className="workbench-main-body">
         <Helmet title="Workbench" />
-        <Tabs
-          defaultActiveKey="flow"
-          animated={false}
-          activeKey={this.props.activeKey}
-          className="ri-tabs"
-          onChange={this.changeTag}
+        <Spin spinning={this.state.globalLoading}>
+          <Tabs
+            defaultActiveKey="flow"
+            animated={false}
+            activeKey={this.props.activeKey}
+            className="ri-tabs"
+            onChange={this.changeTag}
         >
-          {/* Flow Panel */}
-          <TabPane tab="Flow" key="flow" forceRender style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
-              <Flow
-                className={flowMode ? 'op-mode' : ''}
-                onShowAddFlow={this.showAddFlowWorkbench}
-                onShowEditFlow={this.showEditFlowWorkbench}
-                onShowCopyFlow={this.showCopyFlowWorkbench}
-                projectIdGeted={projectId}
-                flowClassHide={flowClassHide}
+            {/* Flow Panel */}
+            <TabPane tab="Flow" key="flow" forceRender style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+                <Flow
+                  className={flowMode ? 'op-mode' : ''}
+                  onShowAddFlow={this.showAddFlowWorkbench}
+                  onShowEditFlow={this.showEditFlowWorkbench}
+                  onShowCopyFlow={this.showCopyFlowWorkbench}
+                  projectIdGeted={projectId}
+                  flowClassHide={flowClassHide}
               />
-              <div className={`ri-workbench-sidebar ri-common-block ${flowMode ? 'op-mode' : ''}`}>
-                <h3 className="ri-common-block-title">
-                  {`${sidebarPrefixes[flowMode] || ''} Flow`}
-                </h3>
-                <div className="ri-common-block-tools">
-                  <Button icon="arrow-left" type="ghost" onClick={this.hideFlowWorkbench}></Button>
-                </div>
-                <div className="ri-workbench-sidebar-container">
-                  <Steps current={formStep}>
-                    <Step title="Pipeline" />
-                    <Step title="Transformation" />
-                    <Step title="Confirmation" />
-                  </Steps>
-                  <WorkbenchFlowForm
-                    step={formStep}
-                    sourceNamespaces={projectNamespaces || []}
-                    sinkNamespaces={projectNamespaces || []}
-                    streams={streams || []}
-                    flowMode={flowMode}
-                    projectIdGeted={projectId}
-                    streamId={pipelineStreamId}
-
-                    onShowTransformModal={this.onShowTransformModal}
-                    onShowEtpStrategyModal={this.onShowEtpStrategyModal}
-                    onShowSinkConfigModal={this.onShowSinkConfigModal}
-                    onShowSpecialConfigModal={this.onShowSpecialConfigModal}
-
-                    transformTableSource={flowFormTranTableSource}
-                    transformTagClassName={this.state.transformTagClassName}
-                    transformTableClassName={this.state.transformTableClassName}
-                    transConnectClass={this.state.transConnectClass}
-                    onEditTransform={this.onEditTransform}
-                    onAddTransform={this.onAddTransform}
-                    onDeleteSingleTransform={this.onDeleteSingleTransform}
-                    onUpTransform={this.onUpTransform}
-                    onDownTransform={this.onDownTransform}
-
-                    step2SinkNamespace={this.state.step2SinkNamespace}
-                    step2SourceNamespace={this.state.step2SourceNamespace}
-
-                    etpStrategyCheck={this.state.etpStrategyCheck}
-                    initResultFieldClass={this.initResultFieldClass}
-                    initDataShowClass={this.initDataShowClass}
-                    fieldSelected={this.state.fieldSelected}
-                    dataframeShowSelected={this.state.dataframeShowSelected}
-
-                    onInitStreamTypeSelect={this.onInitStreamTypeSelect}
-                    onInitStreamNameSelect={this.onInitStreamNameSelect}
-                    selectStreamKafkaTopicValue={this.state.selectStreamKafkaTopicValue}
-                    onInitSinkTypeNamespace={this.onInitSinkTypeNamespace}
-                    routingSinkTypeNsData={this.state.routingSinkTypeNsData}
-
-                    resultFieldsValue={this.state.resultFieldsValue}
-                    dataframeShowNumValue={this.state.dataframeShowNumValue}
-                    etpStrategyConfirmValue={this.state.etpStrategyConfirmValue}
-                    transConfigConfirmValue={this.state.transConfigConfirmValue}
-                    transformTableConfirmValue={this.state.transformTableConfirmValue}
-                    timeCharacteristic={this.state.timeCharacteristic}
-
-                    transformTableRequestValue={this.state.transformTableRequestValue}
-                    streamDiffType={this.state.streamDiffType}
-                    hdfslogSinkNsValue={this.state.hdfslogSinkNsValue}
-                    routingSourceNsValue={this.state.routingSourceNsValue}
-                    routingSinkNsValue={this.state.routingSinkNsValue}
-                    initialDefaultCascader={this.initialDefaultCascader}
-                    initialHdfslogCascader={this.initialHdfslogCascader}
-                    initialRoutingCascader={this.initialRoutingCascader}
-                    initialRoutingSinkCascader={this.initialRoutingSinkCascader}
-
-                    flowKafkaInstanceValue={this.state.flowKafkaInstanceValue}
-                    flowKafkaTopicValue={this.state.flowKafkaTopicValue}
-                    sinkConfigCopy={this.state.sinkConfigCopy}
-                    flowSourceNsSys={this.state.flowSourceNsSys}
-                    emitDataSystem={this.getDataSystem}
-                    changeStreamType={this.changeStreamType}
-                    flowSubPanelKey={this.state.flowSubPanelKey}
-                    emitFlowFunctionType={this.getFlowFunctionType}
-
-                    ref={(f) => { this.workbenchFlowForm = f }}
-                  />
-                  {/* Flow Transform Modal */}
-                  <Modal
-                    title="Transformation"
-                    okText="保存"
-                    wrapClassName="transform-form-style"
-                    visible={transformModalVisible}
-                    onOk={this.onTransformModalOk}
-                    onCancel={this.hideTransformModal}>
-                    <FlowTransformForm
-                      ref={this.setFlowTransformFormRef}
-                      projectIdGeted={projectId}
-                      tabPanelKey={this.state.tabPanelKey}
-                      flowTransNsData={this.state.flowTransNsData}
+                <div className={`ri-workbench-sidebar ri-common-block ${flowMode ? 'op-mode' : ''}`}>
+                  <h3 className="ri-common-block-title">
+                    {`${sidebarPrefixes[flowMode] || ''} Flow`}
+                  </h3>
+                  <div className="ri-common-block-tools">
+                    <Button icon="arrow-left" type="ghost" onClick={this.hideFlowWorkbench}></Button>
+                  </div>
+                  <div className="ri-workbench-sidebar-container">
+                    <Steps current={formStep}>
+                      <Step title="Pipeline" />
+                      <Step title="Transformation" />
+                      <Step title="Confirmation" />
+                    </Steps>
+                    <WorkbenchFlowForm
+                      step={formStep}
+                      sourceNamespaces={projectNamespaces || []}
                       sinkNamespaces={projectNamespaces || []}
-                      onInitTransformValue={this.onInitTransformValue}
-                      transformValue={this.state.transformValue}
+                      streams={streams || []}
+                      flowMode={flowMode}
+                      projectIdGeted={projectId}
+                      streamId={pipelineStreamId}
+
+                      onShowTransformModal={this.onShowTransformModal}
+                      onShowEtpStrategyModal={this.onShowEtpStrategyModal}
+                      onShowSinkConfigModal={this.onShowSinkConfigModal}
+                      onShowSpecialConfigModal={this.onShowSpecialConfigModal}
+
+                      transformTableSource={flowFormTranTableSource}
+                      transformTagClassName={this.state.transformTagClassName}
+                      transformTableClassName={this.state.transformTableClassName}
+                      transConnectClass={this.state.transConnectClass}
+                      onEditTransform={this.onEditTransform}
+                      onAddTransform={this.onAddTransform}
+                      onDeleteSingleTransform={this.onDeleteSingleTransform}
+                      onUpTransform={this.onUpTransform}
+                      onDownTransform={this.onDownTransform}
+
                       step2SinkNamespace={this.state.step2SinkNamespace}
                       step2SourceNamespace={this.state.step2SourceNamespace}
-                      onInitTransformSinkTypeNamespace={this.onInitTransformSinkTypeNamespace}
-                      transformSinkTypeNamespaceData={this.state.transformSinkTypeNamespaceData}
+
+                      etpStrategyCheck={this.state.etpStrategyCheck}
+                      initResultFieldClass={this.initResultFieldClass}
+                      initDataShowClass={this.initDataShowClass}
+                      fieldSelected={this.state.fieldSelected}
+                      dataframeShowSelected={this.state.dataframeShowSelected}
+
+                      onInitStreamTypeSelect={this.onInitStreamTypeSelect}
+                      onInitStreamNameSelect={this.onInitStreamNameSelect}
+                      selectStreamKafkaTopicValue={this.state.selectStreamKafkaTopicValue}
+                      onInitSinkTypeNamespace={this.onInitSinkTypeNamespace}
+                      routingSinkTypeNsData={this.state.routingSinkTypeNsData}
+
+                      resultFieldsValue={this.state.resultFieldsValue}
+                      dataframeShowNumValue={this.state.dataframeShowNumValue}
+                      etpStrategyConfirmValue={this.state.etpStrategyConfirmValue}
+                      transConfigConfirmValue={this.state.transConfigConfirmValue}
+                      transformTableConfirmValue={this.state.transformTableConfirmValue}
+                      timeCharacteristic={this.state.timeCharacteristic}
+
+                      transformTableRequestValue={this.state.transformTableRequestValue}
+                      streamDiffType={this.state.streamDiffType}
+                      hdfslogSinkNsValue={this.state.hdfslogSinkNsValue}
+                      routingSourceNsValue={this.state.routingSourceNsValue}
+                      routingSinkNsValue={this.state.routingSinkNsValue}
+                      initialDefaultCascader={this.initialDefaultCascader}
+                      initialHdfslogCascader={this.initialHdfslogCascader}
+                      initialRoutingCascader={this.initialRoutingCascader}
+                      initialRoutingSinkCascader={this.initialRoutingSinkCascader}
+
+                      flowKafkaInstanceValue={this.state.flowKafkaInstanceValue}
+                      flowKafkaTopicValue={this.state.flowKafkaTopicValue}
+                      sinkConfigCopy={this.state.sinkConfigCopy}
+                      flowSourceNsSys={this.state.flowSourceNsSys}
+                      emitDataSystem={this.getDataSystem}
+                      changeStreamType={this.changeStreamType}
                       flowSubPanelKey={this.state.flowSubPanelKey}
-                      emitCepSourceData={this.getCepSourceData}
-                      cepPropData={cepPropData}
-                      transformModalVisible={transformModalVisible}
-                      transformMode={transformMode}
-                      hasPattern={hasPattern}
-                      outputType={outputType}
+                      emitFlowFunctionType={this.getFlowFunctionType}
+
+                      ref={(f) => { this.workbenchFlowForm = f }}
+                  />
+                    {/* Flow Transform Modal */}
+                    <Modal
+                      title="Transformation"
+                      okText="保存"
+                      wrapClassName="transform-form-style"
+                      visible={transformModalVisible}
+                      onOk={this.onTransformModalOk}
+                      onCancel={this.hideTransformModal}>
+                      <FlowTransformForm
+                        ref={this.setFlowTransformFormRef}
+                        projectIdGeted={projectId}
+                        tabPanelKey={this.state.tabPanelKey}
+                        flowTransNsData={this.state.flowTransNsData}
+                        sinkNamespaces={projectNamespaces || []}
+                        onInitTransformValue={this.onInitTransformValue}
+                        transformValue={this.state.transformValue}
+                        step2SinkNamespace={this.state.step2SinkNamespace}
+                        step2SourceNamespace={this.state.step2SourceNamespace}
+                        onInitTransformSinkTypeNamespace={this.onInitTransformSinkTypeNamespace}
+                        transformSinkTypeNamespaceData={this.state.transformSinkTypeNamespaceData}
+                        flowSubPanelKey={this.state.flowSubPanelKey}
+                        emitCepSourceData={this.getCepSourceData}
+                        cepPropData={cepPropData}
+                        transformModalVisible={transformModalVisible}
+                        transformMode={transformMode}
+                        hasPattern={hasPattern}
+                        outputType={outputType}
+                        outputFieldList={outputFieldList}
                     />
-                  </Modal>
-                  {/* Flow Sink Config Modal */}
-                  <Modal
-                    title="Sink Config"
-                    okText="保存"
-                    wrapClassName="ant-modal-large"
-                    visible={sinkConfigModalVisible}
-                    onOk={this.onSinkConfigModalOk}
-                    onCancel={this.hideSinkConfigModal}>
-                    <div>
-                      <h4 className="sink-config-modal-class">{this.state.sinkConfigMsg}</h4>
-                      <textarea
-                        ref={(f) => { this.sinkConfigInput = f }}
-                        placeholder="Paste your Sink Config JSON here."
-                        className="ant-input ant-input-extra"
-                        rows="5">
-                      </textarea>
-                    </div>
-                  </Modal>
-                  {/* Flow Transformation Config Modal */}
-                  <Modal
-                    title="Transformation Config"
-                    okText="保存"
-                    wrapClassName="ant-modal-large"
-                    visible={flowSpecialConfigModalVisible}
-                    onOk={this.onFlowSpecialConfigModalOk}
-                    onCancel={this.hideFlowSpecialConfigModal}>
-                    <div>
-                      <textarea
-                        ref={(f) => { this.flowSpecialConfigInput = f }}
-                        placeholder="Paste your Transformation Config JSON here."
-                        className="ant-input ant-input-extra"
-                        rows="5">
-                      </textarea>
-                    </div>
-                  </Modal>
-                  {/* ETP Strategy Modal */}
-                  <Modal
-                    title="Event Time Processing Strategy"
-                    okText="保存"
-                    visible={etpStrategyModalVisible}
-                    onOk={this.onEtpStrategyModalOk}
-                    onCancel={this.hideEtpStrategyModal}>
-                    <FlowEtpStrategyForm
-                      ref={(f) => { this.flowEtpStrategyForm = f }}
+                    </Modal>
+                    {/* Flow Sink Config Modal */}
+                    <Modal
+                      title="Sink Config"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      visible={sinkConfigModalVisible}
+                      onOk={this.onSinkConfigModalOk}
+                      onCancel={this.hideSinkConfigModal}>
+                      <div>
+                        <h4 className="sink-config-modal-class">{this.state.sinkConfigMsg}</h4>
+                        <textarea
+                          ref={(f) => { this.sinkConfigInput = f }}
+                          placeholder="Paste your Sink Config JSON here."
+                          className="ant-input ant-input-extra"
+                          rows="5">
+                        </textarea>
+                      </div>
+                    </Modal>
+                    {/* Flow Transformation Config Modal */}
+                    <Modal
+                      title="Transformation Config"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      visible={flowSpecialConfigModalVisible}
+                      onOk={this.onFlowSpecialConfigModalOk}
+                      onCancel={this.hideFlowSpecialConfigModal}>
+                      <div>
+                        <textarea
+                          ref={(f) => { this.flowSpecialConfigInput = f }}
+                          placeholder="Paste your Transformation Config JSON here."
+                          className="ant-input ant-input-extra"
+                          rows="5">
+                        </textarea>
+                      </div>
+                    </Modal>
+                    {/* ETP Strategy Modal */}
+                    <Modal
+                      title="Event Time Processing Strategy"
+                      okText="保存"
+                      visible={etpStrategyModalVisible}
+                      onOk={this.onEtpStrategyModalOk}
+                      onCancel={this.hideEtpStrategyModal}>
+                      <FlowEtpStrategyForm
+                        ref={(f) => { this.flowEtpStrategyForm = f }}
                     />
-                  </Modal>
-                  {stepButtons}
+                    </Modal>
+                    {stepButtons}
+                  </div>
                 </div>
-              </div>
-              {/* <div className={`ri-workbench-graph ri-common-block ${flowMode ? 'op-mode' : ''}`}>
+                {/* <div className={`ri-workbench-graph ri-common-block ${flowMode ? 'op-mode' : ''}`}>
                 <h3 className="ri-common-block-title">Flow DAG</h3>
                 <div className="ri-common-block-tools">
                    <Button icon="arrows-alt" type="ghost" onClick={this.showFlowDagModal}></Button>
                 </div>
               </div> */}
-              {/* <div className={this.state.flowDagModalShow}>
+                {/* <div className={this.state.flowDagModalShow}>
                 <div className="dag-madal-mask"></div>
                 <div className="dag-modal">
                   <Button icon="shrink" type="ghost" className="hide-dag-modal" onClick={this.hideFlowDagModal}></Button>
                   <FlowDagModal />
                 </div>
               </div> */}
-            </div>
-          </TabPane>
-          {/* Stream Panel */}
-          <TabPane tab="Stream" key="stream" style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
-              <Manager
-                className={streamMode ? 'streamAndSink-op-mode' : ''}
-                projectIdGeted={projectId}
-                onShowAddStream={this.showAddStreamWorkbench}
-                onShowEditStream={this.showEditStreamWorkbench}
-                streamClassHide={this.state.streamClassHide}
-              />
-              <div className={`ri-workbench-sidebar ri-common-block ${streamMode ? 'streamAndSink-op-mode' : ''}`}>
-                <h3 className="ri-common-block-title">
-                  {`${sidebarPrefixes[streamMode] || ''} Stream`}
-                </h3>
-                <div className="ri-common-block-tools">
-                  <Button icon="arrow-left" type="ghost" onClick={this.hideStreamWorkbench}></Button>
-                </div>
-                <div className="ri-workbench-sidebar-container">
-                  <WorkbenchStreamForm
-                    isWormhole={isWormhole}
-                    streamMode={this.state.streamMode}
-                    projectId={projectId}
-                    kafkaValues={this.state.kafkaValues}
-                    streamSubPanelKey={this.state.streamSubPanelKey}
-
-                    onShowConfigModal={this.onShowConfigModal}
-                    streamConfigCheck={this.state.streamConfigCheck}
-                    topicEditValues={this.state.topicEditValues}
-                    changeStreamType={this.changeStreamType}
-
-                    ref={(f) => { this.workbenchStreamForm = f }}
-                  />
-                  {/* Config Modal */}
-                  <Modal
-                    title="Configs"
-                    okText="保存"
-                    wrapClassName="ant-modal-large"
-                    visible={streamConfigModalVisible}
-                    onOk={this.onConfigModalOk}
-                    onCancel={this.hideConfigModal}>
-                    <StreamConfigForm
-                      tabPanelKey={this.state.tabPanelKey}
+              </div>
+            </TabPane>
+            {/* Stream Panel */}
+            <TabPane tab="Stream" key="stream" style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+                <Manager
+                  className={streamMode ? 'streamAndSink-op-mode' : ''}
+                  projectIdGeted={projectId}
+                  onShowAddStream={this.showAddStreamWorkbench}
+                  onShowEditStream={this.showEditStreamWorkbench}
+                  streamClassHide={this.state.streamClassHide}
+                />
+                <div className={`ri-workbench-sidebar ri-common-block ${streamMode ? 'streamAndSink-op-mode' : ''}`}>
+                  <h3 className="ri-common-block-title">
+                    {`${sidebarPrefixes[streamMode] || ''} Stream`}
+                  </h3>
+                  <div className="ri-common-block-tools">
+                    <Button icon="arrow-left" type="ghost" onClick={this.hideStreamWorkbench}></Button>
+                  </div>
+                  <div className="ri-workbench-sidebar-container">
+                    <WorkbenchStreamForm
+                      isWormhole={isWormhole}
+                      streamMode={this.state.streamMode}
+                      projectId={projectId}
+                      kafkaValues={this.state.kafkaValues}
                       streamSubPanelKey={this.state.streamSubPanelKey}
-                      ref={(f) => { this.streamConfigForm = f }}
+
+                      onShowConfigModal={this.onShowConfigModal}
+                      streamConfigCheck={this.state.streamConfigCheck}
+                      topicEditValues={this.state.topicEditValues}
+                      changeStreamType={this.changeStreamType}
+
+                      ref={(f) => { this.workbenchStreamForm = f }}
                     />
-                  </Modal>
-                  <div className="ri-workbench-step-button-area">
-                    <Button
-                      type="primary"
-                      className="next"
-                      onClick={this.submitStreamForm}
-                      loading={streamSubmitLoading}
-                    >
-                      <FormattedMessage {...messages.workbenchSave} />
-                    </Button>
+                    {/* Config Modal */}
+                    <Modal
+                      title="Configs"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      visible={streamConfigModalVisible}
+                      onOk={this.onConfigModalOk}
+                      onCancel={this.hideConfigModal}>
+                      <StreamConfigForm
+                        tabPanelKey={this.state.tabPanelKey}
+                        streamSubPanelKey={this.state.streamSubPanelKey}
+                        ref={(f) => { this.streamConfigForm = f }}
+                      />
+                    </Modal>
+                    <div className="ri-workbench-step-button-area">
+                      <Button
+                        type="primary"
+                        className="next"
+                        onClick={this.submitStreamForm}
+                        loading={streamSubmitLoading}
+                      >
+                        <FormattedMessage {...messages.workbenchSave} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {/* <div className={`ri-workbench-graph ri-common-block ${streamMode ? 'op-mode' : ''}`}>
+                  <h3 className="ri-common-block-title">Stream DAG</h3>
+                  <div className="ri-common-block-tools">
+                    <Button icon="arrows-alt" type="ghost" onClick={this.showStreamDagModal}></Button>
+                  </div>
+                </div> */}
+                {/* <div className={this.state.streamDagModalShow}>
+                  <div className="dag-madal-mask"></div>
+                  <div className="dag-modal">
+                    <Button icon="shrink" type="ghost" className="hide-dag-modal" onClick={this.hideStreamDagModal}></Button>
+                    <StreamDagModal />
+                  </div>
+                </div> */}
+              </div>
+            </TabPane>
+            {/* Job Panel */}
+            <TabPane tab="Job" key="job" style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+                <Job
+                  className={jobMode ? 'op-mode' : ''}
+                  onShowAddJob={this.showAddJobWorkbench}
+                  onShowEditJob={this.showEditJobWorkbench}
+                  projectIdGeted={projectId}
+                  jobClassHide={this.state.jobClassHide}
+                />
+                <div className={`ri-workbench-sidebar ri-common-block ${jobMode ? 'op-mode' : ''}`}>
+                  <h3 className="ri-common-block-title">
+                    {`${sidebarPrefixes[jobMode] || ''} Job`}
+                  </h3>
+                  <div className="ri-common-block-tools">
+                    <Button icon="arrow-left" type="ghost" onClick={this.hideJobWorkbench}></Button>
+                  </div>
+                  <div className="ri-workbench-sidebar-container">
+                    <Steps current={formStep}>
+                      <Step title="Pipeline" />
+                      <Step title="Transformation" />
+                      <Step title="Confirmation" />
+                    </Steps>
+                    <WorkbenchJobForm
+                      step={formStep}
+                      projectIdGeted={projectId}
+                      jobMode={this.state.jobMode}
+                      sparkConfigCheck={this.state.sparkConfigCheck}
+                      onShowSparkConfigModal={this.onShowSparkConfigModal}
+                      fieldSelected={this.state.fieldSelected}
+                      initResultFieldClass={this.initResultFieldClass}
+                      onShowJobSinkConfigModal={this.onShowJobSinkConfigModal}
+                      onInitJobNameValue={this.onInitJobNameValue}
+                      onInitJobSinkNs={this.onInitJobSinkNs}
+                      jobResultFieldsValue={this.state.jobResultFieldsValue}
+                      initStartTS={this.initStartTS}
+                      initEndTS={this.initEndTS}
+                      onShowJobSpecialConfigModal={this.onShowJobSpecialConfigModal}
+
+                      jobStepSourceNs={this.state.jobStepSourceNs}
+                      jobStepSinkNs={this.state.jobStepSinkNs}
+
+                      onShowJobTransModal={this.onShowJobTransModal}
+                      jobTransTableSource={jobFormTranTableSource}
+                      jobTranTagClassName={this.state.jobTranTagClassName}
+                      jobTranTableClassName={this.state.jobTranTableClassName}
+                      jobTranConfigConfirmValue={this.state.jobTranConfigConfirmValue}
+
+                      onEditTransform={this.onJobEditTransform}
+                      onJobAddTransform={this.onJobAddTransform}
+                      onDeleteSingleTransform={this.onJobDeleteSingleTransform}
+                      onUpTransform={this.onJobUpTransform}
+                      onDownTransform={this.onJobDownTransform}
+                      jobTranTableConfirmValue={this.state.jobTranTableConfirmValue}
+                      initialBackfillCascader={this.initialBackfillCascader}
+                      backfillSinkNsValue={this.state.backfillSinkNsValue}
+                      onInitJobTypeSelect={this.onInitJobTypeSelect}
+                      jobDiffType={this.state.jobDiffType}
+                      backfillTopicValueProp={this.state.backfillTopicValueProp}
+                      clearSinkData={this.clearSinkData}
+                      jobSourceNsSys={this.state.jobSourceNsSys}
+                      sourceNsVersionList={this.state.sourceNsVersionList}
+                      initialSourceNsVersion={this.initialSourceNsVersion}
+                      ref={(f) => { this.workbenchJobForm = f }}
+                    />
+                    <Modal
+                      title="Configs"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      visible={sparkConfigModalVisible}
+                      onOk={this.onSparkConfigModalOk}
+                      onCancel={this.hideSparkConfigModal}>
+                      <StreamConfigForm
+                        tabPanelKey={this.state.tabPanelKey}
+                        ref={(f) => { this.streamConfigForm = f }}
+                      />
+                    </Modal>
+                    {/* Job Sink Config Modal */}
+                    <Modal
+                      title="Sink Config"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      visible={jobSinkConfigModalVisible}
+                      onOk={this.onJobSinkConfigModalOk}
+                      onCancel={this.hideJobSinkConfigModal}>
+                      <div>
+                        <h4 className="sink-config-modal-class">{this.state.jobSinkConfigMsg}</h4>
+                        <textarea
+                          ref={(f) => { this.jobSinkConfigInput = f }}
+                          placeholder="Paste your Sink Config JSON here."
+                          className="ant-input ant-input-extra"
+                          rows="5">
+                        </textarea>
+                      </div>
+                    </Modal>
+                    {/* Job Transform Modal */}
+                    <Modal
+                      title="Transformation"
+                      okText="保存"
+                      wrapClassName="job-transform-form-style"
+                      visible={jobTransModalVisible}
+                      onOk={this.onJobTransModalOk}
+                      onCancel={this.hideJobTransModal}>
+                      <JobTransformForm
+                        ref={(f) => { this.jobTransformForm = f }}
+                        projectIdGeted={projectId}
+                        tabPanelKey={this.state.tabPanelKey}
+                        onInitJobTransValue={this.onInitJobTransValue}
+                        transformValue={this.state.jobTransValue}
+                        step2SinkNamespace={this.state.jobStepSinkNs}
+                        step2SourceNamespace={this.state.jobStepSourceNs}
+                      />
+                    </Modal>
+                    {/* Job Transformation Config Modal */}
+                    <Modal
+                      title="Transformation Config"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      visible={jobSpecialConfigModalVisible}
+                      onOk={this.onJobSpecialConfigModalOk}
+                      onCancel={this.hideJobSpecialConfigModal}>
+                      <div>
+                        <textarea
+                          ref={(f) => { this.jobSpecialConfigInput = f }}
+                          placeholder="Paste your Transformation Config JSON here."
+                          className="ant-input ant-input-extra"
+                          rows="5">
+                        </textarea>
+                      </div>
+                    </Modal>
+                    {stepButtons}
                   </div>
                 </div>
               </div>
-              {/* <div className={`ri-workbench-graph ri-common-block ${streamMode ? 'op-mode' : ''}`}>
-                <h3 className="ri-common-block-title">Stream DAG</h3>
-                <div className="ri-common-block-tools">
-                   <Button icon="arrows-alt" type="ghost" onClick={this.showStreamDagModal}></Button>
-                </div>
-              </div> */}
-              {/* <div className={this.state.streamDagModalShow}>
-                <div className="dag-madal-mask"></div>
-                <div className="dag-modal">
-                  <Button icon="shrink" type="ghost" className="hide-dag-modal" onClick={this.hideStreamDagModal}></Button>
-                  <StreamDagModal />
-                </div>
-              </div> */}
-            </div>
-          </TabPane>
-          {/* Job Panel */}
-          <TabPane tab="Job" key="job" style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
-              <Job
-                className={jobMode ? 'op-mode' : ''}
-                onShowAddJob={this.showAddJobWorkbench}
-                onShowEditJob={this.showEditJobWorkbench}
-                projectIdGeted={projectId}
-                jobClassHide={this.state.jobClassHide}
-              />
-              <div className={`ri-workbench-sidebar ri-common-block ${jobMode ? 'op-mode' : ''}`}>
-                <h3 className="ri-common-block-title">
-                  {`${sidebarPrefixes[jobMode] || ''} Job`}
-                </h3>
-                <div className="ri-common-block-tools">
-                  <Button icon="arrow-left" type="ghost" onClick={this.hideJobWorkbench}></Button>
-                </div>
-                <div className="ri-workbench-sidebar-container">
-                  <Steps current={formStep}>
-                    <Step title="Pipeline" />
-                    <Step title="Transformation" />
-                    <Step title="Confirmation" />
-                  </Steps>
-                  <WorkbenchJobForm
-                    step={formStep}
-                    projectIdGeted={projectId}
-                    jobMode={this.state.jobMode}
-                    sparkConfigCheck={this.state.sparkConfigCheck}
-                    onShowSparkConfigModal={this.onShowSparkConfigModal}
-                    fieldSelected={this.state.fieldSelected}
-                    initResultFieldClass={this.initResultFieldClass}
-                    onShowJobSinkConfigModal={this.onShowJobSinkConfigModal}
-                    onInitJobNameValue={this.onInitJobNameValue}
-                    onInitJobSinkNs={this.onInitJobSinkNs}
-                    jobResultFieldsValue={this.state.jobResultFieldsValue}
-                    initStartTS={this.initStartTS}
-                    initEndTS={this.initEndTS}
-                    onShowJobSpecialConfigModal={this.onShowJobSpecialConfigModal}
-
-                    jobStepSourceNs={this.state.jobStepSourceNs}
-                    jobStepSinkNs={this.state.jobStepSinkNs}
-
-                    onShowJobTransModal={this.onShowJobTransModal}
-                    jobTransTableSource={jobFormTranTableSource}
-                    jobTranTagClassName={this.state.jobTranTagClassName}
-                    jobTranTableClassName={this.state.jobTranTableClassName}
-                    jobTranConfigConfirmValue={this.state.jobTranConfigConfirmValue}
-
-                    onEditTransform={this.onJobEditTransform}
-                    onJobAddTransform={this.onJobAddTransform}
-                    onDeleteSingleTransform={this.onJobDeleteSingleTransform}
-                    onUpTransform={this.onJobUpTransform}
-                    onDownTransform={this.onJobDownTransform}
-                    jobTranTableConfirmValue={this.state.jobTranTableConfirmValue}
-                    initialBackfillCascader={this.initialBackfillCascader}
-                    backfillSinkNsValue={this.state.backfillSinkNsValue}
-                    onInitJobTypeSelect={this.onInitJobTypeSelect}
-                    jobDiffType={this.state.jobDiffType}
-                    backfillTopicValueProp={this.state.backfillTopicValueProp}
-                    clearSinkData={this.clearSinkData}
-                    jobSourceNsSys={this.state.jobSourceNsSys}
-
-                    ref={(f) => { this.workbenchJobForm = f }}
-                  />
-                  <Modal
-                    title="Configs"
-                    okText="保存"
-                    wrapClassName="ant-modal-large"
-                    visible={sparkConfigModalVisible}
-                    onOk={this.onSparkConfigModalOk}
-                    onCancel={this.hideSparkConfigModal}>
-                    <StreamConfigForm
-                      tabPanelKey={this.state.tabPanelKey}
-                      ref={(f) => { this.streamConfigForm = f }}
-                    />
-                  </Modal>
-                  {/* Job Sink Config Modal */}
-                  <Modal
-                    title="Sink Config"
-                    okText="保存"
-                    wrapClassName="ant-modal-large"
-                    visible={jobSinkConfigModalVisible}
-                    onOk={this.onJobSinkConfigModalOk}
-                    onCancel={this.hideJobSinkConfigModal}>
-                    <div>
-                      <h4 className="sink-config-modal-class">{this.state.jobSinkConfigMsg}</h4>
-                      <textarea
-                        ref={(f) => { this.jobSinkConfigInput = f }}
-                        placeholder="Paste your Sink Config JSON here."
-                        className="ant-input ant-input-extra"
-                        rows="5">
-                      </textarea>
-                    </div>
-                  </Modal>
-                  {/* Job Transform Modal */}
-                  <Modal
-                    title="Transformation"
-                    okText="保存"
-                    wrapClassName="job-transform-form-style"
-                    visible={jobTransModalVisible}
-                    onOk={this.onJobTransModalOk}
-                    onCancel={this.hideJobTransModal}>
-                    <JobTransformForm
-                      ref={(f) => { this.jobTransformForm = f }}
-                      projectIdGeted={projectId}
-                      tabPanelKey={this.state.tabPanelKey}
-                      onInitJobTransValue={this.onInitJobTransValue}
-                      transformValue={this.state.jobTransValue}
-                      step2SinkNamespace={this.state.jobStepSinkNs}
-                      step2SourceNamespace={this.state.jobStepSourceNs}
-                    />
-                  </Modal>
-                  {/* Job Transformation Config Modal */}
-                  <Modal
-                    title="Transformation Config"
-                    okText="保存"
-                    wrapClassName="ant-modal-large"
-                    visible={jobSpecialConfigModalVisible}
-                    onOk={this.onJobSpecialConfigModalOk}
-                    onCancel={this.hideJobSpecialConfigModal}>
-                    <div>
-                      <textarea
-                        ref={(f) => { this.jobSpecialConfigInput = f }}
-                        placeholder="Paste your Transformation Config JSON here."
-                        className="ant-input ant-input-extra"
-                        rows="5">
-                      </textarea>
-                    </div>
-                  </Modal>
-                  {stepButtons}
-                </div>
+            </TabPane>
+            {/* Namespace Panel */}
+            <TabPane tab="Namespace" key="namespace" style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}} >
+                <Namespace
+                  projectIdGeted={projectId}
+                  namespaceClassHide={namespaceClassHide}
+                />
               </div>
-            </div>
-          </TabPane>
-          {/* Namespace Panel */}
-          <TabPane tab="Namespace" key="namespace" style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}} >
-              <Namespace
-                projectIdGeted={projectId}
-                namespaceClassHide={namespaceClassHide}
-              />
-            </div>
-          </TabPane>
-          {/* User Panel */}
-          <TabPane tab="User" key="user" style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
-              <User
-                projectIdGeted={projectId}
-                userClassHide={userClassHide}
-              />
-            </div>
-          </TabPane>
-          {/* Udf Panel */}
-          <TabPane tab="UDF" key="udf" style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
-              <Udf
-                projectIdGeted={projectId}
-                udfClassHide={udfClassHide}
-              />
-            </div>
-          </TabPane>
-          {/* Resource Panel */}
-          <TabPane tab="Resource" key="resource" style={{height: `${paneHeight}px`}}>
-            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
-              <Resource
-                projectIdGeted={projectId}
-              />
-            </div>
-          </TabPane>
-        </Tabs>
+            </TabPane>
+            {/* User Panel */}
+            <TabPane tab="User" key="user" style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+                <User
+                  projectIdGeted={projectId}
+                  userClassHide={userClassHide}
+                />
+              </div>
+            </TabPane>
+            {/* Udf Panel */}
+            <TabPane tab="UDF" key="udf" style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+                <Udf
+                  projectIdGeted={projectId}
+                  udfClassHide={udfClassHide}
+                />
+              </div>
+            </TabPane>
+            {/* Resource Panel */}
+            <TabPane tab="Resource" key="resource" style={{height: `${paneHeight}px`}}>
+              <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+                <Resource
+                  projectIdGeted={projectId}
+                />
+              </div>
+            </TabPane>
+          </Tabs>
+        </Spin>
+
       </div>
     )
   }
@@ -4019,7 +4097,8 @@ Workbench.propTypes = {
   onLoadStreamConfigs: PropTypes.func,
   activeKey: PropTypes.string,
   onChangeTabs: PropTypes.func,
-  jumpStreamToFlowFilter: PropTypes.func
+  jumpStreamToFlowFilter: PropTypes.func,
+  onLoadSourceNsVersion: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -4058,7 +4137,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject)),
     onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve)),
     onChangeTabs: (key) => dispatch(changeTabs(key)),
-    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId))
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
+    onLoadSourceNsVersion: (projectId, namespace, resolve) => dispatch(getSourceNsVersion(projectId, namespace, resolve))
   }
 }
 

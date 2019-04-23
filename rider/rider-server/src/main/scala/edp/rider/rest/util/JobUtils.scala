@@ -21,6 +21,8 @@
 
 package edp.rider.rest.util
 
+import java.net.URI
+
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
 import edp.rider.common._
@@ -29,14 +31,18 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.yarn.YarnStatusQuery.getSparkJobStatus
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
+import edp.rider.yarn.YarnClientLog.getAppStatusByLog
+import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.CommonUtils._
-import edp.wormhole.util.DateUtils
-import edp.wormhole.util.config.ConnectionConfig
+import edp.wormhole.externalclient.hadoop.HdfsUtils._
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.{DateUtils, FileUtils}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -54,7 +60,6 @@ object JobUtils extends RiderLogger {
     val eventTsEndFinal = if (eventTsEnd != null && eventTsEnd != "") eventTsEnd else "30000101000000"
     val sourceTypeFinal = "hdfs_txt"
     val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "" && sourceConfig.get.contains("protocol")) Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
-    val (instance, db, _) = modules.namespaceDal.getNsDetail(sourceNs)
     val hdfsRoot = RiderConfig.spark.remoteHdfsRoot match {
       case Some(_) => RiderConfig.spark.remoteHdfsActiveNamenodeHost.get
       case None => RiderConfig.spark.hdfsRoot
@@ -83,7 +88,6 @@ object JobUtils extends RiderLogger {
         Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
       }
 
-    //val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
     val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
 
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
@@ -105,7 +109,7 @@ object JobUtils extends RiderLogger {
       }
 
     val sinkSys = if (jobType != JobType.BACKFILL.toString) ns.nsSys else UmsDataSystem.KAFKA.toString
-    SinkConfig(sinkNs, sinkConnection, maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
+    SinkConfig(sinkNs, sinkConnection, maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema, None)), specialConfig, sinkKeys, projection)
   }
 
   def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String, jobType: String, tableKeys: Option[String]) = {
@@ -200,7 +204,6 @@ object JobUtils extends RiderLogger {
   }
 
   def startJob(job: Job, logPath: String) = {
-    //    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
@@ -219,30 +222,34 @@ object JobUtils extends RiderLogger {
   }
 
   def refreshJob(id: Long) = {
-    val job = Await.result(modules.jobDal.findById(id), minTimeOut).head
-    val appInfo = getSparkJobStatus(job)
+    Await.result(modules.jobDal.findById(id), minTimeOut).head
+    /*val appInfo = getSparkJobStatus(job)
     modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)
+      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)*/
   }
 
-  def killJob(id: Long): String = {
+  def killJob(id: Long): (String, Boolean) = {
     try {
       val job = refreshJob(id)
       try {
-        if (job.status == "running" || job.status == "waiting") {
+        if (job.status == "running" || job.status == "waiting" || job.status == "stopping") {
           val command = s"yarn application -kill ${job.sparkAppid.get}"
           riderLogger.info(s"stop job command: $command")
-          runShellCommand(command)
-          modules.jobDal.updateJobStatus(job.id, "stopping")
-          "stopping"
+          val stopSuccess = runYarnKillCommand(command)
+          if(stopSuccess) {
+            modules.jobDal.updateJobStatus(job.id, "stopping")
+            ("stopping", true)
+          } else {
+            (job.status, false)
+          }
         } else if (job.status == "failed") {
           modules.jobDal.updateJobStatus(job.id, "stopped")
-          "stopped"
+          ("stopped", true)
         }
-        else job.status
+        else (job.status, true)
       }
       catch {
         case ex: Exception =>
@@ -259,7 +266,8 @@ object JobUtils extends RiderLogger {
   def getDisableAction(job: Job): String = {
     val projectNsSeq = modules.relProjectNsDal.getNsByProjectId(job.projectId)
     val nsSeq = new ListBuffer[String]
-    nsSeq += job.sourceNs
+    val sorceNsSeq = job.sourceNs.split("\\.")
+    nsSeq += sorceNsSeq(0) + "." + sorceNsSeq(1) + "." + sorceNsSeq(2) + "." + sorceNsSeq(3) + ".*" + ".*" + ".*"
     nsSeq += job.sinkNs
     var flag = true
     for (i <- nsSeq.indices) {
@@ -291,9 +299,108 @@ object JobUtils extends RiderLogger {
     if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_protocol"))
       Some(JSON.parseObject(sinkConfig).getString("sink_protocol"))
     else {
-      //      if (jobType == JobType.BACKFILL.toString) Some(JobSinkProtocol.SNAPSHOT.toString)
-      //      else
       None
     }
+  }
+
+  def getHdfsDataVersions(namespace: String): String = {
+    val hdfsRoot = RiderConfig.spark.remoteHdfsRoot match {
+      case Some(_) => RiderConfig.spark.remoteHdfsActiveNamenodeHost.get
+      case None => RiderConfig.spark.hdfsRoot
+    }
+    val configuration = setConfiguration(hdfsRoot, None)
+    val names = namespace.split("\\.")
+    val hdfsPath = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
+    val hdfsFileList = getHdfsFileList(configuration, hdfsPath)
+    if (hdfsFileList != null) hdfsFileList.map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).mkString(",")
+    else ""
+  }
+
+  def getHdfsFileList(config:Configuration, hdfsPath: String): Seq[String] = {
+    val fileSystem = FileSystem.newInstance(config)
+    val fullPath = FileUtils.pfRight(hdfsPath)
+    riderLogger.info(s"hdfs data path: $fullPath")
+    if(isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+    else null
+  }
+
+  def setConfiguration(hdfsPath: String, connectionConfig: Option[Seq[KVConfig]]): Configuration = {
+    var sourceNamenodeHosts = null.asInstanceOf[String]
+    var sourceNamenodeIds = null.asInstanceOf[String]
+    if(connectionConfig.nonEmpty) connectionConfig.get.foreach(param=>{
+      if(param.key=="hdfs_namenode_hosts") sourceNamenodeHosts = param.value
+      if(param.key=="hdfs_namenode_ids") sourceNamenodeIds = param.value
+    })
+
+    val hadoopHome = System.getenv("HADOOP_HOME")
+    val configuration = new Configuration(false)
+    configuration.addResource(new Path(s"$hadoopHome/conf/core-site.xml"))
+    configuration.addResource(new Path(s"$hadoopHome/conf/hdfs-site.xml"))
+
+    val defaultFS =  configuration.get("fs.defaultFS")
+    riderLogger.info(s"hadoopHome is $hadoopHome, defaultFS is $defaultFS")
+
+    val hdfsPathGrp = hdfsPath.split("//")
+    val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
+    configuration.set("fs.defaultFS", hdfsRoot)
+    configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
+    //configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
+    if(sourceNamenodeHosts != null) {
+      val clusterName = hdfsRoot.split("//")(1)
+      configuration.set("dfs.nameservices", clusterName)
+      configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
+      val namenodeAddressSeq = sourceNamenodeHosts.split(",")
+      val namenodeIdSeq = sourceNamenodeIds.split(",")
+      for (i <- 0 until namenodeAddressSeq.length){
+        configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
+      }
+      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+    }
+    configuration
+  }
+
+  def mappingSparkJobStatus(job: Job, sparkList: Map[String, AppResult]) = {
+    val startedTime = job.startedTime.orNull
+    val stoppedTime = job.stoppedTime.orNull
+    val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
+    val result = job.status match {
+      case "starting" =>
+        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""))
+        AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
+      case "waiting" =>
+        appInfo.appState.toUpperCase match {
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "WAITING" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        }
+      case "running" =>
+        appInfo.appState.toUpperCase match {
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        }
+      case "stopping" =>
+        appInfo.appState.toUpperCase match {
+          case "STOPPING" => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "stopped", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+          case _ => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
+        }
+      case "stopped" =>
+        appInfo.appState.toUpperCase match {
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+          case _ => AppInfo(job.sparkAppid.getOrElse(""), "stopped", startedTime, stoppedTime)
+        }
+      case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
+    }
+      result
+  }
+
+  def getJobTime(time: Option[String]) = {
+    val timeValue = time.getOrElse("")
+    if (timeValue.nonEmpty) timeValue.split("\\.")(0) else null
   }
 }

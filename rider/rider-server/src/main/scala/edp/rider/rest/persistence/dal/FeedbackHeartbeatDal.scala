@@ -27,15 +27,14 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-import scala.concurrent.duration.Duration.Inf
-import scala.collection.mutable.ListBuffer
+
 import scala.concurrent.Await
 
 class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], streamDal: StreamDal) extends BaseDalImpl[FeedbackHeartbeatTable, FeedbackHeartbeat](heartbeatTable) {
 
   def deleteHistory(pastNdays: String) = {
-    val deleteSeq = Await.result(db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays)
-      .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }

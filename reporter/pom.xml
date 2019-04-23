@@ -7,12 +7,12 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.0</version>
+        <version>0.6.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>wormhole-flink-reporter</artifactId>
-    <version>${reporter.version}</version>
+    <version>${project.version}</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -23,22 +23,22 @@
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-kafka-010-2</artifactId>
-            <version>0.6.0</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-common</artifactId>
-            <version>0.6.0</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-util</artifactId>
-            <version>0.6.0</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-ums_${ums.version}</artifactId>
-            <version>0.6.0</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>

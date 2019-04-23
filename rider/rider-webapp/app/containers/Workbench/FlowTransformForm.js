@@ -22,7 +22,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-
+import { cloneDeep } from 'lodash'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -53,28 +53,48 @@ export class FlowTransformForm extends React.Component {
       cepDataSource: [],
       operatorBtnInitVal: '',
       outputType: '',
+      outputFilteredRowSelect: '',
+      outputFilteredRowFieldName: '',
       patternModalShow: false,
       quartifierTimesBtnToInput: false,
       quartifierTimesOrMoreBtnToInput: false,
       patternSourceDataConditions: null,
       editRow: -1,
       quantifierInputValidate: '',
-      quantifierInputValidateTxt: ''
+      quantifierInputValidateTxt: '',
+      outputFieldList: []
     }
   }
   componentDidMount () {
-    const { cepPropData, outputType } = this.props
-    this.setState({outputType})
+    const { cepPropData, outputType, outputFieldList } = this.props
+    this.formatCepOutputData({ outputType, outputFieldList })
     this.formatCepPatternData(cepPropData)
   }
   componentWillReceiveProps (props) {
     if (this.props.transformModalVisible === props.transformModalVisible) return
-    this.setState({outputType: props.outputType})
+    if (props.transformModalVisible === false) {
+      this.setState({
+        outputType: '',
+        outputFilteredRowSelect: '',
+        outputFilteredRowFieldName: '',
+        outputFieldList: []
+      })
+      return
+    }
+    const { outputType, outputFieldList } = props
+    this.formatCepOutputData({ outputType, outputFieldList })
     if (props.cepPropData) {
       this.formatCepPatternData(props.cepPropData)
     }
   }
-
+  formatCepOutputData = ({ outputType, outputFieldList }) => {
+    if (outputType === 'agg') {
+      this.setState({ outputFieldList })
+    } else if (outputType === 'filteredRow') {
+      this.setState({outputFilteredRowSelect: outputFieldList[0].function_type, outputFilteredRowFieldName: outputFieldList[0].field_name})
+    }
+    this.setState({outputType})
+  }
   formatCepPatternData = (data) => {
     if (!data.tranConfigInfoSql) {
       this.setState({cepDataSource: []})
@@ -116,6 +136,9 @@ export class FlowTransformForm extends React.Component {
   changeOutput = (e) => {
     let outputType = e.target.value
     this.setState({outputType})
+  }
+  selectOutputFilteredRow = (value, option) => {
+    this.setState({outputFilteredRowSelect: value})
   }
   doFilterQuery = (conditions) => {
     const { cepDataSource, editRow, operatorBtnInitVal } = this.state
@@ -371,9 +394,24 @@ export class FlowTransformForm extends React.Component {
     let operatorBtnInitVal = event.target.value
     this.setState({operatorBtnInitVal})
   }
+  changeCepOutputAgg = (action, index) => {
+    this.setState({outputFilteredRowSelect: ''})
+    let outputFieldList = cloneDeep(this.state.outputFieldList)
+    if (action === 'add') {
+      outputFieldList.push({
+        function_type: '',
+        field_name: '',
+        alias_name: '',
+        _id: Date.now()
+      })
+    } else if (action === 'remove') {
+      outputFieldList.splice(index, 1)
+    }
+    this.setState({outputFieldList})
+  }
   render () {
     const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
-    const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput, patternSourceDataConditions, quantifierInputValidate, quantifierInputValidateTxt } = this.state
+    const { dsHideOrNot, selectValue, cepDataSource, outputType, outputFilteredRowSelect, outputFilteredRowFieldName, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput, patternSourceDataConditions, quantifierInputValidate, quantifierInputValidateTxt } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -427,9 +465,12 @@ export class FlowTransformForm extends React.Component {
     ]
 
     const outputHiddens = [
-      outputType === 'detail'
+      outputType === 'detail',
+      outputType === 'agg',
+      outputType === 'filteredRow',
+      outputFilteredRowSelect === 'min',
+      outputFilteredRowSelect === 'max'
     ]
-
     const patternOperatorAboutHiddens = [
       operatorBtnInitVal === 'next',
       operatorBtnInitVal === 'followedby',
@@ -646,7 +687,84 @@ export class FlowTransformForm extends React.Component {
     //     this.setState({ pageIndex: current })
     //   }
     // }
-
+    const aggOptions = this.state.outputFieldList.map((v, i) => (
+      <Col span={24} key={v._id}>
+        <Col span={5} offset={1} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
+          <FormItem label="Agg" {...{ labelCol: { span: 16 }, wrapperCol: { span: 8 } }}>
+            {getFieldDecorator(`outputAggSelect_${v._id}`, {
+              rules: [{
+                required: true,
+                message: operateLanguageSelect('agg select', 'Agg Select')
+              }],
+              hidden: !outputHiddens[1] || flinkTransformTypeHiddens[2],
+              initialValue: v.function_type
+            })(
+              <Select>
+                <Select.Option value="avg">Avg</Select.Option>
+                <Select.Option value="count">Count</Select.Option>
+                <Select.Option value="min">Min</Select.Option>
+                <Select.Option value="max">Max</Select.Option>
+                <Select.Option value="sum">Sum</Select.Option>
+              </Select>
+            )}
+          </FormItem>
+        </Col>
+        <Col span={7} offset={1} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
+          <FormItem label="Field Name" {...{ labelCol: { span: 8 }, wrapperCol: { span: 10 } }}>
+            {getFieldDecorator(`outputAggFieldName_${v._id}`, {
+              required: true,
+              hidden: !outputHiddens[1] || flinkTransformTypeHiddens[2],
+              initialValue: v.field_name
+            })(
+              <Input />
+            )}
+          </FormItem>
+        </Col>
+        <Col span={8} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
+          <FormItem label="Rename" {...{ labelCol: { span: 4 }, wrapperCol: { span: 8 } }}>
+            {getFieldDecorator(`outputAggRename_${v._id}`, {
+              rules: [{
+                validator: (rule, value, callback) => {
+                  const formValues = this.props.form.getFieldsValue()
+                  const fieldNameArr = []
+                  const hasRepeatValue = Object.keys(formValues).some(v => {
+                    if (v.includes('outputAggFieldName')) {
+                      const value = formValues[v]
+                      if (value === '') return false
+                      const hasRepeatValue = fieldNameArr.some(m => m === value)
+                      if (hasRepeatValue) {
+                        return hasRepeatValue
+                      } else {
+                        fieldNameArr.push(formValues[v])
+                      }
+                    }
+                  })
+                  if (hasRepeatValue) {
+                    if (value !== '') {
+                      callback()
+                    }
+                    const errMsg = '存在重复的Field Name,需填写此项'
+                    rule.message = errMsg
+                    callback(errMsg)
+                  } else {
+                    callback()
+                  }
+                }
+              }],
+              hidden: !outputHiddens[1] || flinkTransformTypeHiddens[2],
+              initialValue: v.alias_name
+            })(
+              <Input />
+            )}
+          </FormItem>
+        </Col>
+        <Col span={1} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
+          <Button shape="circle" type="danger" onClick={() => this.changeCepOutputAgg('remove', i)}>
+            <Icon type="minus" />
+          </Button>
+        </Col>
+      </Col>
+      ))
     return (
       <Form className="transform-modal-style">
         <Row>
@@ -961,19 +1079,68 @@ export class FlowTransformForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('output', 'Output')
                   }],
-                  initialValue: 'agg',
+                  initialValue: this.props.outputType,
                   hidden: flinkTransformTypeHiddens[2]
                 })(
                   <RadioGroup onChange={this.changeOutput}>
-                    <RadioButton value="agg">Agg</RadioButton>
                     <RadioButton value="detail">Detail</RadioButton>
+                    <RadioButton value="agg">Agg</RadioButton>
                     <RadioButton value="filteredRow">FilteredRow</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>
             </Col>
           ) : '' }
+          {/* agg */}
           {flowSubPanelKey === 'flink' ? (
+            <Col span={2} pull={5} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
+              <Button shape="circle" type="default" onClick={() => this.changeCepOutputAgg('add')}>
+                <Icon type="plus" />
+              </Button>
+            </Col>
+          ) : ''}
+          {flowSubPanelKey === 'flink' ? (
+            aggOptions
+          ) : ''}
+          {/* filteredRow */}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24}>
+              <Col span={5} offset={1} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[2] ? 'hide' : ''}`}>
+                <FormItem label="FilteredRow" {...{ labelCol: { span: 16 }, wrapperCol: { span: 8 } }}>
+                  {getFieldDecorator('outputFilteredRowSelect', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageSelect('filteredRow output', 'FilteredRow Output')
+                    }],
+                    hidden: !outputHiddens[2] || flinkTransformTypeHiddens[2],
+                    initialValue: outputFilteredRowSelect
+                  })(
+                    <Select onChange={this.selectOutputFilteredRow}>
+                      <Select.Option value="head">Head</Select.Option>
+                      <Select.Option value="last">Last</Select.Option>
+                      <Select.Option value="min">Min</Select.Option>
+                      <Select.Option value="max">Max</Select.Option>
+                    </Select>
+                  )}
+                </FormItem>
+              </Col>
+              <Col span={8} offset={2} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[2] || !outputHiddens[3] && !outputHiddens[4] ? 'hide' : ''}`}>
+                <FormItem label="Field Name" {...{ labelCol: { span: 6 }, wrapperCol: { span: 8 } }}>
+                  {getFieldDecorator('outputFilteredRowSelectFieldName', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageSelect('field name', 'Field Name')
+                    }],
+                    hidden: !outputHiddens[2] || !outputHiddens[3] && !outputHiddens[4] || flinkTransformTypeHiddens[2],
+                    initialValue: outputFilteredRowFieldName
+                  })(
+                    <Input />
+                  )}
+                </FormItem>
+              </Col>
+            </Col>
+          ) : ''}
+          {/* {flowSubPanelKey === 'flink' ? (
             <Col span={4} pull={4} className={`${flinkTransformTypeClassNames[2]} ${outputHiddens[0] ? 'hide' : ''}`}>
               <FormItem>
                 {getFieldDecorator('outputText', {
@@ -987,7 +1154,7 @@ export class FlowTransformForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-          ) : ''}
+          ) : ''} */}
           {flowSubPanelKey === 'flink' ? (
             <Col span={24} className={`${flinkTransformTypeClassNames[2]}`}>
               <FormItem
@@ -1111,7 +1278,8 @@ FlowTransformForm.propTypes = {
   emitCepSourceData: PropTypes.func,
   transformModalVisible: PropTypes.bool,
   cepPropData: PropTypes.object,
-  outputType: PropTypes.string
+  outputType: PropTypes.string,
+  outputFieldList: PropTypes.array
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowTransformForm)

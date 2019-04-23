@@ -20,11 +20,14 @@
 
 package edp.wormhole.flinkx.pattern
 
+import java.util.UUID
+
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+import edp.wormhole.common.feedback.ErrorPattern
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.Condition._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.{object2TrueValue, s2TrueValue}
-import edp.wormhole.ums.UmsProtocolUtils
+import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
@@ -57,8 +60,17 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
     }}catch{
       case e:Throwable =>
         e.printStackTrace()
-        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
+        val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
+          exceptionConfig.sourceNamespace,
+          exceptionConfig.sinkNamespace,
+          1,
+          e,
+          UUID.randomUUID().toString,
+          UmsProtocolType.DATA_INCREMENT_DATA.toString,
+          exceptionConfig.flowId,
+          exceptionConfig.streamId,
+          ErrorPattern.FlowError)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(errorMsg)
         false
     }
   }

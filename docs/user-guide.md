@@ -134,8 +134,8 @@ Flink中支持的Stream类型只有default，支持异构sink，包括Kafka/RDBS
 
 Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需要创建 UMS 系统字段 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）`，根据以下策略判断须增加的字段：
 
-- 源数据为 UMS 类型，则 Sink 表中需添加三个字段
-- 源数据为 UMS_Extension 类型，若源数据 Schema 中配置了 `ums_ts_` 字段，Sink 表中须增加 `ums_ts_` 字段；若源数据 Schema 中配置了 `ums_ts_, ums_id_` 字段，Sink 表中须增加 `ums_ts_, ums_id_` 字段；若源数据 Schema 中配置了 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中须增加 `ums_id_, ums_ts_, ums_active_` 字段。（注意：如果只配置了 `ums_ts_` 字段，向 Sink 表中写数据时只能选择 insert only 类型）
+- 源数据为 UMS 类型，为实现幂等更新和最终一致性，流处理的最后结果会保留上述三个字段，Sink 表中必须添加上述三个字段
+- 源数据为 UMS_Extension 类型，以用户配置的SQL及Result Fields为准
 
 ### Table Keys
 
@@ -153,15 +153,101 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
 
 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
 
+**注意事项：**
+
+- 源数据为 UMS_Extension 类型时，若"mutation_type"为"iud"，源schema中必须配置与ums三个系统字段的映射，并且SQL中须显示选出这三个系统字段
+
+
 #### 分表幂等
 
 针对关系型数据库，为了减小ums_id、ums_op与ums_ts字段对业务系统的侵入性，可单独将这三个字段和table keys单独建立一个表，原业务表保持不变。假设ums_id、ums_op、ums_ts和table key组成的表名为umsdb，那么分表幂等的配置为：
 
 `{"mutation_type":"split_table_idu","db.function_table":"umsdb"}`
 
+#### ums_uid_字段输出
+
+默认配置中ums_uid_字段会被过滤掉，不会写入sink端，通过配置sink_uid可将ums_uid_字段写入目标库
+
+```
+{"sink_uid":true}
+```
+
+#### sink分批读/写
+
+Sink时支持分批读和分批写，批次大小配置项为batch_size
+
+`{"batch_size":"10000"}`
+
 #### 配置安全认证的sink kafka
 
 在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
+
+#### 用户自定义sink
+
+Wormhole 0.6.1及之后版本支持用户自定义sink
+
+1、编写自定义sink class
+
+（1）在wormhole项目中建立customer sink class流程
+
+- clone wormhole github 项目
+
+- 在wormhole/sinks/……/edp/wormhole/sinks/目录下建相应的customer sink class，该class需要继承edp.wormhole.publicinterface.sinks.SinkProcessor，并实现process方法
+
+- 打包
+
+- - 到wormhole/sinks目录下执行mvn clean install
+  - 如果使用sparkx，到wormhole/sparkx目录下执行mvn clean install；如果使用的是flinkx，则到wormhole/flinkx下执行该命令）
+
+- 替换线上包
+
+- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2.0-0.6.1-jar-with-dependencies替换到线上wormhole app/目录下的该文件
+  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.1-jar-with-dependencies替换线上文件
+
+（2）在用户项目中建立customer sink class流程
+
+- clone wormhole github 项目
+
+- 安装包到本地仓库
+
+- - wormhole/目录下执行mvn clean install -Pwormhole
+
+- 添加依赖
+
+- - 如果使用sparkx则添加对sparkx的依赖
+
+ <dependency>
+
+​     <groupId>edp.wormhole</groupId>
+
+​     <artifactId>wormhole-sinks</artifactId>
+
+​     <version>0.6.1</version>
+
+  </dependency>
+
+- - 如果使用flinkx则添加对flinkx的依赖	
+
+<dependency>
+
+​            <groupId>edp.wormhole</groupId>
+
+​            <artifactId>wormhole-ums_1.3-flinkx_1.5.1</artifactId>
+
+​            <version>0.6.1</version>
+
+ </dependency>
+
+- 新建customer sink class，该class需要继承edp.wormhole.publicinterface.sinks.SinkProcessor，并实现process方法
+- 用户项目打包：需要打全量包，即包含sparkx或者flinkx包或者中全部的依赖
+- 上传用户jar：将用户jar包放置到wormhole项目下的app/目录中
+- 配置application.conf文件：设置spark.wormhole.jar.path参数设置为用户jar包名称
+
+2、配置flow
+
+配置flow在Sink Config中配置customer sink class的完整的名字
+
+{"other_sinks_config":{"current_sink_class_fullname":"customer sink full class name"}}
 
 ### Transformation
 
@@ -177,7 +263,7 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.0</version>
+     <version>0.6.1</version>
   </dependency>
   ```
 
@@ -222,7 +308,7 @@ Lookup SQL 可以关联流下其他系统数据，如 RDBS/Hbase/Redis/Elasticse
 select id as id1,name as name1,address,age from eurus_user where (id,name) in (${id},${name});
 ```
 
-（2）主流上的字段名用namespace.fileName进行标注，例如
+（2）主流上的字段名用namespace.filedName进行标注，例如
 
 ```
 select id as id1, name as name1, address, age from eurus_user where (id, name) in (kafka.edp_kafka.udftest.udftable.id, kafka.edp_kafka.udftest.udftable.name);
@@ -246,7 +332,8 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 - 选择要关联的其他 Source Namespace，可关联多个 Source Namespace
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
-- select 语句规则同 Lookup SQL，如select joinTable_file1 as  newfile1, joinTable_file2 as  newfile2from joinTable where (joinTable_file1, joinTable_file2) in (sourceNamespace.file1, sourceNamespace.file2);
+- select 语句规则同 Lookup SQL
+
 
 #### Flink Flow Transformation
 
@@ -353,7 +440,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.0</version>
+     <version>0.6.1</version>
   </dependency>
   ```
 
@@ -369,7 +456,7 @@ Java程序：
 
 - 继承 并实现 wormhole/interface/flinkxinterface module 下的 edp.wormhole.flinkxinterface.UdafInterface 接口。
 
-- 编译打包，将带有 Dependencies 的 Jar 包放置在 $FLINK_HOME/bin 目录下
+- 编译打包，将带有 Dependencies 的 Jar 包放置在 $FLINK_HOME/lib 目录下
 
 - 页面配置时，在admin用户下进行注册。
 
@@ -480,6 +567,10 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 
 点击停止按钮提交取消对应Flink Task请求
 
+####  Flink Error列表
+
+可通过error列表查看失败数据的offset，并针对失败数据提交backfill作业
+
 ### Flow 状态转换
 
 - new 代表新建后还未启动
@@ -520,7 +611,7 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 
 借助 Job 可轻松实现 Lambda 架构和 Kappa 架构。
 
-首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。
+首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。Job中source端可选择数据的版本信息，将该版本的数据重算。
 
 Job中Spark SQL表名为“increment”。例如：
 

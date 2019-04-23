@@ -103,6 +103,7 @@ trait DateUtils {
     val DATE_HMS_DASH = "yyyy-MM-dd HH:mm:ss"
     val DATE_HMS_Z_DASH = "yyyy-MM-dd HH:mm:ss'Z'"
     val DATE_HMS_M_DASH = "yyyy-MM-dd HH:mm:ss.SSS"
+    val DATE_HMS_M_C_DASH = "yyyy-MM-dd HH:mm:ss:SSS"
     val DATE_HMS_M_Z_DASH = "yyyy-MM-dd HH:mm:ss.SSS'Z'"
     val DATE_T_HMS_M_DASH = "yyyy-MM-dd'T'HH:mm:ss.SSS"
     val DATE_T_HMS_M_Z_DASH = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
@@ -117,6 +118,7 @@ trait DateUtils {
       DATE_HMS_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\s*$"""),
       DATE_HMS_Z_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d[Z]\s*$"""),
       DATE_HMS_M_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\.\d{1,3}\s*$"""),
+      DATE_HMS_M_C_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\:\d{1,3}\s*$"""),
       DATE_HMS_M_Z_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\.\d{1,3}[Z]\s*$"""),
       DATE_T_HMS_M_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX_T + """\d\d:\d\d:\d\d\.\d{1,3}\s*$"""),
       DATE_T_HMS_M_Z_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX_T + """\d\d:\d\d:\d\d\.\d{1,3}[Z]\s*$"""))
@@ -126,12 +128,20 @@ trait DateUtils {
         if (timeString.contains("-")) timeString
         else if (timeString.contains("/")) timeString.replaceAll("[/]", "-")
         else timeString.substring(0, 4) + "-" + timeString.substring(4, 6) + "-" + timeString.substring(6)
-      val dotStart = s.indexOf('.') + 1
+
+      val dotIndex = s.indexOf('.')
+      val dotStart = if (dotIndex > 0)
+        dotIndex + 1
+      else if (s.split(":").length == 4)
+        s.lastIndexOf(":") + 1
+      else -1
+      //      val dotStart = s.indexOf('.') + 1
       val hasDot = dotStart > 0
       val msLength = dotStart + 3
       val overMsLength = s.length - msLength
       val lessMsLength = msLength - s.length
-      val ts = if(s.endsWith("Z")) s
+
+      val ts = if (s.endsWith("Z")) s
       else if (hasDot && overMsLength >= 0) s.dropRight(overMsLength)
       else if (hasDot && lessMsLength >= 0) (0 until lessMsLength).foldLeft(s)((soFar, i) => soFar + "0")
       else if (hasDot) s + ".000"
@@ -140,12 +150,12 @@ trait DateUtils {
       ts
     }
 
-    val preT =prepare(timeString)
+    val preT = prepare(timeString)
 
-    DATE_FORMAT_VALIDATORS.find(_._2.findFirstIn(preT).isDefined).map(_._1).map(f=>{
+    DATE_FORMAT_VALIDATORS.find(_._2.findFirstIn(preT).isDefined).map(_._1).map(f => {
       val df = getDateFormat(f)
       val dt: Date = df.parse(preT)
-      if(timeString.endsWith("Z")) {
+      if (timeString.endsWith("Z")) {
         val cal = Calendar.getInstance()
         cal.setTime(dt)
         cal.add(Calendar.HOUR, 8)
@@ -241,7 +251,7 @@ trait DateUtils {
 
   private def yyyyMMddHHmmssToDate(yyyyMMddHHmmss: String): Date = if (yyyyMMddHHmmss == null) null else getDateFormat(DtFormat.TS_NOD_SEC.toString).parse(yyyyMMddHHmmss)
 
-  private def yyyyMMddHHmmssmlsToDate(yyyyMMddHHmmssmls: String): Date = if (yyyyMMddHHmmssmls == null) null else getDateFormat(DtFormat.TS_NOD_MILLISEC.toString).parse(yyyyMMddHHmmssmls)
+  def yyyyMMddHHmmssmlsToDate(yyyyMMddHHmmssmls: String): Date = if (yyyyMMddHHmmssmls == null) null else getDateFormat(DtFormat.TS_NOD_MILLISEC.toString).parse(yyyyMMddHHmmssmls)
 
   def yyyyMMddHHmmssToDateTime(yyyyMMddHHmmss: String): DateTime = if (yyyyMMddHHmmss == null) null else new DateTime(yyyyMMddHHmmssToDate(yyyyMMddHHmmss))
 
