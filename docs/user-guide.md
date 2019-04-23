@@ -164,9 +164,90 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
 
 `{"mutation_type":"split_table_idu","db.function_table":"umsdb"}`
 
+#### ums_uid_字段输出
+
+默认配置中ums_uid_字段会被过滤掉，不会写入sink端，通过配置sink_uid可将ums_uid_字段写入目标库
+
+```
+{"sink_uid":true}
+```
+
+#### sink分批读/写
+
+Sink时支持分批读和分批写，批次大小配置项为batch_size
+
+`{"batch_size":"10000"}`
+
 #### 配置安全认证的sink kafka
 
 在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
+
+#### 用户自定义sink
+
+Wormhole 0.6.1及之后版本支持用户自定义sink
+
+1、编写自定义sink class
+
+（1）在wormhole项目中建立customer sink class流程
+
+- clone wormhole github 项目
+
+- 在wormhole/sinks/……/edp/wormhole/sinks/目录下建相应的customer sink class，该class需要继承edp.wormhole.publicinterface.sinks.SinkProcessor，并实现process方法
+
+- 打包
+
+- - 到wormhole/sinks目录下执行mvn clean install
+  - 如果使用sparkx，到wormhole/sparkx目录下执行mvn clean install；如果使用的是flinkx，则到wormhole/flinkx下执行该命令）
+
+- 替换线上包
+
+- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2.0-0.6.1-jar-with-dependencies替换到线上wormhole app/目录下的该文件
+  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.1-jar-with-dependencies替换线上文件
+
+（2）在用户项目中建立customer sink class流程
+
+- clone wormhole github 项目
+
+- 安装包到本地仓库
+
+- - wormhole/目录下执行mvn clean install -Pwormhole
+
+- 添加依赖
+
+- - 如果使用sparkx则添加对sparkx的依赖
+
+ <dependency>
+
+​     <groupId>edp.wormhole</groupId>
+
+​     <artifactId>wormhole-sinks</artifactId>
+
+​     <version>0.6.1</version>
+
+  </dependency>
+
+- - 如果使用flinkx则添加对flinkx的依赖	
+
+<dependency>
+
+​            <groupId>edp.wormhole</groupId>
+
+​            <artifactId>wormhole-ums_1.3-flinkx_1.5.1</artifactId>
+
+​            <version>0.6.1</version>
+
+ </dependency>
+
+- 新建customer sink class，该class需要继承edp.wormhole.publicinterface.sinks.SinkProcessor，并实现process方法
+- 用户项目打包：需要打全量包，即包含sparkx或者flinkx包或者中全部的依赖
+- 上传用户jar：将用户jar包放置到wormhole项目下的app/目录中
+- 配置application.conf文件：设置spark.wormhole.jar.path参数设置为用户jar包名称
+
+2、配置flow
+
+配置flow在Sink Config中配置customer sink class的完整的名字
+
+{"other_sinks_config":{"current_sink_class_fullname":"customer sink full class name"}}
 
 ### Transformation
 
@@ -182,7 +263,7 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.0</version>
+     <version>0.6.1</version>
   </dependency>
   ```
 
@@ -359,7 +440,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.0</version>
+     <version>0.6.1</version>
   </dependency>
   ```
 
@@ -486,6 +567,10 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 
 点击停止按钮提交取消对应Flink Task请求
 
+####  Flink Error列表
+
+可通过error列表查看失败数据的offset，并针对失败数据提交backfill作业
+
 ### Flow 状态转换
 
 - new 代表新建后还未启动
@@ -526,7 +611,7 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 
 借助 Job 可轻松实现 Lambda 架构和 Kappa 架构。
 
-首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。
+首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。Job中source端可选择数据的版本信息，将该版本的数据重算。
 
 Job中Spark SQL表名为“increment”。例如：
 
