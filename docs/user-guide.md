@@ -172,6 +172,12 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
 {"sink_uid":true}
 ```
 
+#### sink分批读/写
+
+Sink时支持分批读和分批写，批次大小配置项为batch_size
+
+`{"batch_size":"10000"}`
+
 #### 配置安全认证的sink kafka
 
 在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
