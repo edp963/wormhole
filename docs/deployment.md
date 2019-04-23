@@ -14,7 +14,7 @@ description: Wormhole Deployment page
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
-- Flink-client （支持版本 1.5.1）(若使用Flink引擎，须部署Flink-client)
+- Flink-client （wormhole 0.6.1之前版本支持flink 1.5.1版本，wormhole 0.6.1及之后版本支持flink 1.7.2版本）(若使用Flink引擎，须部署Flink-client)
 
 #### 依赖服务
 
@@ -28,17 +28,17 @@ description: Wormhole Deployment page
 
 mysql-connector-java-{your-db-version}.jar
 
-**注意：升级至0.6.0版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+**注意：升级至0.6.1版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
 #### 下载安装包
 
-**下载 wormhole-0.6.0.tar.gz 包 (链接：https://pan.baidu.com/s/1CYu39S-3TcWTJsRDXqFuHw  提取码：oo2o )，或者自编译**
+**下载 wormhole-0.6.1.tar.gz 包 (链接:https://pan.baidu.com/s/1qQQMfHyTEiq6QaMA-IKxaQ  密码:skc0)，或者自编译**
 
 ```
-下载wormhole-0.6.0.tar.gz安装包
-tar -xvf wormhole-0.6.0.tar.gz
+下载wormhole-0.6.1.tar.gz安装包
+tar -xvf wormhole-0.6.1.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole
@@ -201,13 +201,29 @@ maintenance = {
 #}
 ```
 
-#### Flink CheckPoint配置
+#### Flink 高可用配置
 
-wormhole 0.6及之后版本支持flink checkpoint配置。
+wormhole 0.6.1及之后版本支持flink 高可用配置。
+
+（1）flink checkpoint配置
 
 如果flink.checkpoint.enable=false则不使用checkpoint，默认为不适用。
 
 如果使用checkpoint则需要配置flink.checkpoint.enable=true，另外还可以设置checkpoint的间隔时间和存储系统。通过flink.checkpoint.interval可设置checkpoint的间隔时间，默认为60000ms。通过flink.stateBackend可设置checkpoint的存储位置。
+
+（2）flink配置
+
+配置flink高可用，需要配置flink-conf.yaml文件
+
+```
+high-availability: zookeeper
+
+high-availability.storageDir: hdfs:///flink/ha/
+
+high-availability.zookeeper.quorum: ip:port
+
+high-availability.zookeeper.path.root: /flink
+```
 
 #### Feedback State存储位置配置
 
