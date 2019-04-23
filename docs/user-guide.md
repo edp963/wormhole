@@ -201,8 +201,8 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 - 替换线上包
 
-- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2.0-0.6.0-jar-with-dependencies替换到线上wormhole app/目录下的该文件
-  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.0-jar-with-dependencies替换线上文件
+- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2.0-0.6.1-jar-with-dependencies替换到线上wormhole app/目录下的该文件
+  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.1-jar-with-dependencies替换线上文件
 
 （2）在用户项目中建立customer sink class流程
 
@@ -222,7 +222,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 ​     <artifactId>wormhole-sinks</artifactId>
 
-​     <version>0.6.0</version>
+​     <version>0.6.1</version>
 
   </dependency>
 
@@ -234,7 +234,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 ​            <artifactId>wormhole-ums_1.3-flinkx_1.5.1</artifactId>
 
-​            <version>0.6.0</version>
+​            <version>0.6.1</version>
 
  </dependency>
 
@@ -263,7 +263,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.0</version>
+     <version>0.6.1</version>
   </dependency>
   ```
 
@@ -440,7 +440,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.0</version>
+     <version>0.6.1</version>
   </dependency>
   ```
 

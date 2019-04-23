@@ -28,17 +28,17 @@ description: Wormhole Deployment page
 
 mysql-connector-java-{your-db-version}.jar
 
-**注意：升级至0.6.0版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+**注意：升级至0.6.1版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
 #### 下载安装包
 
-**下载 wormhole-0.6.0.tar.gz 包 (链接：https://pan.baidu.com/s/1CYu39S-3TcWTJsRDXqFuHw  提取码：oo2o )，或者自编译**
+**下载 wormhole-0.6.1.tar.gz 包 (链接：https://pan.baidu.com/s/1CYu39S-3TcWTJsRDXqFuHw  提取码：oo2o )，或者自编译**
 
 ```
-下载wormhole-0.6.0.tar.gz安装包
-tar -xvf wormhole-0.6.0.tar.gz
+下载wormhole-0.6.1.tar.gz安装包
+tar -xvf wormhole-0.6.1.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole
