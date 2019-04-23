@@ -14,7 +14,7 @@ description: Wormhole Deployment page
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
-- Flink-client （支持版本 1.5.1）(若使用Flink引擎，须部署Flink-client)
+- Flink-client （wormhole 0.6.1之前版本支持flink 1.5.1版本，wormhole 0.6.1及之后版本支持flink 1.7.2版本）(若使用Flink引擎，须部署Flink-client)
 
 #### 依赖服务
 
