@@ -38,14 +38,15 @@
         <module>interface/publicinterface</module>
         <module>sinks</module>
         <module>common</module>
+        <module>swifts</module>
+        <module>reporter</module>
         <module>flinkx</module>
         <module>sparkx</module>
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
         <!--<module>rider/mad-server</module>-->
         <module>rider/rider-assembly</module>
-        <module>swifts</module>
-        <module>reporter</module>
+
     </modules>
 
     <properties>
