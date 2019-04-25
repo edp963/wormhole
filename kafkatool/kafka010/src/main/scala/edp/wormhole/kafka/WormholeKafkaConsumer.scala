@@ -27,6 +27,7 @@ import edp.wormhole.util.config.KVConfig
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, ConsumerRecords, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 
+import scala.collection.JavaConversions
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 
@@ -57,6 +58,12 @@ object WormholeKafkaConsumer {
 
   def consumerRecords(consumer: KafkaConsumer[String, String], timeout: Long): ConsumerRecords[String, String] = {
     println("----------------start consumerRecords")
+    consumer.poll(timeout)
+  }
+
+  def consumeRecordsFromSpecialOffset(consumer: KafkaConsumer[String, String], topicPartition: TopicPartition, offset: Long, timeout: Long) : ConsumerRecords[String, String] ={
+    consumer.assign(JavaConversions.seqAsJavaList(Seq(topicPartition)))
+    consumer.seek(topicPartition,offset)
     consumer.poll(timeout)
   }
 

@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
   `table_keys` VARCHAR(100) NULL,
-  `priority_id` BIGINT NULL,
+  `priority_id` BIGINT NOT NULL DEFAULT 0,
   `desc` VARCHAR(1000) NULL,
   `status` VARCHAR(200) NOT NULL,
   `started_time` TIMESTAMP NULL,
@@ -236,7 +236,7 @@ alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`
 alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(100) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
-alter table `flow` add column `priority_id` BIGINT NULL;
+alter table `flow` add column `priority_id` BIGINT NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS `flow_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
