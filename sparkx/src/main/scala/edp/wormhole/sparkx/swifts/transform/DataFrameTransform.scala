@@ -69,10 +69,7 @@ object DataFrameTransform extends EdpLogging {
     val resultSchema = currentDf.schema
 
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
-
       KuduConnection.initKuduConfig(connectionConfig)
-      val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
-      val table: KuduTable = client.openTable(tableName)
 
       val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
       logInfo("getKUDUUnionDf,originalDatas.size="+originalDatas.size)
@@ -107,6 +104,8 @@ object DataFrameTransform extends EdpLogging {
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
       } else {
+        val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+        val table: KuduTable = client.openTable(tableName)
         originalDatas.map(row => {
           val tuple: Array[String] = sourceFieldNameArray.map(field => {
             val tmpKey = row.get(row.fieldIndex(field))
@@ -120,6 +119,7 @@ object DataFrameTransform extends EdpLogging {
 
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
+        KuduConnection.closeClient(client)
       }
       resultDatas.toIterator
     })
