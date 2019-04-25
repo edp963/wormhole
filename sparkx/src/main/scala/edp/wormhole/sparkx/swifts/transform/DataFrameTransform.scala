@@ -312,7 +312,7 @@ object DataFrameTransform extends EdpLogging {
               }else{
                 (newTmpValue,umsFieldType(tmpValue._2))
               }
-              logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
+//              logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
               outputArray.append(
                 SparkSchemaUtils.s2sparkValue(if (tmpValue._1 == null) null else fieldValue, fieldType))
             }
