@@ -55,10 +55,11 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
         WormholeKafkaProducer.init(brokers.toString, None, kerberos.toString.toBoolean)
         val firtstUmsTsStr = DateUtils.dt2string(firstUmsTs.toLong,DtFormat.TS_DASH_MILLISEC)
         val lastUmsTsStr = DateUtils.dt2string(lastUmsTs.toLong,DtFormat.TS_DASH_MILLISEC)
+        logger.info(s"firstUms:$firstUmsTs,lastUmsTs:$lastUmsTs")
         WormholeKafkaProducer.sendMessage(topic.toString, FeedbackPriority.feedbackPriority,
           UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString, protocolType, DateUtils.currentDateTime, streamId.toString.toLong,
             batchId, sinkNamespace.toString, topics, payloadSize.toInt, firtstUmsTsStr, firtstUmsTsStr,
-            firtstUmsTsStr, firtstUmsTsStr, lastUmsTsStr, lastUmsTsStr, lastUmsTs, flowId.toString.toLong),
+            firtstUmsTsStr, firtstUmsTsStr, lastUmsTsStr, lastUmsTsStr, lastUmsTsStr, flowId.toString.toLong),
           Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), brokers.toString)
         this.counters.keySet.iterator.next.dec(payloadSize)
       }
