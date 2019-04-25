@@ -195,10 +195,9 @@ object KuduConnection extends Serializable {
         }
       })
 
-      val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
-        .setProjectedColumnNames(queryFieldsName) //指定输出列
-
       dataList.grouped(batchSize).foreach(data => {
+        val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
+          .setProjectedColumnNames(queryFieldsName) //指定输出列
         val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName), data)
         scannerBuilder.addPredicate(kuduPredicate)
         val scanner = scannerBuilder.build()

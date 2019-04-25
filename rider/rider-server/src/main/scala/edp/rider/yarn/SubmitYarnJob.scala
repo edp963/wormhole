@@ -234,7 +234,6 @@ object SubmitYarnJob extends App with RiderLogger {
        |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
        |-qu ${RiderConfig.flink.yarnQueueName}
        |-nm ${stream.name}
-       |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
   }
 
