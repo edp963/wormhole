@@ -3,8 +3,8 @@ package edp.wormhole.sparkx.swifts.custom
 import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.sparkx.common.SparkSchemaUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.ums.UmsFieldType.{UmsFieldType, umsFieldType}
 import edp.wormhole.ums.UmsFieldType
+import edp.wormhole.ums.UmsFieldType.{UmsFieldType, umsFieldType}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.kudu.client.KuduTable
@@ -101,8 +101,9 @@ object LookupKudu extends EdpLogging {
               key != null
             })
 
+
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
-            if (tuple == null || tuple.isEmpty) {
+            if (tuple == null || tuple.isEmpty || tuple.length != sourceFieldNameArray.length) {
               resultData.append(getJoinRow(selectFieldNewNameArray, null.asInstanceOf[Map[String, (Any, String)]], originalArray, resultSchema))
             } else {
               val queryResult: mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = KuduConnection.doQueryMultiByKey(lookupFieldNameArray, tuple.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
