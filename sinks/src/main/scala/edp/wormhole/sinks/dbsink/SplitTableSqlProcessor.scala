@@ -202,6 +202,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         throw e
       case e: Throwable =>
         logger.error("execute select failed", e)
+        conn.rollback()
         throw e
     } finally {
       if (masterResultSet != null)
