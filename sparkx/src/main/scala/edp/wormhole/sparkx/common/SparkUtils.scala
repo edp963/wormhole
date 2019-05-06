@@ -126,6 +126,7 @@ object SparkUtils extends EdpLogging {
       else false
       val tmpSchemaArr = if(!sinkUid) schemaArr.filter(_._1 != UmsSysField.UID.toString)
       else schemaArr
+      logInfo("tmpSchemaArr:"+tmpSchemaArr)
       var index = -1
       (tmpSchemaArr.map(t => {
         index += 1
