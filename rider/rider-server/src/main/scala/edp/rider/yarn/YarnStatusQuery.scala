@@ -150,7 +150,10 @@ object YarnStatusQuery extends RiderLogger {
     var result = AppResult(appId, appName, curStatus, "", startedTime, stoppedTime)
     if (map.contains(appName)) {
       val yarnApp = map(appName)
-      if (result.startedTime == null || yyyyMMddHHmmss(yarnApp.startedTime) >= yyyyMMddHHmmss(result.startedTime))
+      val resultStartTime = dt2date(result.startedTime)
+      resultStartTime.setTime(resultStartTime.getTime - 60 * 1000)
+      //riderLogger.info(s"getAppStatusByRest appName $appName, yarnApp ${yarnApp.startedTime}, result ${result.startedTime}, result sub ${resultStartTime}")
+      if (result.startedTime == null || yyyyMMddHHmmss(yarnApp.startedTime) >= yyyyMMddHHmmss(resultStartTime))
         result = yarnApp
     } else {
       riderLogger.debug("refresh spark/yarn api response is null")
