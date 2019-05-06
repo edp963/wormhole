@@ -1075,7 +1075,7 @@ object FlowUtils extends RiderLogger {
     s"""
        |ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host}
        |${RiderConfig.flink.homePath}/bin/flink run
-       |-yid $appId -yqu ${RiderConfig.flink.yarnQueueName} ${RiderConfig.flink.jarPath} '${config1}' '${config2}'
+       |-d -yid $appId -yqu ${RiderConfig.flink.yarnQueueName} ${RiderConfig.flink.jarPath} '${config1}' '${config2}'
        |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
   }
