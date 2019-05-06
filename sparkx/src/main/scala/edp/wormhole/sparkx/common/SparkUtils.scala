@@ -121,8 +121,8 @@ object SparkUtils extends EdpLogging {
         (t._1, (index, t._2._2, t._2._3))
       }).toMap, tmpSchema, if (renameMap.isEmpty) None else Some(renameMap.toMap))
     } else {
-      val sinkUid:Boolean = if(sinkProcessConfig.specialConfigJson!=null&&sinkProcessConfig.specialConfigJson.containsKey("sinkUid"))
-        sinkProcessConfig.specialConfigJson.getBoolean("sinkUid")
+      val sinkUid:Boolean = if(sinkProcessConfig.specialConfigJson!=null&&sinkProcessConfig.specialConfigJson.containsKey("sink_uid"))
+        sinkProcessConfig.specialConfigJson.getBoolean("sink_uid")
       else false
       val tmpSchemaArr = if(sinkUid) schemaArr.filter(_._1 != UmsSysField.UID.toString)
       else schemaArr
