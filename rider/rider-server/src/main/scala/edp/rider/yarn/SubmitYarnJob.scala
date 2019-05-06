@@ -21,7 +21,7 @@
 package edp.rider.yarn
 
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{FlinkResourceConfig, SparkConfig, StartConfig, Stream}
+import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
 import edp.wormhole.util.JsonUtils
@@ -228,12 +228,14 @@ object SubmitYarnJob extends App with RiderLogger {
     s"""
        |ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host}
        |${RiderConfig.flink.homePath}/bin/yarn-session.sh
+       |-d
        |-n ${resourceConfig.taskManagersNumber}
        |-tm ${resourceConfig.perTaskManagerMemoryGB * 1024}
        |-s ${resourceConfig.perTaskManagerSlots}
        |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
        |-qu ${RiderConfig.flink.yarnQueueName}
        |-nm ${stream.name}
+       |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
   }
 
