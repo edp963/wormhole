@@ -100,11 +100,13 @@ object SubmitYarnJob extends App with RiderLogger {
       if (RiderConfig.kerberos.enabled) new StreamProcessLogger(process.getErrorStream).parseKillErrorStream()
       else true
     riderLogger.info(s"run shell command is: $command, result is $killSuccess")
-    try{
-      process.destroy()
-    } catch {
-      case ex: Exception => {
-        riderLogger.warn(s"kill yarn app process destroy failed, $ex")
+    if(!killSuccess) {
+      try {
+        process.destroy()
+      } catch {
+        case ex: Exception => {
+          riderLogger.warn(s"kill yarn app process destroy failed, $ex")
+        }
       }
     }
     killSuccess
