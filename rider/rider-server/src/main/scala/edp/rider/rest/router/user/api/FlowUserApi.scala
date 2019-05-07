@@ -799,13 +799,13 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                         topicInfo.partitionOffset.map(parOffset => {
                           val kafkaConsumer = WormholeKafkaConsumer.initConsumer(instance.connUrl, FlowUtils.getFlowName(feedbackError.get.flowId, feedbackError.get.sourceNamespace, feedbackError.get.sinkNamespace), None, RiderConfig.kerberos.enabled)
                           val startTime = DateUtils.currentyyyyMMddHHmmss
-                          val consumerRecordIterator = WormholeKafkaConsumer.consumeRecordsBetweenOffsetRange(kafkaConsumer, new TopicPartition(topicInfo.topicName, parOffset.num), parOffset.from,parOffset.to).iterator()
+                          val consumerRecordIterator = WormholeKafkaConsumer.consumeRecordsBetweenOffsetRange(kafkaConsumer, new TopicPartition(topicInfo.topicName, parOffset.num), parOffset.from,parOffset.to,5000).iterator()
                           var isSuccess = true
                           var backFillRecordCount = 0
                           while (consumerRecordIterator.hasNext) {
                             val consumeRecord = consumerRecordIterator.next()
                             val recordKey=consumeRecord.key().split("\\.").take(4).mkString(".").toLowerCase
-                            val sourceKey=feedbackError.get.sourceNamespace.split("\\.").take(4).mkString(".").toLowerCase
+                            val sourceKey=feedbackError.get.sourceNamespace.split("\\.").take(4).mkString(".").toLowerCase+"."
                             if (consumeRecord.offset() <= parOffset.to && recordKey.indexOf(sourceKey) >= 0) {
                               try {
                                 if (rechargeType.protocolType.equals("all")) {
