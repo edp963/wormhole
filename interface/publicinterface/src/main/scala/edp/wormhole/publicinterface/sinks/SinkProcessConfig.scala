@@ -33,6 +33,16 @@ case class SinkProcessConfig(sinkOutput: String,
                              retrySeconds: Int,
                              kerberos: Boolean = false) {
   lazy val tableKeyList: List[String] = if (tableKeys.isEmpty || tableKeys.get == null) Nil else tableKeys.get.split(",").map(_.trim.toLowerCase).toList
-  lazy val specialConfigJson: JSONObject = if (specialConfig.isEmpty || specialConfig.get == null) null else JSON.parseObject(specialConfig.get)
+  lazy val sinkUid: Boolean = SinkProcessConfig.checkSinkUid(specialConfig)
+}
+
+object SinkProcessConfig {
+  def checkSinkUid(specialConfig: Option[String]): Boolean = {
+    val specialConfigJson: JSONObject = if (specialConfig.isEmpty || specialConfig.get == null) null else JSON.parseObject(specialConfig.get)
+    if (specialConfigJson != null && specialConfigJson.containsKey("sink_uid"))
+      specialConfigJson.getBoolean("sink_uid")
+    else false
+
+  }
 }
 
