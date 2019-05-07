@@ -103,7 +103,8 @@ case class RiderSpark(user: String,
                       sparkConfig: String,
                       alert: Boolean,
                       metricsConfPath: String,
-                      alertEmails: String)
+                      alertEmails: String,
+                      proxyPort: Int)
 
 
 case class RiderEs(url: String,
@@ -294,8 +295,16 @@ object RiderConfig {
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
     wormholeKafka08JarPath, kafka08StreamNames, sparkxInterfaceJarPath,
-    consumer.heartbeatTopic, 2, 1, 3, 2, 1, 30, 2, 10, 100, 5000,
-    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, alert, metricsConfPath, alertEmails)
+    consumer.heartbeatTopic,
+    driverMemory = 1,
+    driverCores = 1,
+    executorNum = 3,
+    executorMemory = 2,
+    executorCores = 1,
+    batchDurationSec = 30,
+    parallelismPartition = 3, 10, 100, 5000,
+    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, alert, metricsConfPath, alertEmails,
+    getIntConfig("spark.yarn.web-proxy.port", 0))
 
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {

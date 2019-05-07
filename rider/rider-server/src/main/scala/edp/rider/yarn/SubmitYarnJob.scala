@@ -21,7 +21,7 @@
 package edp.rider.yarn
 
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{FlinkResourceConfig, SparkConfig, StartConfig, Stream}
+import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
 import edp.wormhole.util.JsonUtils
@@ -100,6 +100,15 @@ object SubmitYarnJob extends App with RiderLogger {
       if (RiderConfig.kerberos.enabled) new StreamProcessLogger(process.getErrorStream).parseKillErrorStream()
       else true
     riderLogger.info(s"run shell command is: $command, result is $killSuccess")
+    if(!killSuccess) {
+      try {
+        process.destroy()
+      } catch {
+        case ex: Exception => {
+          riderLogger.warn(s"kill yarn app process destroy failed, $ex")
+        }
+      }
+    }
     killSuccess
   }
 
@@ -228,12 +237,14 @@ object SubmitYarnJob extends App with RiderLogger {
     s"""
        |ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host}
        |${RiderConfig.flink.homePath}/bin/yarn-session.sh
+       |-d
        |-n ${resourceConfig.taskManagersNumber}
        |-tm ${resourceConfig.perTaskManagerMemoryGB * 1024}
        |-s ${resourceConfig.perTaskManagerSlots}
        |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
        |-qu ${RiderConfig.flink.yarnQueueName}
        |-nm ${stream.name}
+       |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
   }
 
