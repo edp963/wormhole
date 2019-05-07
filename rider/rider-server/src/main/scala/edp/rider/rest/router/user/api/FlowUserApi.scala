@@ -804,16 +804,17 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                           var backFillRecordCount = 0
                           while (consumerRecordIterator.hasNext) {
                             val consumeRecord = consumerRecordIterator.next()
-                            val recordKey=consumeRecord.key().split("\\.").take(4).mkString(".").toLowerCase
+                            val recordKey=consumeRecord.key().toLowerCase
                             val sourceKey=feedbackError.get.sourceNamespace.split("\\.").take(4).mkString(".").toLowerCase+"."
-                            if (consumeRecord.offset() <= parOffset.to && recordKey.indexOf(sourceKey) >= 0) {
+                            if ( recordKey.indexOf(sourceKey) >= 0) {
                               try {
                                 if (rechargeType.protocolType.equals("all")) {
+                                  backFillRecordCount += 1
                                   WormholeKafkaProducer.sendMessage(topicInfo.topicName, consumeRecord.value(), Some(consumeRecord.key()), instance.connUrl)
-                                } else if (consumeRecord.key().indexOf(rechargeType.protocolType) >= 0) {
+                                } else if (recordKey.startsWith(rechargeType.protocolType.toLowerCase) ) {
+                                  backFillRecordCount += 1
                                   WormholeKafkaProducer.sendMessage(topicInfo.topicName, consumeRecord.value(), Some(consumeRecord.key()), instance.connUrl)
                                 }
-                                backFillRecordCount += 1
                               } catch {
                                 case e: Throwable =>
                                   riderLogger.error(e.getMessage)
