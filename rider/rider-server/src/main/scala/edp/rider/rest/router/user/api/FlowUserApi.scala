@@ -804,7 +804,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                           var backFillRecordCount = 0
                           while (consumerRecordIterator.hasNext) {
                             val consumeRecord = consumerRecordIterator.next()
-                            if (consumeRecord.offset() <= parOffset.to && consumeRecord.key().indexOf(feedbackError.get.sourceNamespace) >= 0) {
+                            if (consumeRecord.offset() <= parOffset.to && consumeRecord.key().toLowerCase().indexOf(feedbackError.get.sourceNamespace.toLowerCase()) >= 0) {
                               try {
                                 if (rechargeType.protocolType.equals("all")) {
                                   WormholeKafkaProducer.sendMessage(topicInfo.topicName, consumeRecord.value(), Some(consumeRecord.key()), instance.connUrl)
