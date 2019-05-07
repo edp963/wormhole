@@ -364,7 +364,9 @@ export class Flow extends React.Component {
       this.props.onOperateUserFlow(requestValue, (result) => {
         this.setState({ selectedRowKeys: [] })
         const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
-
+        if (!Array.isArray(result)) {
+          result = [result]
+        }
         if (typeof (result) === 'object') {
           const resultFailed = result.filter(i => i.msg.includes('failed'))
           if (resultFailed.length > 0) {
@@ -1349,8 +1351,9 @@ export class Flow extends React.Component {
     this.setState({ logsModalVisible: false })
   }
   filterStreamId = (streamId) => () => {
-    const { searchTextStreamId } = this.state
-    let value = searchTextStreamId === '' ? streamId : searchTextStreamId
+    // const { searchTextStreamId } = this.state
+    let value = streamId
+    // let value = searchTextStreamId === '' ? streamId : searchTextStreamId
     this.setState({searchTextStreamId: value}, () => {
       this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')()
     })
