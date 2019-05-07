@@ -105,12 +105,12 @@ object WormholeKafkaConsumer {
     consumer.poll(timeout)
   }
 
-  def consumeRecordsBetweenOffsetRange(consumer: KafkaConsumer[String, String], topicPartition: TopicPartition, fromOffset: Long,untilOffset: Long) : ConsumerRecords[String, String]={
+  def consumeRecordsBetweenOffsetRange(consumer: KafkaConsumer[String, String], topicPartition: TopicPartition, fromOffset: Long,untilOffset: Long, readTimeout:Int) : ConsumerRecords[String, String]={
     val consumeRecordList=new util.ArrayList[ConsumerRecord[String,String]]()
     val consumeRecordMap=new util.HashMap[TopicPartition,util.List[ConsumerRecord[String,String]]]()
     var currentOffset=fromOffset
     while(currentOffset<=untilOffset){
-      val consumerRecordIterator=consumeRecordsFromSpecialOffset(consumer,topicPartition,currentOffset,1000).iterator()
+      val consumerRecordIterator=consumeRecordsFromSpecialOffset(consumer,topicPartition,currentOffset,readTimeout).iterator()
       while(consumerRecordIterator.hasNext && currentOffset<=untilOffset){
         val consumeRecord=consumerRecordIterator.next()
         currentOffset=consumeRecord.offset()

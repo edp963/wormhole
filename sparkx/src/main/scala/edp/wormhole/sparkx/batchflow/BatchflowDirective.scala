@@ -119,10 +119,9 @@ object BatchflowDirective extends Directive {
     val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
     val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
-    val sinkSpecificConfigJson:JSONObject = if(sink_specific_config.nonEmpty) JSON.parseObject(sink_specific_config.get) else null
-    val sinkUid:Boolean = if(sinkSpecificConfigJson!=null&&sinkSpecificConfigJson.containsKey("sink_uid"))
-      sinkSpecificConfigJson.getBoolean("sink_uid")
-    else false
+
+    val sinkUid:Boolean = SinkProcessConfig.checkSinkUid(sink_specific_config)
+
     val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
       var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
       if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
