@@ -28,6 +28,13 @@ class StreamProcessLogger(inputStream: InputStream) extends RiderLogger{
       else false
     } catch {
       case ex: Exception => {
+        try{
+          streamBuffer.close()
+        } catch {
+          case exp: Exception => {
+            riderLogger.error("streamBuffer close fail: ", exp)
+          }
+        }
         riderLogger.error("read runtime error stream fail: ", ex)
         false
       }

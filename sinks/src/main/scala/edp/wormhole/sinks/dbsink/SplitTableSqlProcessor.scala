@@ -202,6 +202,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         throw e
       case e: Throwable =>
         logger.error("execute select failed", e)
+        conn.rollback()
         throw e
     } finally {
       if (masterResultSet != null)
@@ -371,6 +372,18 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         } finally {
           psMaster.clearBatch()
           psSub.clearBatch()
+          if (psMaster != null)
+            try {
+              psMaster.close()
+            } catch {
+              case e: Throwable => logger.error("psMaster.close", e)
+            }
+          if (psSub != null)
+            try {
+              psSub.close()
+            } catch {
+              case e: Throwable => logger.error("psSub.close", e)
+            }
         }
       })
     } catch {
@@ -382,18 +395,6 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         errorTupleList ++= tupleList
 
     } finally {
-      if (psMaster != null)
-        try {
-          psMaster.close()
-        } catch {
-          case e: Throwable => logger.error("psMaster.close", e)
-        }
-      if (psSub != null)
-        try {
-          psSub.close()
-        } catch {
-          case e: Throwable => logger.error("psSub.close", e)
-        }
       if (null != conn)
         try {
           conn.close()

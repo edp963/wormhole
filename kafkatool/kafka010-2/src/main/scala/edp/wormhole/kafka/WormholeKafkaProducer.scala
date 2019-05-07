@@ -88,8 +88,6 @@ object WormholeKafkaProducer extends Serializable {
 
   private def send(topic: String, partition: Int, message: String, key: Option[String], brokers: String): Any = {
     try {
-      println(s"broker:${brokers},partition:${partition},key:${key},msg:${message}")
-      logger.info(s"broker:${brokers},partition:${partition},key:${key},msg:${message}")
       sendInternal(topic, partition, message, key, brokers)
     } catch {
       case _: Throwable =>

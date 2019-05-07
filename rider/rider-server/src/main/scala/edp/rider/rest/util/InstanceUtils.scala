@@ -29,7 +29,7 @@ import scala.tools.nsc.interpreter.session
 import scala.util.hashing.MurmurHash3._
 
 
-object InstanceUtils extends RiderLogger{
+object InstanceUtils extends RiderLogger {
 
   val tcp_url_ip_pattern = "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(,(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))*$".r.pattern
 
@@ -51,6 +51,10 @@ object InstanceUtils extends RiderLogger{
 
   val zk_node_host_pattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*(,((([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*))*$".r.pattern
 
+  val phoenix_zk_node_ip_pattern = "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(,(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\\:\\d+(\\/(.)+)*$".r.pattern
+
+  val phoenix_zk_node_host_pattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])(,((([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*))*$".r.pattern
+
   val hdfs_path_pattern = "hdfs://[A-Za-z]+[A-Za-z0-9_-]*(:\\d+)*(/[A-Za-z]+[A-Za-z0-9_-]*)*".r.pattern
 
   def checkSys(nsSys: String): Boolean = {
@@ -69,14 +73,15 @@ object InstanceUtils extends RiderLogger{
   def checkFormat(nsSys: String, url: String): Boolean = {
 
     nsSys.toLowerCase match {
-      case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" | "greenplum" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
+      case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       case "kafka" | "redis" | "cassandra" | "kudu" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
       case "es" => http_url_ip_port_pattern.matcher(url).matches() || http_host_ip_port_pattern.matcher(url).matches() || one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
+      case "phoenix" => phoenix_zk_node_ip_pattern.matcher(url).matches() || phoenix_zk_node_host_pattern.matcher(url).matches()
       case "hbase" => zk_node_ip_pattern.matcher(url).matches() || zk_node_host_pattern.matcher(url).matches()
       case "mongodb" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches() || tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
       case "parquet" => hdfs_path_pattern.matcher(url).matches()
       case _ => {
-        riderLogger.info(s"checkFormat other: ${nsSys}，${url}")
+        riderLogger.info(s"checkFormat other: $nsSys，$url")
         one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       }
     }
@@ -84,8 +89,9 @@ object InstanceUtils extends RiderLogger{
 
   def getTip(nsSys: String, url: String): String = {
     nsSys.toLowerCase match {
-      case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" | "greenplum" => s"ip:port"
+      case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => s"ip:port"
       case "kafka" | "redis" | "cassandra" | "kudu" => s"ip:port list"
+      case "phoenix" => "zk node list, localhost,localhost1,localhost2:2181/hbase"
       case "hbase" => s"zk node list"
       case "es" => s"sink: http url list, lookup: tcp url, ip:port"
       case "mongodb" => s"ip[:port] list"

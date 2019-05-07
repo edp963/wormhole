@@ -25,7 +25,6 @@ import java.io.File
 
 import edp.rider.common.YarnAppStatus._
 import edp.rider.common.{RiderLogger, StreamStatus}
-import edp.rider.yarn.SubmitYarnJob._
 
 import scala.language.postfixOps
 import scala.sys.process._
