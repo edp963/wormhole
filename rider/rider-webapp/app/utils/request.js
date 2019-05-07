@@ -26,6 +26,19 @@ axios.defaults.validateStatus = function (status) {
   return status < 600
 }
 
+axios.interceptors.response.use(function (response) {
+  return response
+}, function (error) {
+  if (error.response) {
+    switch (error.response.status) {
+      case 401:
+        delete axios.defaults.headers.common['Authorization']
+        localStorage.removeItem('token')
+        location.hash = '#/login'
+    }
+  }
+  return Promise.reject(error)
+})
 /**
  * Parses the JSON returned by a network request
  *
