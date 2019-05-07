@@ -29,6 +29,7 @@ object DbType {
     case "DATETIME" => "datetime"
     case "DECIMAL" => "decimal"
     case "SMALLINT" => "int"
+    case "TINYINT" => "int"
     case "INT" => "int"
     case "BIGINT" => "long"
     case "FLOAT" => "float"
