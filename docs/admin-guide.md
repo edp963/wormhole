@@ -89,7 +89,7 @@ UMS_Extension 格式支持的字段类型如下。
 
 **注意事项：**
 
-> - **ums_ts_ 对应字段必须配置，且数据类型须为 long/datetime/longarray/datetimearray，若为datetime/datetimearray 类型，数据格式须为 yyyy/MM/dd HH:mm:ss[.SSS000/SSS] 或 yyyy-MM-dd HH:mm:ss[.SSS000/SSS] 或 yyyyMMddHHmmss[SSS000/SSS]**
+> - **ums_ts_ 对应字段必须配置，且数据类型须为 long/datetime/longarray/datetimearray，若为datetime/datetimearray 类型，数据格式须为 yyyy/MM/dd HH:mm:ss[.SSS000/SSS] 或 yyyy-MM-dd HH:mm:ss[.SSS000/SSS] 或 yyyyMMddHHmmss[SSS000/SSS]。若ums_ts_字段设置为long类型，对应数值应该为时间对应的秒数或毫秒数**
 > - **ums_id_ 对应字段的数据类型须为 int/long/intarray/longarray**
 > - **ums_op_ 对应字段的数据类型须为 int/long/string/intarray/longarray/stringarray，配置 insert 操作，update 操作，delete 操作对应的值**
 > - **如果向 sink 端写数据时只有插入操作，可不配置 ums_id_ 和 ums_op_ 系统字段；如果有增删改操作，必须配置**
