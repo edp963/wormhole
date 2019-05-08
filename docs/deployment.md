@@ -375,6 +375,20 @@ topic name：wormhole_heartbeat partitions: 1
 
 ## 升级
 
+#### 0.6.0版本升级到0.6.1版本
+
+（1）升级至0.6.1版本需要将flink升级为1.7.2版本
+
+（2）删除数据库中feedback_flow_stats表。该表此次升级中结构改动较大，需要删除重建；该表记录flow的监控信息，删除后不影响现有业务运行，并且会在wormhole启动时重建
+
+（3）数据库中feedback_stream_offset、feedback_stream_error、feedback_flow_error表已弃用，可自行删除
+
+（4）重启wormhole服务后需要执行以下数据库操作
+
+```
+update flow set priority_id=0;
+```
+
 #### 0.5.3-0.5.5版本升级到0.6.0版本
 
 （1）数据库操作
