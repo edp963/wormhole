@@ -49,7 +49,27 @@ mvn install package -Pwormhole
 
 **配置 SPARK_HOME/HADOOP_HOME 环境变量**
 
-#### 修改配置文件
+#### spark-client下配置文件示例
+
+```
+spark-env.conf
+
+export JAVA_HOME=/usr/local/jdk
+export HADOOP_CONF_DIR=/etc/hadoop/conf
+export HADOOP_HOME=/usr/hdp/current/hadoop-client
+
+```
+
+#### flink-client下配置文件示例
+
+```
+flink-conf.yaml 
+
+env.java.home: /usr/local/jdk
+env.java.opts: -XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc
+yarn.application-attempts: 2
+```
+#### rider-server配置文件
 
 **修改 application.conf 配置文件**
 
