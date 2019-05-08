@@ -108,7 +108,10 @@ object StreamUtils extends RiderLogger {
             case "refresh_spark" =>
               getAppStatusByRest(appInfoMap, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
             case "refresh_log" =>
-              val logInfo = YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+              val logInfo = StreamType.withName(stream.streamType) match {
+                case StreamType.SPARK => YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+                case _ => YarnClientLog.getFlinkAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+              }
               logInfo._2 match {
                 case "running" =>
                   getAppStatusByRest(appInfoMap, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
