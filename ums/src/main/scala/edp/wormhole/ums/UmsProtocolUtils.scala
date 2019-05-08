@@ -281,7 +281,7 @@ trait UmsProtocolUtils {
     ))),
     payload = Some(Seq(UmsTuple(Seq(
       dataType,
-      DateUtils.dt2string(timestamp, dtFormat),
+      DateUtils.dt2string(timestamp, DtFormat.TS_NOD_MILLISEC),
       streamId.toString,
       batchId,
       sinkNamespace,

@@ -24,7 +24,7 @@ package edp.rider.yarn
 import java.io.File
 
 import edp.rider.common.YarnAppStatus._
-import edp.rider.common.{RiderLogger, StreamStatus}
+import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus}
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -79,6 +79,50 @@ object YarnClientLog extends RiderLogger {
       case ex: Exception =>
         riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
         ("", curStatus)
+    }
+  }
+
+  def getFlinkAppStatusByLog(appName: String, curStatus: String, logPath: String) : (String,String)={
+    assert(appName != "" && appName != null, "Refresh Flink Application log, app name couldn't be null or blank.")
+    val appIdPattern = "Submitted application application_([0-9]){13}_([0-9]){4}".r
+    try {
+      val fileLines = getLogByAppName(appName, logPath).split("\\n")
+      val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
+      val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Submitted application").trim else ""
+      val isFailed = fileLines.count(s => s contains s"The Flink Yarn cluster has failed")
+      val isRunning = fileLines.count(s => s contains s"Flink JobManager is now running on")
+      val isAccepted = fileLines.count(s => s contains s"YARN application has been deployed successfully")
+      val isFinished = if(appId == "") 0 else fileLines.count(s => s contains s"Application $appId finished")
+
+      val status =
+        if (appId == "" && isFailed == 0) curStatus
+        else if (appId == "" && isFailed > 0) StreamStatus.FAILED.toString
+        else if (isFailed == 0 && isRunning > 0) StreamStatus.RUNNING.toString
+        else if (isFailed > 0) StreamStatus.FAILED.toString
+        else if (isAccepted > 0) StreamStatus.WAITING.toString
+        else if (isFinished > 0) StreamStatus.FINISHED.toString
+        else curStatus
+      (appId, status)
+    }
+    catch {
+      case ex: Exception =>
+        riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
+        ("", curStatus)
+    }
+  }
+
+  def getFlinkFlowStatusByLog(flowName: String, curStatus: String, logPath: String): String = {
+    assert(flowName != "" && flowName != null, "Refresh Flink Flow log, flow name couldn't be null or blank.")
+    try{
+      val fileLines = getLogByAppName(flowName, logPath).split("\\n")
+      val isFailed = fileLines.count(s => s contains s"The program finished with the following exception")
+      val status=if(isFailed == 0) curStatus
+      else FlowStatus.FAILED.toString
+      status
+    }catch {
+      case ex: Exception =>
+        riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
+        curStatus
     }
   }
 }
