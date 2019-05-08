@@ -57,7 +57,6 @@ spark-env.conf
 export JAVA_HOME=/usr/local/jdk
 export HADOOP_CONF_DIR=/etc/hadoop/conf
 export HADOOP_HOME=/usr/hdp/current/hadoop-client
-
 ```
 
 #### flink-client下配置文件示例
