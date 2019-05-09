@@ -6,7 +6,7 @@ import edp.rider.common.RiderLogger
 
 import scala.collection.JavaConversions._
 
-object ShellUtils extends RiderLogger with App {
+object ShellUtils extends RiderLogger {
 
   def runShellCommand(cmd: String, logPath: String): Boolean = {
     val processBuilder = new ProcessBuilder(List("/bin/sh", "-c", cmd))
@@ -32,7 +32,4 @@ object ShellUtils extends RiderLogger with App {
         false
     }
   }
-
-//  val result = runShellCommand("ll /", "/Users/swallow/Desktop/shell-test/1.log")
-//  println(result)
 }
