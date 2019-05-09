@@ -44,8 +44,8 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
                             dateFormat.format(new Date(timeSpan.endTime))))._2
                       else Await.result(monitorInfoDal.findByFilter(monitor =>
                          monitor.flowId === flowId
-                          && dateFormat.parse(monitor.feedbackTime.toString).getTime >= new Date(timeSpan.startTime).getTime
-                          && dateFormat.parse(monitor.feedbackTime.toString).getTime <= new Date(timeSpan.endTime).getTime), minTimeOut)
+                          && frontFormat.parse(monitor.feedbackTime.toString).getTime >= new Date(timeSpan.startTime).getTime
+                          && frontFormat.parse(monitor.feedbackTime.toString).getTime <= new Date(timeSpan.endTime).getTime), minTimeOut)
                     Option(monitorInfoOpt) match {
                       case Some(monitorSeq) =>
                         val flowMonitorInfo = fillSparkFlowMetricsByMonitor(monitorSeq.asInstanceOf[Seq[MonitorInfo]])
