@@ -48,7 +48,6 @@ object SubmitYarnJob extends App with RiderLogger {
 
 
   def runShellCommand(command: String) = {
-    //    val remoteCommand = "ssh -p%s %s@%s %s ".format(sshPort, username, hostname, command)
     assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
     val array = command.split(";")
     if (array.length == 2) {
@@ -123,7 +122,8 @@ object SubmitYarnJob extends App with RiderLogger {
 
 
   def generateSparkStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, jvmDriverConfig: String, jvmExecutorConfig: String, othersConfig: String, functionType: String, local: Boolean = false): String = {
-    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
+//    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
+    val submitPre = RiderConfig.spark.sparkHome
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
     val executorMemory = startConfig.perExecutorMemory
@@ -180,7 +180,7 @@ object SubmitYarnJob extends App with RiderLogger {
         s"${RiderConfig.spark.sparkLog4jPath},${RiderConfig.spark.metricsConfPath}"
       else RiderConfig.spark.sparkLog4jPath
 
-    runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
+//    runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
     val startShell =
       if (local)
         RiderConfig.spark.startShell.split("\\n").filterNot(line => line.contains("master") || line.contains("deploy-mode"))
@@ -235,7 +235,6 @@ object SubmitYarnJob extends App with RiderLogger {
     val resourceConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
     val logPath = getLogPath(stream.name)
     s"""
-       |ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host}
        |${RiderConfig.flink.homePath}/bin/yarn-session.sh
        |-d
        |-n ${resourceConfig.taskManagersNumber}

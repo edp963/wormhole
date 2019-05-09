@@ -50,9 +50,9 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     projectSeq.map(project => (project.id, project.name)).toMap
   }
 
-  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult]): Unit = {
+  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult], userId: Long): Unit = {
     val streamMap = streams.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
-    val refreshStreamSeq = getStreamYarnAppStatus(streams, appInfoMap)
+    val refreshStreamSeq = getStreamYarnAppStatus(streams, appInfoMap, userId)
     val updateStreamSeq = refreshStreamSeq.filter(stream => {
       if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
         false
@@ -135,20 +135,13 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val streamGroupIdMap = streamSeq.map(stream => (stream.id, stream.name)).toMap[Long, String]
       val streamTopicMap = getStreamTopicsMap(streamIds, streamGroupIdMap)
       val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
-      //      val streamZkUdfSeq = getZkStreamUdf(streamIds)
       val projectMap = getStreamProjectMap(streamSeq)
 
       streamSeq.map(
         stream => {
-          //          val topics = streamTopicSeq.filter(_.streamId == stream.id).map(
-          //            topic => StreamTopic(topic.id, topic.name, topic.partitionOffsets, topic.rate)
-          //          )
           val udfs = streamUdfSeq.filter(_.streamId == stream.id).map(
             udf => StreamUdf(udf.id, udf.functionName, udf.fullClassName, udf.jarName)
           )
-          //          val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
-          //            udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
-          //          )
           StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Option(streamTopicMap(stream.id)), udfs, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
         }
       )
@@ -166,16 +159,19 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
-  def updateByStatus(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
+  def updateStatusByStart(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
+    db.run(streamTable.filter(_.id === streamId)
+      .map(stream => (stream.status, stream.sparkAppid, stream.logPath, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
+      .update(status, null, Some(logPath), Some(currentSec), null, currentSec, userId)).mapTo[Int]
+  }
 
-    if (status == StreamStatus.STARTING.toString) {
+  def updateStatusByStop(streamId: Long, status: String, userId: Long): Future[Int] = {
+    if (status == StreamStatus.STOPPING.toString || status == StreamStatus.STOPPED.toString) {
       db.run(streamTable.filter(_.id === streamId)
-        .map(stream => (stream.status, stream.sparkAppid, stream.logPath, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
-        .update(status, null, Some(logPath), Some(currentSec), null, currentSec, userId)).mapTo[Int]
+        .map(stream => (stream.status, stream.stoppedTime, stream.updateTime, stream.updateBy))
+        .update(status, Some(currentSec), currentSec, userId)).mapTo[Int]
     } else {
-      db.run(streamTable.filter(_.id === streamId)
-        .map(stream => (stream.status, stream.updateTime, stream.updateBy))
-        .update(status, currentSec, userId)).mapTo[Int]
+      Future(0)
     }
   }
 
@@ -328,32 +324,32 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     })
   }
 
-//  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
-//    try {
-//      val stream = Await.result(super.findById(streamId), minTimeOut).head
-//
-//      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
-//
-//      val topicOffsetMap = new mutable.HashMap[String, String]()
-//      topicFeedbackSeq.foreach(topic => {
-//        if (!topicOffsetMap.contains(topic.topicName)) {
-//          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
-//            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
-//            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
-//        }
-//      })
-//      topics.foreach(
-//        topic => {
-//          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
-//        }
-//      )
-//      topicOffsetMap.toMap
-//    } catch {
-//      case ex: Exception =>
-//        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
-//        throw ex
-//    }
-//  }
+  //  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
+  //    try {
+  //      val stream = Await.result(super.findById(streamId), minTimeOut).head
+  //
+  //      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
+  //
+  //      val topicOffsetMap = new mutable.HashMap[String, String]()
+  //      topicFeedbackSeq.foreach(topic => {
+  //        if (!topicOffsetMap.contains(topic.topicName)) {
+  //          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
+  //            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
+  //            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
+  //        }
+  //      })
+  //      topics.foreach(
+  //        topic => {
+  //          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
+  //        }
+  //      )
+  //      topicOffsetMap.toMap
+  //    } catch {
+  //      case ex: Exception =>
+  //        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
+  //        throw ex
+  //    }
+  //  }
 
 
 }

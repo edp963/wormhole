@@ -26,7 +26,6 @@ import edp.rider.common.{HistoryDelete, RiderLogger, Stop, RefreshYarn}
 
 class SchedulerActor extends Actor with RiderLogger {
 
-
   override def receive = {
     case HistoryDelete =>
       ScheduledTask.deleteHistory
