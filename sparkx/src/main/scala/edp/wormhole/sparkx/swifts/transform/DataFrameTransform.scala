@@ -280,7 +280,7 @@ object DataFrameTransform extends EdpLogging {
     logInfo("getKuduUnionResult,dataMapFromDb.size="+dataMapFromDb.size+",originalData.size"+originalData.size)
 //    val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr: Array[(String, DataType)] = resultSchema.fieldNames.map(name => (name.toLowerCase, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
-    if (dataMapFromDb != null)
+    if (dataMapFromDb != null && dataMapFromDb.nonEmpty)
       dataMapFromDb.foreach { case (_, tupleLists) =>
         tupleLists.foreach(tupleMap => {
           val outputArray = ListBuffer.empty[Any]

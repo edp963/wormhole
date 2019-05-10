@@ -195,7 +195,9 @@ object KuduConnection extends Serializable {
         }
       })
 
+      //      logger.info("dataList:"+dataList)
       dataList.grouped(batchSize).foreach(data => {
+        //        logger.info("data:"+data)
         val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
           .setProjectedColumnNames(queryFieldsName) //指定输出列
         val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName), data)
@@ -203,8 +205,10 @@ object KuduConnection extends Serializable {
         val scanner = scannerBuilder.build()
 
         while (scanner.hasMoreRows) {
+          //          logger.info("111:"+data)
           val results = scanner.nextRows
           while (results.hasNext) {
+            //            logger.info("222:"+data)
             val result = results.next()
             val schema = result.getSchema
             val queryResult: Map[String, (Any, String)] = queryFieldsName.map(f => {
@@ -225,6 +229,7 @@ object KuduConnection extends Serializable {
             queryResultMap(queryResult(keyName)._1.toString) = queryResult
           }
         }
+        //        logger.info("over!!!!!!!!!!!!!!!!!")
       })
     } catch {
       case e: Throwable =>
@@ -408,9 +413,9 @@ object KuduConnection extends Serializable {
 
     val keysStr = keysContent.mkString("_")
 
-    if (scanner.hasMoreRows) {
+    while (scanner.hasMoreRows) {
       val results = scanner.nextRows
-      if (results.hasNext) {
+      while (results.hasNext) {
         val result = results.next()
         val schema = result.getSchema
         val queryResult: Map[String, (Any, String)] = queryFieldsName.map(f => {
@@ -435,8 +440,8 @@ object KuduConnection extends Serializable {
         } else {
           queryResultMap(keysStr).append(queryResult)
         }
-      } else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
-    } else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
+      } //else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
+    }// else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
 
     queryResultMap
   }
