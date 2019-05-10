@@ -100,9 +100,11 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           complete(OK, getHeader(507, "resource is not enough", session))
                         } else {
                           val logPath = StreamUtils.getLogPath(job.name)
+                          val status =
+                            if (JobUtils.startJob(job, logPath)) JobStatus.STARTING.toString
+                            else JobStatus.FAILED.toString
                           val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
-                            job.sourceConfig, job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, JobStatus.STARTING.toString, None, Option(logPath), Some(currentSec), None, job.userTimeInfo)
-                          JobUtils.startJob(job, logPath)
+                            job.sourceConfig, job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, status, None, Option(logPath), Some(currentSec), None, job.userTimeInfo)
                           Await.result(jobDal.update(updateJob), minTimeOut)
                           val projectName = jobDal.adminGetRow(job.projectId)
                           complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
@@ -257,7 +259,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                 } else {
                   val (status, stopSuccess) = killJob(jobId)
                   riderLogger.info(s"user ${session.userId} stop job $jobId ${stopSuccess.toString}.")
-                  if(stopSuccess) {
+                  if (stopSuccess) {
                     val projectName = jobDal.adminGetRow(projectId)
                     val jobGet = job.get
                     val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.jobType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
@@ -298,7 +300,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       if (job.sparkAppid.getOrElse("") != "" && (job.status == JobStatus.RUNNING.toString || job.status == JobStatus.WAITING.toString || job.status == JobStatus.STOPPING.toString)) {
                         val stopSuccess = runYarnKillCommand("yarn application -kill " + job.sparkAppid.get)
                         riderLogger.info(s"user ${session.userId} stop job ${jobId} ${stopSuccess.toString}")
-                        if(!stopSuccess)
+                        if (!stopSuccess)
                           complete(OK, getHeader(400, s"job stop failed, can not delete", session))
                       }
 
