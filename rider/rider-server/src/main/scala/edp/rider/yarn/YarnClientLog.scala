@@ -23,8 +23,7 @@ package edp.rider.yarn
 
 import java.io.File
 
-import edp.rider.common.YarnAppStatus._
-import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus}
+import edp.rider.common.{RiderLogger, StreamStatus}
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -33,14 +32,13 @@ object YarnClientLog extends RiderLogger {
 
   def getLogByAppName(appName: String, logPath: String) = {
     assert(appName != "" || appName != null, "Refresh log, name couldn't be null or blank.")
-//    val logPath = getLogPath(appName)
     if (new File(logPath).exists) {
       val command = s"tail -500 $logPath"
       try {
         command !!
       } catch {
         case runTimeEx: java.lang.RuntimeException =>
-          riderLogger.warn(s"Refresh $appName client log command failed", runTimeEx)
+          riderLogger.warn(s"Refresh $appName client log command failed", runTimeEx.getMessage)
           if (runTimeEx.getMessage.contains("Nonzero exit value: 1"))
             "The log file doesn't exist."
           else runTimeEx.getMessage
@@ -60,7 +58,7 @@ object YarnClientLog extends RiderLogger {
       val fileLines = getLogByAppName(appName, logPath).split("\\n")
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
       val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Application report for").trim else ""
-      val hasException = fileLines.count(s => s contains "Exception")
+      val hasException = fileLines.count(s => s.toLowerCase contains "exception in thread")
 //      val isRunning = fileLines.count(s => s contains s"(state: $RUNNING)")
 //      val isAccepted = fileLines.count(s => s contains s"(state: $ACCEPTED)")
 //      val isFinished = fileLines.count(s => s contains s"((state: $FINISHED))")
@@ -84,7 +82,7 @@ object YarnClientLog extends RiderLogger {
       val fileLines = getLogByAppName(appName, logPath).split("\\n")
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
       val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Submitted application").trim else ""
-      val isFailed = fileLines.count(s => s contains s"The Flink Yarn cluster has failed")
+      val isFailed = fileLines.count(s => s.toLowerCase contains s"the flink yarn cluster has failed")
 //      val isRunning = fileLines.count(s => s contains s"Flink JobManager is now running on")
 //      val isAccepted = fileLines.count(s => s contains s"YARN application has been deployed successfully")
 //      val isFinished = if(appId == "") 0 else fileLines.count(s => s contains s"Application $appId finished")
@@ -98,21 +96,6 @@ object YarnClientLog extends RiderLogger {
       case ex: Exception =>
         riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
         ("", curStatus)
-    }
-  }
-
-  def getFlinkFlowStatusByLog(flowName: String, curStatus: String, logPath: String): String = {
-    assert(flowName != "" && flowName != null, "Refresh Flink Flow log, flow name couldn't be null or blank.")
-    try{
-      val fileLines = getLogByAppName(flowName, logPath).split("\\n")
-      val isFailed = fileLines.count(s => s contains s"The program finished with the following exception")
-      val status=if(isFailed == 0) curStatus
-      else FlowStatus.FAILED.toString
-      status
-    }catch {
-      case ex: Exception =>
-        riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
-        curStatus
     }
   }
 }

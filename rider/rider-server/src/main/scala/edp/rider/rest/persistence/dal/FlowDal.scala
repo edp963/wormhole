@@ -315,15 +315,15 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     }
   }
 
-  def updateStatusByStreamStop(flowIds: Seq[Long], status: String): Future[Int] = {
+  def updateStatusByStreamStop(flowIds: Seq[Long], status: String, userId: Long): Future[Int] = {
     if (status == FlowStatus.STOPPED.toString || status == FlowStatus.FAILED.toString) {
       db.run(flowTable.filter(_.id inSet flowIds)
-        .map(flow => (flow.status, flow.stoppedTime))
-        .update(status, Some(currentSec))).mapTo[Int]
+        .map(flow => (flow.status, flow.stoppedTime, flow.updateTime, flow.updateBy))
+        .update(status, Some(currentSec), currentSec, userId)).mapTo[Int]
     } else {
       db.run(flowTable.filter(_.id inSet flowIds)
-        .map(flow => (flow.status))
-        .update(status)).mapTo[Int]
+        .map(flow => (flow.status, flow.updateTime, flow.updateBy))
+        .update(status, currentSec, userId)).mapTo[Int]
     }
   }
 

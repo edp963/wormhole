@@ -33,7 +33,7 @@ import edp.rider.rest.util.UdfUtils.sendUdfDirective
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnStatusQuery.{getActiveResourceManager, getAllYarnAppStatus, getAppStatusByRest}
-import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
+import edp.rider.yarn.{ShellUtils, SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
@@ -94,7 +94,7 @@ object StreamUtils extends RiderLogger {
       s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/cluster/app/$appId/"
   }
 
-  def getStreamYarnAppStatus(streams: Seq[Stream], appInfoMap: Map[String, AppResult]) = {
+  def getStreamYarnAppStatus(streams: Seq[Stream], appInfoMap: Map[String, AppResult], userId: Long) = {
     streams.map(
       stream => {
         val dbStatus = stream.status
@@ -141,14 +141,14 @@ object StreamUtils extends RiderLogger {
               }
               case "running" =>
                 if (List("FAILED", "KILLED", "FINISHED").contains(sparkStatus.appState.toUpperCase)) {
-                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "failed")
+                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "failed", userId)
                   AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
                 } else {
                   AppInfo(sparkStatus.appId, "running", startedTime, stoppedTime)
                 }
               case "stopping" =>
                 if (sparkStatus.appState == "KILLED" || sparkStatus.appState == "FAILED" || sparkStatus.appState == "FINISHED") {
-                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "stopped")
+                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "stopped", userId)
                   AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                 }
                 else {
@@ -221,20 +221,18 @@ object StreamUtils extends RiderLogger {
   }
 
 
-  def startStream(stream: Stream, logPath: String) = {
+  def startStream(stream: Stream, logPath: String): Boolean = {
     StreamType.withName(stream.streamType) match {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
-        //val jvmConfig = Array(stream.JVMDriverConfig.getOrElse("")) :+ stream.JVMExecutorConfig.getOrElse("")
-        // runShellCommand(s"kinit -kt ${RiderConfig.kerberos.keyTab} ${RiderConfig.kerberos.principal}")
         val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
-        runShellCommand(commandSh)
+        ShellUtils.runShellCommand(commandSh, logPath)
       case StreamType.FLINK =>
         val commandSh = SubmitYarnJob.generateFlinkStreamStartSh(stream)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
-        runShellCommand(commandSh)
+        ShellUtils.runShellCommand(commandSh, logPath)
     }
   }
 
@@ -563,25 +561,25 @@ object StreamUtils extends RiderLogger {
     seq
   }
 
-  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String): (String, Boolean) = {
+  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String, userId: Long): (String, Boolean) = {
     if (status == RUNNING.toString || status == WAITING.toString || status == STOPPING.toString) {
       if (sparkAppid.getOrElse("") != "") {
         val cmdStr = "yarn application -kill " + sparkAppid.get
         riderLogger.info(s"stop stream command: $cmdStr")
         val stopSuccess = runYarnKillCommand(cmdStr)
         if (stopSuccess) {
-          FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString)
+          FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString, userId)
           (STOPPING.toString, true)
         } else {
-          FlowUtils.updateStatusByStreamStop(streamId, streamType, status)
+          FlowUtils.updateStatusByStreamStop(streamId, streamType, status, userId)
           (status, false)
         }
       } else {
-        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
+        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString, userId)
         (STOPPED.toString, true)
       }
     } else {
-      FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
+      FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString, userId)
       (STOPPED.toString, true)
     }
   }

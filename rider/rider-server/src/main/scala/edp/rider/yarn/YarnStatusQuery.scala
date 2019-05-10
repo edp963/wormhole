@@ -22,25 +22,19 @@
 package edp.rider.yarn
 
 import com.alibaba.fastjson.JSON
-import edp.rider.RiderStarter.modules
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
-import edp.rider.rest.persistence.entities
-import edp.rider.rest.persistence.entities.{FlinkJobStatus, FlowStream, FullJobInfo, Job, Stream, StreamInfo}
+import edp.rider.rest.persistence.entities.{FlinkJobStatus, Job, Stream}
 import edp.rider.rest.util.CommonUtils.minTimeOut
-import edp.rider.rest.util.FlowUtils
-import edp.rider.rest.util.JobUtils.getDisableAction
-import edp.rider.rest.util.StreamUtils.getStreamTime
-import edp.rider.yarn.YarnClientLog._
 import edp.wormhole.util.DateUtils._
 import edp.wormhole.util.DtFormat
 import edp.wormhole.util.JsonUtils._
 import spray.json.JsonParser
-
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.collection.mutable.{HashMap, ListBuffer}
+import scala.concurrent.Await
 import scalaj.http.{Http, HttpResponse}
-
+import slick.jdbc.MySQLProfile.api._
 
 object YarnStatusQuery extends RiderLogger {
 
@@ -55,7 +49,8 @@ object YarnStatusQuery extends RiderLogger {
     val appInfoMap: Map[String, AppResult] = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, nameSet)
 
     //riderLogger.info(s"appInfoMap $appInfoMap")
-    streamDal.updateStreamStatusByYarn(streams, appInfoMap)
+    val admin = Await.result(userDal.findByFilter(_.roleType === "admin").map(_.head.id), minTimeOut)
+    streamDal.updateStreamStatusByYarn(streams, appInfoMap, admin)
     jobDal.updateJobStatusByYarn(jobs, appInfoMap)
     //flowDal.updateFlowStatusByYarn(streamMap)
   }
