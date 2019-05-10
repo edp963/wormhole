@@ -12,8 +12,10 @@ object ShellUtils extends RiderLogger {
     val processBuilder = new ProcessBuilder(List("/bin/sh", "-c", cmd))
     val logFile = new File(logPath)
     try {
-      if (!logFile.exists())
+      if (!logFile.exists()) {
+        logFile.mkdirs()
         logFile.createNewFile()
+      }
       processBuilder.redirectError(logFile)
       val process = processBuilder.start()
       try {
@@ -28,7 +30,7 @@ object ShellUtils extends RiderLogger {
 
     } catch {
       case ex: Exception =>
-        println(ex.getMessage)
+        riderLogger.error(ex.getMessage)
         false
     }
   }
