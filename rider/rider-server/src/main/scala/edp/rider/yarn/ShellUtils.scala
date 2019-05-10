@@ -40,4 +40,8 @@ object ShellUtils extends RiderLogger {
         false
     }
   }
+
+  def killPidCommand(pid: String) = {
+
+  }
 }

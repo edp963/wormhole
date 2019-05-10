@@ -50,18 +50,23 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     projectSeq.map(project => (project.id, project.name)).toMap
   }
 
-  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult], userId: Long): Unit = {
+  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult], userId: Long): Map[Long, StreamInfo] = {
     val streamMap = streams.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
-    val refreshStreamSeq = getStreamYarnAppStatus(streams, appInfoMap, userId)
+    val streamPidMap = streams.map(stream => (stream.id, stream.sparkAppid)).toMap
+    val refreshStreamSeq: Seq[Stream] = getStreamYarnAppStatus(streams, appInfoMap, userId)
     val updateStreamSeq = refreshStreamSeq.filter(stream => {
       if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
         false
       } else {
+        if(streamMap(stream.id)._2 == "starting" && (stream.status == "waiting" || stream.status == "running")) {
+
+        }
         true
       }
     })
     //riderLogger.info(s"updateStreamSeq ${updateStreamSeq}")
     updateByRefresh(updateStreamSeq)
+    refreshStreamSeq.map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status))).toMap
   }
 
   def refreshStreamStatus(streamId: Long): Option[Stream] = {

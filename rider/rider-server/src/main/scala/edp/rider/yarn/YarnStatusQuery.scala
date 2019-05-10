@@ -50,9 +50,9 @@ object YarnStatusQuery extends RiderLogger {
 
     //riderLogger.info(s"appInfoMap $appInfoMap")
     val admin = Await.result(userDal.findByFilter(_.roleType === "admin").map(_.head.id), minTimeOut)
-    streamDal.updateStreamStatusByYarn(streams, appInfoMap, admin)
+    val streamMap = streamDal.updateStreamStatusByYarn(streams, appInfoMap, admin)
     jobDal.updateJobStatusByYarn(jobs, appInfoMap)
-    //flowDal.updateFlowStatusByYarn(streamMap)
+    flowDal.updateFlowStatusByYarn(streamMap)
   }
 
   def getYarnFromTime(streams: Seq[Stream], jobs: Seq[Job]): String = {
