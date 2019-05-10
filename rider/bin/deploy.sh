@@ -23,11 +23,8 @@ echo "set hdfs permission for wormholeServer user"
 #source /etc/profile
 #source ~/.bash_profile
 
-WORMHOLE_USER=`grep "wormholeServer.user" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
+WORMHOLE_USER=`whoami`
 echo "WormholeServer user: $WORMHOLE_USER"
-
-WORMHOLE_USER_SSH_PORT=`grep "wormholeServer.ssh.port" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \# -f1 | sed -e 's/[ \t\r]*//'`
-echo "WormholeServer user ssh port: $WORMHOLE_USER_SSH_PORT"
 
 WORMHOLE_HDFS_ROOT=`grep "wormhole.hdfs.root.path" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 echo "WormholeServer hdfs root path: $WORMHOLE_HDFS_ROOT"
