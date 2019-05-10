@@ -1,6 +1,6 @@
 package edp.rider.yarn
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 
 import edp.rider.common.RiderLogger
 
@@ -13,7 +13,7 @@ object ShellUtils extends RiderLogger {
     val logFile = new File(logPath)
     try {
       if (!logFile.exists()) {
-        logFile.mkdirs()
+        logFile.getParentFile.mkdirs()
         logFile.createNewFile()
       }
       processBuilder.redirectError(logFile)
@@ -30,7 +30,13 @@ object ShellUtils extends RiderLogger {
 
     } catch {
       case ex: Exception =>
-        riderLogger.error(ex.getMessage)
+        val error = s"start command ${processBuilder.command().mkString(" ")} execute failed, ${ex.getMessage}"
+        riderLogger.error(error)
+        val fw = new FileWriter(logFile.getAbsoluteFile())
+        val bw = new BufferedWriter(fw)
+        bw.write(error)
+        bw.close()
+        fw.close()
         false
     }
   }
