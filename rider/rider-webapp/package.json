@@ -237,7 +237,7 @@
     "eslint": "^3.9.0",
     "eslint-config-standard": "^6.2.1",
     "eslint-config-standard-react": "^4.2.0",
-    "eslint-import-resolver-webpack": "0.6.1",
+    "eslint-import-resolver-webpack": "0.6.0",
     "eslint-plugin-import": "2.0.1",
     "eslint-plugin-jsx-a11y": "2.2.3",
     "eslint-plugin-promise": "^3.4.0",
