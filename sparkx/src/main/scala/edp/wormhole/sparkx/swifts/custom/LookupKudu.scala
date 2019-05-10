@@ -108,7 +108,7 @@ object LookupKudu extends EdpLogging {
             } else {
               val queryResult: mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = KuduConnection.doQueryMultiByKey(lookupFieldNameArray, tuple.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
 
-              if (queryResult == null || queryResult.isEmpty) {
+              if (queryResult == null || queryResult.isEmpty ) {
                 resultData.append(getJoinRow(selectFieldNewNameArray, null.asInstanceOf[Map[String, (Any, String)]], originalArray, resultSchema))
               } else {
                 queryResult.head._2.foreach(data => {
