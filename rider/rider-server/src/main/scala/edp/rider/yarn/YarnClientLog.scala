@@ -23,8 +23,7 @@ package edp.rider.yarn
 
 import java.io.File
 
-import edp.rider.common.YarnAppStatus._
-import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus}
+import edp.rider.common.{RiderLogger, StreamStatus}
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -33,14 +32,13 @@ object YarnClientLog extends RiderLogger {
 
   def getLogByAppName(appName: String, logPath: String) = {
     assert(appName != "" || appName != null, "Refresh log, name couldn't be null or blank.")
-//    val logPath = getLogPath(appName)
     if (new File(logPath).exists) {
       val command = s"tail -500 $logPath"
       try {
         command !!
       } catch {
         case runTimeEx: java.lang.RuntimeException =>
-          riderLogger.warn(s"Refresh $appName client log command failed", runTimeEx)
+          riderLogger.warn(s"Refresh $appName client log command failed", runTimeEx.getMessage)
           if (runTimeEx.getMessage.contains("Nonzero exit value: 1"))
             "The log file doesn't exist."
           else runTimeEx.getMessage
