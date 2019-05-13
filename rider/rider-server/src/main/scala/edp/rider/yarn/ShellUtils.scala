@@ -9,7 +9,7 @@ import scala.collection.JavaConversions._
 object ShellUtils extends RiderLogger {
 
   def runShellCommand(cmd: String, logPath: String): Boolean = {
-    val processBuilder = new ProcessBuilder(List("/bin/sh", "-c", cmd))
+    val processBuilder = new ProcessBuilder(List("/bin/sh", "-c", cmd.replaceAll("\r", "")))
     val logFile = new File(logPath)
     try {
       if (!logFile.exists()) {
