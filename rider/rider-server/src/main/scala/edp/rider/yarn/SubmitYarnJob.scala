@@ -24,6 +24,7 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
+import edp.rider.yarn.ShellUtils.riderLogger
 import edp.wormhole.util.JsonUtils
 
 import scala.collection.mutable.ListBuffer
@@ -244,6 +245,22 @@ object SubmitYarnJob extends App with RiderLogger {
        |-nm ${stream.name}
        |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
+  }
+
+
+  def killPidCommand(pidOrg: Option[String]) = {
+    try {
+      pidOrg match {
+        case Some(pid) =>
+          if (pid != null && pid.trim.nonEmpty) {
+            ("ps -ef" #| s"grep $pid" #| "grep -v grep" #| Seq("awk", "{print $2}") #| "xargs kill -9").run()
+          }
+        case None =>
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.warn(s"kill pid $pidOrg failed")
+    }
   }
 
 }

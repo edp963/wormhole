@@ -366,7 +366,7 @@ object JobUtils extends RiderLogger {
     val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
     val result = job.status match {
       case "starting" =>
-        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""))
+        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""), job.sparkAppid.getOrElse(""))
         AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
       case "waiting" =>
         appInfo.appState.toUpperCase match {

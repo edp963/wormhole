@@ -29,7 +29,7 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.yarn.ShellUtils
+import edp.rider.yarn.{ShellUtils, SubmitYarnJob}
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
@@ -59,8 +59,9 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
         false
       } else {
+        //riderLogger.info(s"stream status ${streamMap(stream.id)._2}, yarn status ${stream.status}, stream pid ${streamPidMap(stream.id)}")
         if(streamMap(stream.id)._2 == "starting" && (stream.status == "waiting" || stream.status == "running")) {
-          ShellUtils.killPidCommand(streamPidMap(stream.id))
+          SubmitYarnJob.killPidCommand(streamPidMap(stream.id))
         }
         true
       }
