@@ -221,7 +221,7 @@ object StreamUtils extends RiderLogger {
   }
 
 
-  def startStream(stream: Stream, logPath: String): Boolean = {
+  def startStream(stream: Stream, logPath: String): (Boolean, Option[String]) = {
     StreamType.withName(stream.streamType) match {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)

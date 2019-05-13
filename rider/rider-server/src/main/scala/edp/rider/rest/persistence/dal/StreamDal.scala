@@ -29,6 +29,7 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.rider.yarn.ShellUtils
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
@@ -59,7 +60,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
         false
       } else {
         if(streamMap(stream.id)._2 == "starting" && (stream.status == "waiting" || stream.status == "running")) {
-
+          ShellUtils.killPidCommand(streamPidMap(stream.id))
         }
         true
       }
@@ -164,10 +165,10 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
-  def updateStatusByStart(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
+  def updateStatusByStart(streamId: Long, status: String, userId: Long, logPath: String, pid: Option[String]): Future[Int] = {
     db.run(streamTable.filter(_.id === streamId)
       .map(stream => (stream.status, stream.sparkAppid, stream.logPath, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
-      .update(status, null, Some(logPath), Some(currentSec), null, currentSec, userId)).mapTo[Int]
+      .update(status, pid, Some(logPath), Some(currentSec), null, currentSec, userId)).mapTo[Int]
   }
 
   def updateStatusByStop(streamId: Long, status: String, userId: Long): Future[Int] = {
