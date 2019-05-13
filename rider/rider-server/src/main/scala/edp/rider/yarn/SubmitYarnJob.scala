@@ -48,20 +48,20 @@ object SubmitYarnJob extends App with RiderLogger {
   //  }
 
 
-  def runShellCommand(command: String) = {
-    assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
-    val array = command.split(";")
-    if (array.length == 2) {
-      val process1 = Future(Process(array(0)).run())
-      process1.map(p => {
-        if (p.exitValue() != 0) {
-          val msg = array(1).split("\\|")
-          Future(msg(0).trim #| msg(1).trim !)
-        }
-      })
-    }
-    else Process(command).run()
-  }
+//  def runShellCommand(command: String) = {
+//    assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
+//    val array = command.split(";")
+//    if (array.length == 2) {
+//      val process1 = Future(Process(array(0)).run())
+//      process1.map(p => {
+//        if (p.exitValue() != 0) {
+//          val msg = array(1).split("\\|")
+//          Future(msg(0).trim #| msg(1).trim !)
+//        }
+//      })
+//    }
+//    else Process(command).run()
+//  }
 
   def runShellCommandBlock(command: String) = {
     val commandRe = Process(command).!
@@ -187,7 +187,6 @@ object SubmitYarnJob extends App with RiderLogger {
       else
         RiderConfig.spark.startShell.split("\\n")
 
-    //    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
@@ -200,7 +199,6 @@ object SubmitYarnJob extends App with RiderLogger {
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
-//      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
       else if (l.startsWith("--conf")) {
         confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
       }
@@ -216,21 +214,16 @@ object SubmitYarnJob extends App with RiderLogger {
     }).mkString("").stripMargin.replace("\\", "  ") +
     realJarPath + " " + args  + " > " + logPath + " 2>&1 "
 
-    val finalCommand =
-      if (RiderConfig.spark.alert)
-        s"$startCommand;echo '$streamName is dead' | mail -s 'ERROR-$streamName-is-dead' ${RiderConfig.spark.alertEmails}"
-      else startCommand
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     if(RiderConfig.kerberos.enabled)
-      submitPre + s"/bin/spark-submit --principal ${RiderConfig.kerberos.sparkPrincipal} --keytab  ${RiderConfig.kerberos.sparkKeyTab} " + finalCommand
+      submitPre + s"/bin/spark-submit --principal ${RiderConfig.kerberos.sparkPrincipal} --keytab  ${RiderConfig.kerberos.sparkKeyTab} " + startCommand
     else
-      submitPre + "/bin/spark-submit " + finalCommand
+      submitPre + "/bin/spark-submit " + startCommand
   }
 
   //ssh -p22 user@host ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
-
   def generateFlinkStreamStartSh(stream: Stream): String = {
     val resourceConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
     val logPath = getLogPath(stream.name)

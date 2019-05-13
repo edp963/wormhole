@@ -21,8 +21,6 @@
 
 package edp.rider.rest.util
 
-import java.net.URI
-
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
 import edp.rider.common._
@@ -31,15 +29,15 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.rider.yarn.ShellUtils
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog.getAppStatusByLog
 import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
-import edp.wormhole.ums.UmsDataSystem
-import edp.wormhole.util.JsonUtils._
-import edp.wormhole.util.CommonUtils._
 import edp.wormhole.externalclient.hadoop.HdfsUtils._
+import edp.wormhole.ums.UmsDataSystem
+import edp.wormhole.util.CommonUtils._
+import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import edp.wormhole.util.{DateUtils, FileUtils}
 import org.apache.hadoop.conf.Configuration
