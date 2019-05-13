@@ -66,9 +66,7 @@ case class RiderKafka(brokers: String,
 
 case class RiderDatabase(url: String, user: String, pwd: String)
 
-case class RiderSpark(user: String,
-                      sshPort: Int,
-                      sparkHome: String,
+case class RiderSpark(sparkHome: String,
                       queueName: String,
                       appTags: String,
                       hdfsRoot: String,
@@ -101,9 +99,7 @@ case class RiderSpark(user: String,
                       driverExtraConf: String,
                       executorExtraConf: String,
                       sparkConfig: String,
-                      alert: Boolean,
                       metricsConfPath: String,
-                      alertEmails: String,
                       proxyPort: Int)
 
 
@@ -126,7 +122,6 @@ case class RiderInfo(zookeeper_address: String,
                      feedback_topic: String,
                      heartbeat_topic: String,
                      hdfslog_root_path: String,
-                     spark_submit_user: String,
                      spark_app_tags: String,
                      yarn_rm1_http_url: String,
                      yarn_rm2_http_url: String)
@@ -253,22 +248,16 @@ object RiderConfig {
   lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.2.0-0.6.1-jar-with-dependencies-kafka08.jar")
   lazy val kafka08StreamNames = getStringConfig("spark.wormhole.kafka08.streams", "")
   lazy val sparkxInterfaceJarPath = getStringConfig("spark.wormhole.sparkxinterface.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-sparkxinterface-0.6.1.jar")
-  lazy val wormholeUser = config.getString("spark.wormholeServer.user")
-  lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
   lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", rm1Url)
   lazy val kafkaSessionTimeOut = getIntConfig("spark.kafka.session.timeout", 30000)
   lazy val kafkaGroupMaxSessionTimeOut = getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
-  lazy val alert = getBooleanConfig("spark.wormhole.alert.flag", false)
   lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", "")
-  lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
   lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
   lazy val streamDefaultDriverJvmConfig = getStringConfig("spark.driver.extraJavaOptions", "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/")
   lazy val streamDefaultExecutorJvmConfig = getStringConfig("spark.executor.extraJavaOptions", "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc")
   lazy val streamDefaultSparkConfig = getStringConfig("spark.wormhole.default.conf", s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache")
-  lazy val spark = RiderSpark(wormholeUser,
-    sshPort,
-    config.getString("spark.spark.home"),
+  lazy val spark = RiderSpark(config.getString("spark.spark.home"),
     config.getString("spark.yarn.queue.name"),
     appTags,
     if (riderServer.clusterId != "") config.getString("spark.wormhole.hdfs.root.path") + "/" + riderServer.clusterId
@@ -303,7 +292,7 @@ object RiderConfig {
     executorCores = 1,
     batchDurationSec = 30,
     parallelismPartition = 3, 10, 100, 5000,
-    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, alert, metricsConfPath, alertEmails,
+    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, metricsConfPath,
     getIntConfig("spark.yarn.web-proxy.port", 0))
 
   lazy val es =
@@ -356,7 +345,7 @@ object RiderConfig {
     getBooleanConfig("kerberos.server.enabled", false))
 
   lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
-    spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
+     spark.appTags, spark.rm1Url, spark.rm2Url)
 
   lazy val ldapEnabled = getBooleanConfig("ldap.enabled", false)
 
