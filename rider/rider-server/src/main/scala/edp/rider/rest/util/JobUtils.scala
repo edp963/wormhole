@@ -33,6 +33,7 @@ import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
+import edp.rider.yarn.ShellUtils
 import edp.rider.yarn.YarnClientLog.getAppStatusByLog
 import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
 import edp.wormhole.ums.UmsDataSystem
@@ -203,7 +204,7 @@ object JobUtils extends RiderLogger {
     ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
-  def startJob(job: Job, logPath: String) = {
+  def startJob(job: Job, logPath: String): Boolean = {
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
@@ -213,7 +214,7 @@ object JobUtils extends RiderLogger {
       "job"
     )
     riderLogger.info(s"start job ${job.id} command: $command")
-    runShellCommand(command)
+    ShellUtils.runShellCommand(command, job.logPath.get)
   }
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
@@ -239,7 +240,7 @@ object JobUtils extends RiderLogger {
           val command = s"yarn application -kill ${job.sparkAppid.get}"
           riderLogger.info(s"stop job command: $command")
           val stopSuccess = runYarnKillCommand(command)
-          if(stopSuccess) {
+          if (stopSuccess) {
             modules.jobDal.updateJobStatus(job.id, "stopping")
             ("stopping", true)
           } else {
@@ -316,20 +317,20 @@ object JobUtils extends RiderLogger {
     else ""
   }
 
-  def getHdfsFileList(config:Configuration, hdfsPath: String): Seq[String] = {
+  def getHdfsFileList(config: Configuration, hdfsPath: String): Seq[String] = {
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
-    if(isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+    if (isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
     else null
   }
 
   def setConfiguration(hdfsPath: String, connectionConfig: Option[Seq[KVConfig]]): Configuration = {
     var sourceNamenodeHosts = null.asInstanceOf[String]
     var sourceNamenodeIds = null.asInstanceOf[String]
-    if(connectionConfig.nonEmpty) connectionConfig.get.foreach(param=>{
-      if(param.key=="hdfs_namenode_hosts") sourceNamenodeHosts = param.value
-      if(param.key=="hdfs_namenode_ids") sourceNamenodeIds = param.value
+    if (connectionConfig.nonEmpty) connectionConfig.get.foreach(param => {
+      if (param.key == "hdfs_namenode_hosts") sourceNamenodeHosts = param.value
+      if (param.key == "hdfs_namenode_ids") sourceNamenodeIds = param.value
     })
 
     val hadoopHome = System.getenv("HADOOP_HOME")
@@ -337,7 +338,7 @@ object JobUtils extends RiderLogger {
     configuration.addResource(new Path(s"$hadoopHome/conf/core-site.xml"))
     configuration.addResource(new Path(s"$hadoopHome/conf/hdfs-site.xml"))
 
-    val defaultFS =  configuration.get("fs.defaultFS")
+    val defaultFS = configuration.get("fs.defaultFS")
     riderLogger.info(s"hadoopHome is $hadoopHome, defaultFS is $defaultFS")
 
     val hdfsPathGrp = hdfsPath.split("//")
@@ -345,16 +346,16 @@ object JobUtils extends RiderLogger {
     configuration.set("fs.defaultFS", hdfsRoot)
     configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
     //configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
-    if(sourceNamenodeHosts != null) {
+    if (sourceNamenodeHosts != null) {
       val clusterName = hdfsRoot.split("//")(1)
       configuration.set("dfs.nameservices", clusterName)
       configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
       val namenodeAddressSeq = sourceNamenodeHosts.split(",")
       val namenodeIdSeq = sourceNamenodeIds.split(",")
-      for (i <- 0 until namenodeAddressSeq.length){
+      for (i <- 0 until namenodeAddressSeq.length) {
         configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
       }
-      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
     }
     configuration
   }
@@ -396,7 +397,7 @@ object JobUtils extends RiderLogger {
         }
       case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
     }
-      result
+    result
   }
 
   def getJobTime(time: Option[String]) = {
