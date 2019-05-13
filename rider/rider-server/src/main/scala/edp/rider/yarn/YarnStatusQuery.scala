@@ -220,7 +220,7 @@ object YarnStatusQuery extends RiderLogger {
         while (retryNum < 3) {
           try {
             response = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-            riderLogger.info(s"Get Flink job status request url $url retry num $retryNum")
+            //riderLogger.info(s"Get Flink job status request url $url retry num $retryNum")
             retryNum = 3
           } catch {
             case ex: Exception =>
