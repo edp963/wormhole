@@ -58,6 +58,7 @@ object ShellUtils extends RiderLogger {
           Process(killPid).run()
           riderLogger.info(s"kill pid command is $killPid")
         }
+      case None =>
     }
   }
 }
