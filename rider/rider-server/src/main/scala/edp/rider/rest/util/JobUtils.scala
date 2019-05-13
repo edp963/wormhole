@@ -202,7 +202,7 @@ object JobUtils extends RiderLogger {
     ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
-  def startJob(job: Job, logPath: String): Boolean = {
+  def startJob(job: Job, logPath: String): (Boolean, Option[String]) = {
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
@@ -364,7 +364,7 @@ object JobUtils extends RiderLogger {
     val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
     val result = job.status match {
       case "starting" =>
-        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""))
+        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""), job.sparkAppid.getOrElse(""))
         AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
       case "waiting" =>
         appInfo.appState.toUpperCase match {
