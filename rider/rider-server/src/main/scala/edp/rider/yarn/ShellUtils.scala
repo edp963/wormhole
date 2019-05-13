@@ -10,7 +10,7 @@ import scala.sys.process.Process
 object ShellUtils extends RiderLogger {
 
   def runShellCommand(cmd: String, logPath: String): (Boolean, Option[String])  = {
-    val processBuilder = new ProcessBuilder(List("/bin/sh", "-c", cmd))
+    val processBuilder = new ProcessBuilder(List("/bin/sh", "-c", cmd.replaceAll("\r", "")))
     val logFile = new File(logPath)
     try {
       if (!logFile.exists()) {
@@ -44,21 +44,6 @@ object ShellUtils extends RiderLogger {
         bw.close()
         fw.close()
         (false, None)
-    }
-  }
-
-  def killPidCommand(pidOrg: Option[String]) = {
-    pidOrg match {
-      case Some(pid) =>
-        val grepPid = "ps -ef | awk '{print $2}' | grep " + pid
-        val pidFind = Process(grepPid).!!.trim()
-        riderLogger.info(s"grep pid command is $grepPid")
-        if(pidFind != null && pidFind.nonEmpty) {
-          val killPid = s"kill -9 $pid"
-          Process(killPid).run()
-          riderLogger.info(s"kill pid command is $killPid")
-        }
-      case None =>
     }
   }
 }
