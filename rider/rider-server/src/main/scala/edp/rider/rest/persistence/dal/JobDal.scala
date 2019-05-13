@@ -29,7 +29,7 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.common.{AppInfo, AppResult}
 import edp.rider.rest.util.JobUtils
 import edp.rider.yarn.YarnClientLog.getAppStatusByLog
-import edp.rider.yarn.YarnStatusQuery
+import edp.rider.yarn.{ShellUtils, YarnStatusQuery}
 import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
 import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
@@ -98,6 +98,8 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       jobs.map(job => {
         val appInfo = JobUtils.mappingSparkJobStatus(job, appInfoMap)
         if((appInfo.appId, appInfo.appState, JobUtils.getJobTime(Option(appInfo.startedTime)) , JobUtils.getJobTime(Option(appInfo.finishedTime))) != (job.sparkAppid.getOrElse(""), job.status, JobUtils.getJobTime(job.startedTime), JobUtils.getJobTime(job.stoppedTime)))
+          if(job.status == "starting" && (appInfo.appState == "running" || appInfo.appState == "waiting"))
+            ShellUtils.killPidCommand(job.sparkAppid)
           modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
       })
     }
