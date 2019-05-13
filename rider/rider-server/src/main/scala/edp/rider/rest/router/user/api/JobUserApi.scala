@@ -100,11 +100,12 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           complete(OK, getHeader(507, "resource is not enough", session))
                         } else {
                           val logPath = StreamUtils.getLogPath(job.name)
+                          val (result, pid) = JobUtils.startJob(job, logPath)
                           val status =
-                            if (JobUtils.startJob(job, logPath)) JobStatus.STARTING.toString
+                            if (result) JobStatus.STARTING.toString
                             else JobStatus.FAILED.toString
                           val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
-                            job.sourceConfig, job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, status, None, Option(logPath), Some(currentSec), None, job.userTimeInfo)
+                            job.sourceConfig, job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, status, pid, Option(logPath), Some(currentSec), None, job.userTimeInfo)
                           Await.result(jobDal.update(updateJob), minTimeOut)
                           val projectName = jobDal.adminGetRow(job.projectId)
                           complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
