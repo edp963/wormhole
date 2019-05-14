@@ -109,8 +109,8 @@ object StreamUtils extends RiderLogger {
               getAppStatusByRest(appInfoMap, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
             case "refresh_log" =>
               val logInfo = StreamType.withName(stream.streamType) match {
-                case StreamType.SPARK => YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
-                case _ => YarnClientLog.getFlinkAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+                case StreamType.SPARK => YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""), stream.sparkAppid.getOrElse(""))
+                case _ => YarnClientLog.getFlinkAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""), stream.sparkAppid.getOrElse(""))
               }
               logInfo._2 match {
                 case "running" =>
@@ -131,7 +131,7 @@ object StreamUtils extends RiderLogger {
                   case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case _ => AppInfo("", "starting", startedTime, stoppedTime)
+                  case _ => AppInfo(stream.sparkAppid.getOrElse(""), "starting", startedTime, stoppedTime)
                 }
               case "waiting" => sparkStatus.appState.toUpperCase match {
                 case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
@@ -221,7 +221,7 @@ object StreamUtils extends RiderLogger {
   }
 
 
-  def startStream(stream: Stream, logPath: String): Boolean = {
+  def startStream(stream: Stream, logPath: String): (Boolean, Option[String]) = {
     StreamType.withName(stream.streamType) match {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
