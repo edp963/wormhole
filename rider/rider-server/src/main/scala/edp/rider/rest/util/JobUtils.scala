@@ -78,8 +78,8 @@ object JobUtils extends RiderLogger {
 
     val specialConfig =
       if (jobType != JobType.BACKFILL.toString) {
-        if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
-          Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
+        if (sinkConfig != "" && sinkConfig != null)
+          Some(base64byte2s(sinkConfig.trim.getBytes()))
         else None
       } else {
         val topicConfig = new JSONObject().fluentPut("topic", db.nsDatabase)
@@ -212,8 +212,10 @@ object JobUtils extends RiderLogger {
       "job"
     )
     riderLogger.info(s"start job ${job.id} command: $command")
-    ShellUtils.runShellCommand(command, job.logPath.get)
+    ShellUtils.runShellCommand(command, logPath)
   }
+
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/jobs/$appName-${CommonUtils.currentNodSec}.log"
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
     val projectName = Await.result(modules.projectDal.findById(projectId), minTimeOut).head.name
