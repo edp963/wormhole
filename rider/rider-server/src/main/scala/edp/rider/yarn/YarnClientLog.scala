@@ -59,12 +59,13 @@ object YarnClientLog extends RiderLogger {
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
       val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Application report for").trim else curAppId
       val hasException = fileLines.count(s => s.toLowerCase contains "exception in thread")
+      val noFileExists = fileLines.count(s => s.toLowerCase contains "no such file")
 //      val isRunning = fileLines.count(s => s contains s"(state: $RUNNING)")
 //      val isAccepted = fileLines.count(s => s contains s"(state: $ACCEPTED)")
 //      val isFinished = fileLines.count(s => s contains s"((state: $FINISHED))")
 
       val status =
-        if (appId == "" && hasException > 0) StreamStatus.FAILED.toString
+        if (appId == "" && (noFileExists > 0 ||hasException > 0)) StreamStatus.FAILED.toString
         else curStatus
       (appId, status)
     }
@@ -83,12 +84,13 @@ object YarnClientLog extends RiderLogger {
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
       val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Submitted application").trim else curAppId
       val isFailed = fileLines.count(s => s.toLowerCase contains s"the flink yarn cluster has failed")
+      val noFileExists = fileLines.count(s => s.toLowerCase contains "no such file")
 //      val isRunning = fileLines.count(s => s contains s"Flink JobManager is now running on")
 //      val isAccepted = fileLines.count(s => s contains s"YARN application has been deployed successfully")
 //      val isFinished = if(appId == "") 0 else fileLines.count(s => s contains s"Application $appId finished")
 
       val status =
-        if (appId == "" && isFailed > 0) StreamStatus.FAILED.toString
+        if (appId == "" && (noFileExists > 0 ||isFailed > 0)) StreamStatus.FAILED.toString
         else curStatus
       (appId, status)
     }
