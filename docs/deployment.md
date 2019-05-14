@@ -45,6 +45,8 @@ cd wormhole
 mvn install package -Pwormhole
 ```
 
+**注: [若前端需要自编译，并且 node_modules 依赖包下载失败，可参考链接中issue](https://github.com/edp963/wormhole/issues/1008#issuecomment-491172069)**
+
 #### 配置环境变量
 
 **配置 SPARK_HOME/HADOOP_HOME 环境变量**
@@ -197,7 +199,6 @@ maintenance = {
 
 
 #Dbus integration, support serveral DBus services, if not set, please comment it
-
 #dbus = {
 #  api = [
 #    {
@@ -211,10 +212,6 @@ maintenance = {
 #  ]
 #}
 ```
-
-#### rider-webapp
-
-**注: [若前端需要自定义开发，并且 node_modules 依赖包下载失败](https://github.com/edp963/wormhole/issues/1008#issuecomment-491172069)**
 
 #### Flink 高可用配置
 
