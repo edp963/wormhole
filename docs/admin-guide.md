@@ -32,7 +32,7 @@ Admin 配置好 User，Namespace，UDF 和 Project 的访问权限后，User 类
 
 ## Namespace 管理
 
-Source/Sink/Lookup Namespace管理，其中Source Namespace有两种来源：DBus已接Namespace资源同步（参考[DBus对接]https://edp963.github.io/wormhole/how-to.html#dbus%E7%B3%BB%E7%BB%9F%E5%AF%B9%E6%8E%A5），Kafka类型的数据源。
+Source/Sink/Lookup Namespace管理，其中Source Namespace有两种来源：DBus已接Namespace资源同步，参考[DBus对接](https://edp963.github.io/wormhole/how-to.html#dbus%E7%B3%BB%E7%BB%9F%E5%AF%B9%E6%8E%A5)，Kafka类型的数据源。
 
 目前只须在 Wormhole 上配置前四部分，Table Version/Database Partition/Table Partition 默认为 “*”。
 
