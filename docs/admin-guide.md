@@ -74,7 +74,7 @@ namespace 系统类型为 Kafka/MongoDb/Es 时，若其作为 Sink Namespace，�
 
 支持联合主键配置，中间使用逗号分隔。Key 区分大小写，若数据来源为 Dbus，主键须配置为小写。
 
-#### Source Schema
+#### Source Schema 
 
 点击 namespace source schema 配置按钮，见下图，粘贴一条完整的数据样例至左侧文本框中，点击中间的按钮，生成右侧的配置表格。
 
