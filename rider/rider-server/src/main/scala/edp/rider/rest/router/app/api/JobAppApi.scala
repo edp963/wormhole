@@ -56,10 +56,11 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                         val job = tuple._1.get
                         val logPath = StreamUtils.getLogPath(job.name)
                         try {
-                          val status = if (startJob(job, logPath)) "starting" else "failed"
+                          val (result, pid) = startJob(job, logPath)
+                          val status = if (result) "starting" else "failed"
                           riderLogger.info(s"user ${session.userId} start job ${job.id}")
                           if (status == "failed")
-                            jobDal.updateJobStatus(job.id, AppInfo(null, status, job.startedTime.get, currentSec), logPath)
+                            jobDal.updateJobStatus(job.id, AppInfo(pid.orNull, status, job.startedTime.get, currentSec), logPath)
                           complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(job.id, status)))
                         } catch {
                           case ex: Exception =>
