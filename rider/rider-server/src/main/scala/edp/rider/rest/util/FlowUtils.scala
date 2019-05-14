@@ -1328,9 +1328,10 @@ object FlowUtils extends RiderLogger {
 
   def getFlowStatusByLog(flowName: String, logPath: String, preStatus: String): String = {
     val failedPattern = "The program finished with the following exception".r
+    val fatalErrorPattern = "Fatal error while running command line interface".r
     try {
       val fileLines = YarnClientLog.getLogByAppName(flowName, logPath)
-      if (failedPattern.findFirstIn(fileLines).nonEmpty)
+      if (failedPattern.findFirstIn(fileLines).nonEmpty||fatalErrorPattern.findFirstIn(fileLines).nonEmpty)
         FlowStatus.FAILED.toString
       else preStatus
     }
