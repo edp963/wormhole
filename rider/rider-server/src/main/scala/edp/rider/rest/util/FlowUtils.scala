@@ -1056,10 +1056,10 @@ object FlowUtils extends RiderLogger {
 
   def startFlinkFlow(appId: String, flow: Flow): Boolean = {
     try {
-      val commandSh = generateFlinkFlowStartSh(appId, flow)
+      val logPath = getLogPath(getFlowName(flow.id, flow.sourceNs, flow.sinkNs))
+      val commandSh = generateFlinkFlowStartSh(appId, flow, logPath)
       riderLogger.info(s"start flow ${flow.id} command: $commandSh")
-      ShellUtils.runShellCommand(commandSh, flow.logPath.get)
-      true
+      ShellUtils.runShellCommand(commandSh, logPath)._1
     } catch {
       case ex: Exception =>
         riderLogger.error(s"flow ${flow.id} start failed", ex)
@@ -1067,10 +1067,9 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def generateFlinkFlowStartSh(appId: String, flow: Flow): String = {
+  def generateFlinkFlowStartSh(appId: String, flow: Flow, logPath: String): String = {
     val config1 = getWhFlinkConfig(flow)
     val config2 = getFlinkFlowConfig(flow)
-    val logPath = getLogPath(getFlowName(flow.id, flow.sourceNs, flow.sinkNs))
     flowDal.updateLogPath(flow.id, logPath)
     s"""
        |${RiderConfig.flink.homePath}/bin/flink run
@@ -1328,9 +1327,10 @@ object FlowUtils extends RiderLogger {
 
   def getFlowStatusByLog(flowName: String, logPath: String, preStatus: String): String = {
     val failedPattern = "The program finished with the following exception".r
+    val fatalErrorPattern = "Fatal error while running command line interface".r
     try {
       val fileLines = YarnClientLog.getLogByAppName(flowName, logPath)
-      if (failedPattern.findFirstIn(fileLines).nonEmpty)
+      if (failedPattern.findFirstIn(fileLines).nonEmpty||fatalErrorPattern.findFirstIn(fileLines).nonEmpty)
         FlowStatus.FAILED.toString
       else preStatus
     }
