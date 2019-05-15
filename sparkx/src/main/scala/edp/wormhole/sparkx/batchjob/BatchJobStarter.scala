@@ -23,6 +23,8 @@ package edp.wormhole.sparkx.batchjob
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sparkx.batchflow.BatchflowMainProcess.logInfo
 import edp.wormhole.sparkx.batchjob.transform.Transform
 import edp.wormhole.sparkx.common.SparkUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
@@ -88,7 +90,24 @@ object BatchJobStarter extends App with EdpLogging {
           logInfo("do write sink loop")
         }
       }
-      sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, sendList, sinkConnectionConfig)
+      //log.info(s"sink size is ${sendList.size}, ${sendList}")
+
+      val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
+
+      val mutationType =
+        if (specialConfigJson.containsKey("mutation_type")) specialConfigJson.getString("mutation_type").trim
+        else if (sinkProcessConfig.classFullname.contains("Kafka")) SourceMutationType.INSERT_ONLY.toString
+        else SourceMutationType.I_U_D.toString
+
+      val mergeSendList = if (SourceMutationType.INSERT_ONLY.toString == mutationType) {
+        logInfo("special config is i, merge not happen")
+        sendList
+      } else {
+        logInfo("special config is not i, merge happen")
+        SparkUtils.mergeTuple(sendList, schemaMap, sinkProcessConfig.tableKeyList)
+      }
+      //log.info(s"sink size is ${mergeSendList.size}, ${mergeSendList}")
+      sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, mergeSendList, sinkConnectionConfig)
     })
   }
 
