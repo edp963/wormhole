@@ -55,7 +55,7 @@ object BatchJobStarter extends App with EdpLogging {
 
   val sourceDf = doSource()
   val transformDf = if (transformationList == null) sourceDf else {
-    Transform.process(sparkSession, sourceDf, transformationList, Some(transformSpecialConfig.toString))
+    Transform.process(sparkSession, sourceConfig.sourceNamespace, sourceDf, transformationList, Some(transformSpecialConfig.toString))
   }
   val projectionFields: Array[String] = getProjectionFields(transformDf).map(column => s"`$column`")
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
@@ -160,7 +160,6 @@ object BatchJobStarter extends App with EdpLogging {
     val sourceReflectObject: Any = sourceClazz.newInstance()
     val sourceTransformMethod = sourceClazz.getMethod("process", classOf[SparkSession], classOf[String], classOf[String], classOf[String], classOf[ConnectionConfig], classOf[Option[String]])
     sourceTransformMethod.invoke(sourceReflectObject, sparkSession, sourceConfig.startTime, sourceConfig.endTime, sourceConfig.sourceNamespace, sourceConfig.connectionConfig, sourceConfig.specialConfig).asInstanceOf[DataFrame]
-
   }
 
   def getProjectionFields(transformDf: DataFrame): Array[String] = {

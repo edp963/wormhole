@@ -146,7 +146,7 @@ object YarnStatusQuery extends RiderLogger {
     if (map.contains(appName)) {
       val yarnApp = map(appName)
 
-      if(result.startedTime == null || result.startedTime == "") {
+      if (result.startedTime == null || result.startedTime == "") {
         result = yarnApp
       } else {
         val resultStartTime = dt2date(result.startedTime)
@@ -220,12 +220,12 @@ object YarnStatusQuery extends RiderLogger {
         while (retryNum < 3) {
           try {
             response = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-            //riderLogger.info(s"Get Flink job status request url $url retry num $retryNum")
+            //            riderLogger.info(s"Get Flink job status request url $url retry num $retryNum")
             retryNum = 3
           } catch {
             case ex: Exception =>
               retryNum = retryNum + 1
-              riderLogger.error(s"Get Flink job status failed by request url $url retry num $retryNum", ex)
+              riderLogger.error(s"Get Flink job status failed by request url $url retry num $retryNum", ex.getMessage)
               if (retryNum >= 3) throw ex
           }
         }

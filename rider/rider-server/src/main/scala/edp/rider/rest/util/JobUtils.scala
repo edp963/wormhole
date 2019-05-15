@@ -23,6 +23,7 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
+import edp.rider.common.StreamStatus.STARTING
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConfig}
 import edp.rider.rest.util.CommonUtils._
@@ -78,8 +79,8 @@ object JobUtils extends RiderLogger {
 
     val specialConfig =
       if (jobType != JobType.BACKFILL.toString) {
-        if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
-          Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
+        if (sinkConfig != "" && sinkConfig != null)
+          Some(base64byte2s(sinkConfig.trim.getBytes()))
         else None
       } else {
         val topicConfig = new JSONObject().fluentPut("topic", db.nsDatabase)
@@ -212,8 +213,10 @@ object JobUtils extends RiderLogger {
       "job"
     )
     riderLogger.info(s"start job ${job.id} command: $command")
-    ShellUtils.runShellCommand(command, job.logPath.get)
+    ShellUtils.runShellCommand(command, logPath)
   }
+
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/jobs/$appName-${CommonUtils.currentNodSec}.log"
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
     val projectName = Await.result(modules.projectDal.findById(projectId), minTimeOut).head.name
@@ -361,11 +364,31 @@ object JobUtils extends RiderLogger {
   def mappingSparkJobStatus(job: Job, sparkList: Map[String, AppResult]) = {
     val startedTime = job.startedTime.orNull
     val stoppedTime = job.stoppedTime.orNull
-    val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
+    val appStatus = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
+
+    val endAction=if (job.status == STARTING.toString) "refresh_log"
+    else "refresh_spark"
+
+    val appInfo= endAction match {
+      case "refresh_log" =>
+          val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""), job.sparkAppid.getOrElse(""))
+          logInfo._2 match {
+            case "starting" => getAppStatusByRest(sparkList, logInfo._1, job.name, logInfo._2, startedTime, stoppedTime)
+            case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
+          }
+      case "refresh_spark" =>
+          appStatus
+    }
+
     val result = job.status match {
       case "starting" =>
-        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""), job.sparkAppid.getOrElse(""))
-        AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
+        appInfo.appState.toUpperCase match {
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "WAITING" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        }
       case "waiting" =>
         appInfo.appState.toUpperCase match {
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)

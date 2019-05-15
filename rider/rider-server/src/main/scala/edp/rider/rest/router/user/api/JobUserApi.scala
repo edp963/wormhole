@@ -99,7 +99,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           riderLogger.warn(s"user ${session.userId} start job $jobId failed, caused by resource is not enough")
                           complete(OK, getHeader(507, "resource is not enough", session))
                         } else {
-                          val logPath = StreamUtils.getLogPath(job.name)
+                          val logPath = JobUtils.getLogPath(job.name)
                           val (result, pid) = JobUtils.startJob(job, logPath)
                           val status =
                             if (result) JobStatus.STARTING.toString
@@ -195,11 +195,9 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (None, None, None) =>
-                        riderLogger.info(s"user ${session.userId} refresh project $projectId")
-                        val jobsFind = jobDal.getAllJobs4Project(projectId)
+                        val jobsFind: Seq[Job] = jobDal.getAllJobs4Project(projectId)
                         val jobs = JobUtils.hidePid(jobsFind)
                         if (jobs != null && jobs.nonEmpty) {
-                          riderLogger.info(s"user ${session.userId} refresh project $projectId, and job in it is not null and not empty.")
                           val projectName = jobDal.adminGetRow(projectId)
                           //check null to option None todo
                           val rst: Seq[FullJobInfo] = jobs.map(job => {

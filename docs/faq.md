@@ -15,13 +15,11 @@ description: Wormhole Concept page
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/faq-stream-log.png" alt="" width="600"/>
 
-2. 如果没有stream日志，一般是配置有问题。检查启动Wormhole服务的用户是否为application.conf中配置的**spark.wormholeServer.user**，Wormhole服务启动用户是否已设置远程ssh免密登录。
+2. 检查application.conf中配置的spark路径是否正确，检查Wormhole服务启动用户是否有权限访问该目录。
 
-3. 检查application.conf中配置的spark路径是否正确，检查Wormhole服务启动用户是否有权限访问该目录。
+3. 查看Wormhole服务后台日志application.log中是否有启动失败提示。
 
-4. 查看Wormhole服务后台日志application.log中是否有启动失败提示。
-
-5. 按照上面顺排查问题后，手动执行SQL将Wormhole服务数据库中该stream状态设置为failed。
+4. 按照上面顺排查问题后，手动执行SQL将Wormhole服务数据库中该stream状态设置为failed。
 
    ```
    mysql client
@@ -29,7 +27,7 @@ description: Wormhole Concept page
    update stream set status = "failed" where id = 1;  // 1换成对应stream id
    ```
 
-6. 重启wormhole服务，重启stream。
+5. 重启wormhole服务，重启stream。
 
 **若以上步骤仍不能解决问题，请及时反馈~~**
 
