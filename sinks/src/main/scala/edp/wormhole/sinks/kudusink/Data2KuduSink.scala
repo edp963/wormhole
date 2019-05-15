@@ -63,7 +63,7 @@ class Data2KuduSink extends SinkProcessor {
           }
 
           if (insertList.nonEmpty) {
-            val errorsCount = KuduConnection.doInset(tableName, database, connectionConfig.connectionUrl, schemaMap, insertList)
+            val errorsCount = KuduConnection.doInsert(tableName, database, connectionConfig.connectionUrl, schemaMap, insertList)
             if (errorsCount > 0) {
               allErrorsCount = allErrorsCount + errorsCount
               logger.error("do sink error,count=" + errorsCount)
@@ -77,7 +77,7 @@ class Data2KuduSink extends SinkProcessor {
             }
           }
         } else if (tupleList.nonEmpty) {
-          val errorsCount = KuduConnection.doInset(tableName, database, connectionConfig.connectionUrl, schemaMap, tupleList)
+          val errorsCount = KuduConnection.doInsert(tableName, database, connectionConfig.connectionUrl, schemaMap, tupleList)
           if (errorsCount > 0) {
             allErrorsCount = allErrorsCount + errorsCount
             logger.error("do sink error,count=" + errorsCount)
