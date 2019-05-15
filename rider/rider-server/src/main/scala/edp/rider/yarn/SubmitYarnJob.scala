@@ -241,12 +241,13 @@ object SubmitYarnJob extends App with RiderLogger {
   }
 
 
-  def killPidCommand(pidOrg: Option[String]) = {
+  def killPidCommand(pidOrg: Option[String], name: String) = {
     try {
       pidOrg match {
         case Some(pid) =>
           if (pid != null && pid.trim.nonEmpty) {
             ("ps -ef" #| s"grep $pid" #| "grep -v grep" #| Seq("awk", "{print $2}") #| "xargs kill -9").run()
+            riderLogger.info(s"the stream [$name] submit cilent is killed, need to yarn to view log")
           }
         case None =>
       }
