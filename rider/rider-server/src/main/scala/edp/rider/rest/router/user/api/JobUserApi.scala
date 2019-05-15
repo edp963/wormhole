@@ -147,7 +147,8 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                 jobOut match {
                   case Some(_) =>
                     riderLogger.info(s"user ${session.userId} refresh job.")
-                    val job = JobUtils.refreshJob(jobId)
+                    val jobFind = JobUtils.refreshJob(jobId)
+                    val job = JobUtils.hidePid(jobFind)
                     val projectName = jobDal.adminGetRow(job.projectId)
                     complete(OK, ResponseJson[JobTopicInfo](getHeader(200, session), JobTopicInfo(job, projectName, NamespaceUtils.getTopic(job.sourceNs), getDisableAction(job))))
                   case None =>
@@ -195,7 +196,8 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         }
                       case (None, None, None) =>
                         riderLogger.info(s"user ${session.userId} refresh project $projectId")
-                        val jobs: Seq[Job] = jobDal.getAllJobs4Project(projectId)
+                        val jobsFind = jobDal.getAllJobs4Project(projectId)
+                        val jobs = JobUtils.hidePid(jobsFind)
                         if (jobs != null && jobs.nonEmpty) {
                           riderLogger.info(s"user ${session.userId} refresh project $projectId, and job in it is not null and not empty.")
                           val projectName = jobDal.adminGetRow(projectId)
