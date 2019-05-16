@@ -109,12 +109,12 @@ object WormholeKafkaConsumer {
     val consumeRecordList=new util.ArrayList[ConsumerRecord[String,String]]()
     val consumeRecordMap=new util.HashMap[TopicPartition,util.List[ConsumerRecord[String,String]]]()
     var currentOffset=fromOffset
-    while(currentOffset<=untilOffset){
+    while(currentOffset<untilOffset){
       val consumerRecordIterator=consumeRecordsFromSpecialOffset(consumer,topicPartition,currentOffset,readTimeout).iterator()
-      while(consumerRecordIterator.hasNext && currentOffset<=untilOffset){
+      while(consumerRecordIterator.hasNext && currentOffset<untilOffset){
         val consumeRecord=consumerRecordIterator.next()
         currentOffset=consumeRecord.offset()
-        if(currentOffset<=untilOffset)
+        if(currentOffset<untilOffset)
           consumeRecordList.add(consumeRecord)
       }
     }

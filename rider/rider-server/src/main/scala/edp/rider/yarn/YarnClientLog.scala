@@ -51,13 +51,13 @@ object YarnClientLog extends RiderLogger {
 
   }
 
-  def getAppStatusByLog(appName: String, curStatus: String, logPath: String): (String, String) = {
+  def getAppStatusByLog(appName: String, curStatus: String, logPath: String, curAppId: String): (String, String) = {
     assert(appName != "" && appName != null, "Refresh Spark Application log, app name couldn't be null or blank.")
     val appIdPattern = "Application report for application_([0-9]){13}_([0-9]){4}".r
     try {
       val fileLines = getLogByAppName(appName, logPath).split("\\n")
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
-      val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Application report for").trim else ""
+      val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Application report for").trim else curAppId
       val hasException = fileLines.count(s => s.toLowerCase contains "exception in thread")
 //      val isRunning = fileLines.count(s => s contains s"(state: $RUNNING)")
 //      val isAccepted = fileLines.count(s => s contains s"(state: $ACCEPTED)")
@@ -75,13 +75,13 @@ object YarnClientLog extends RiderLogger {
     }
   }
 
-  def getFlinkAppStatusByLog(appName: String, curStatus: String, logPath: String) : (String,String)={
+  def getFlinkAppStatusByLog(appName: String, curStatus: String, logPath: String, curAppId: String) : (String,String)={
     assert(appName != "" && appName != null, "Refresh Flink Application log, app name couldn't be null or blank.")
     val appIdPattern = "Submitted application application_([0-9]){13}_([0-9]){4}".r
     try {
       val fileLines = getLogByAppName(appName, logPath).split("\\n")
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
-      val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Submitted application").trim else ""
+      val appId = if (appIdList.nonEmpty) appIdList.last.stripPrefix("Submitted application").trim else curAppId
       val isFailed = fileLines.count(s => s.toLowerCase contains s"the flink yarn cluster has failed")
 //      val isRunning = fileLines.count(s => s contains s"Flink JobManager is now running on")
 //      val isAccepted = fileLines.count(s => s contains s"YARN application has been deployed successfully")

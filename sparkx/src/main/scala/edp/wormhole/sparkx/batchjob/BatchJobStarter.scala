@@ -23,6 +23,8 @@ package edp.wormhole.sparkx.batchjob
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sparkx.batchflow.BatchflowMainProcess.logInfo
 import edp.wormhole.sparkx.batchjob.transform.Transform
 import edp.wormhole.sparkx.common.SparkUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
@@ -55,7 +57,7 @@ object BatchJobStarter extends App with EdpLogging {
 
   val sourceDf = doSource()
   val transformDf = if (transformationList == null) sourceDf else {
-    Transform.process(sparkSession, sourceDf, transformationList, Some(transformSpecialConfig.toString))
+    Transform.process(sparkSession, sourceConfig.sourceNamespace, sourceDf, transformationList, Some(transformSpecialConfig.toString))
   }
   val projectionFields: Array[String] = getProjectionFields(transformDf).map(column => s"`$column`")
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
@@ -88,7 +90,24 @@ object BatchJobStarter extends App with EdpLogging {
           logInfo("do write sink loop")
         }
       }
-      sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, sendList, sinkConnectionConfig)
+      //log.info(s"sink size is ${sendList.size}, ${sendList}")
+
+      val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
+
+      val mutationType =
+        if (specialConfigJson.containsKey("mutation_type")) specialConfigJson.getString("mutation_type").trim
+        else if (sinkProcessConfig.classFullname.contains("Kafka")) SourceMutationType.INSERT_ONLY.toString
+        else SourceMutationType.I_U_D.toString
+
+      val mergeSendList = if (SourceMutationType.INSERT_ONLY.toString == mutationType) {
+        logInfo("special config is i, merge not happen")
+        sendList
+      } else {
+        logInfo("special config is not i, merge happen")
+        SparkUtils.mergeTuple(sendList, schemaMap, sinkProcessConfig.tableKeyList)
+      }
+      //log.info(s"sink size is ${mergeSendList.size}, ${mergeSendList}")
+      sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, mergeSendList, sinkConnectionConfig)
     })
   }
 
@@ -160,7 +179,6 @@ object BatchJobStarter extends App with EdpLogging {
     val sourceReflectObject: Any = sourceClazz.newInstance()
     val sourceTransformMethod = sourceClazz.getMethod("process", classOf[SparkSession], classOf[String], classOf[String], classOf[String], classOf[ConnectionConfig], classOf[Option[String]])
     sourceTransformMethod.invoke(sourceReflectObject, sparkSession, sourceConfig.startTime, sourceConfig.endTime, sourceConfig.sourceNamespace, sourceConfig.connectionConfig, sourceConfig.specialConfig).asInstanceOf[DataFrame]
-
   }
 
   def getProjectionFields(transformDf: DataFrame): Array[String] = {

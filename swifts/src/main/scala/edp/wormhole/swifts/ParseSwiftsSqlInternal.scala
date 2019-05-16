@@ -281,6 +281,7 @@ object ParseSwiftsSqlInternal {
     val schemaInString = selectFieldsArray.map(fieldWithAs => {
       fieldWithAs._1 + ":" + tableSchema(fieldWithAs._1) + " as " + fieldWithAs._2
     }).mkString(",")
+    logger.info("get kudu table schema success")
     KuduConnection.closeClient(client)
     schemaInString
   }

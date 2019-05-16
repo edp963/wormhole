@@ -24,6 +24,7 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
+import edp.rider.yarn.ShellUtils.riderLogger
 import edp.wormhole.util.JsonUtils
 
 import scala.collection.mutable.ListBuffer
@@ -47,20 +48,20 @@ object SubmitYarnJob extends App with RiderLogger {
   //  }
 
 
-  def runShellCommand(command: String) = {
-    assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
-    val array = command.split(";")
-    if (array.length == 2) {
-      val process1 = Future(Process(array(0)).run())
-      process1.map(p => {
-        if (p.exitValue() != 0) {
-          val msg = array(1).split("\\|")
-          Future(msg(0).trim #| msg(1).trim !)
-        }
-      })
-    }
-    else Process(command).run()
-  }
+//  def runShellCommand(command: String) = {
+//    assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
+//    val array = command.split(";")
+//    if (array.length == 2) {
+//      val process1 = Future(Process(array(0)).run())
+//      process1.map(p => {
+//        if (p.exitValue() != 0) {
+//          val msg = array(1).split("\\|")
+//          Future(msg(0).trim #| msg(1).trim !)
+//        }
+//      })
+//    }
+//    else Process(command).run()
+//  }
 
   def runShellCommandBlock(command: String) = {
     val commandRe = Process(command).!
@@ -122,7 +123,6 @@ object SubmitYarnJob extends App with RiderLogger {
 
 
   def generateSparkStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, jvmDriverConfig: String, jvmExecutorConfig: String, othersConfig: String, functionType: String, local: Boolean = false): String = {
-//    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
     val submitPre = RiderConfig.spark.sparkHome
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
@@ -187,7 +187,6 @@ object SubmitYarnJob extends App with RiderLogger {
       else
         RiderConfig.spark.startShell.split("\\n")
 
-    //    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
@@ -200,7 +199,6 @@ object SubmitYarnJob extends App with RiderLogger {
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
-//      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
       else if (l.startsWith("--conf")) {
         confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
       }
@@ -216,21 +214,16 @@ object SubmitYarnJob extends App with RiderLogger {
     }).mkString("").stripMargin.replace("\\", "  ") +
     realJarPath + " " + args  + " > " + logPath + " 2>&1 "
 
-    val finalCommand =
-      if (RiderConfig.spark.alert)
-        s"$startCommand;echo '$streamName is dead' | mail -s 'ERROR-$streamName-is-dead' ${RiderConfig.spark.alertEmails}"
-      else startCommand
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     if(RiderConfig.kerberos.enabled)
-      submitPre + s"/bin/spark-submit --principal ${RiderConfig.kerberos.sparkPrincipal} --keytab  ${RiderConfig.kerberos.sparkKeyTab} " + finalCommand
+      submitPre + s"/bin/spark-submit --principal ${RiderConfig.kerberos.sparkPrincipal} --keytab  ${RiderConfig.kerberos.sparkKeyTab} " + startCommand
     else
-      submitPre + "/bin/spark-submit " + finalCommand
+      submitPre + "/bin/spark-submit " + startCommand
   }
 
   //ssh -p22 user@host ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
-
   def generateFlinkStreamStartSh(stream: Stream): String = {
     val resourceConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
     val logPath = getLogPath(stream.name)
@@ -245,6 +238,23 @@ object SubmitYarnJob extends App with RiderLogger {
        |-nm ${stream.name}
        |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
+  }
+
+
+  def killPidCommand(pidOrg: Option[String], name: String) = {
+    try {
+      pidOrg match {
+        case Some(pid) =>
+          if (pid != null && pid.trim.nonEmpty) {
+            ("ps -ef" #| s"grep $pid" #| "grep -v grep" #| Seq("awk", "{print $2}") #| "xargs kill -9").run()
+            riderLogger.info(s"the stream [$name] submit cilent is killed, need to yarn to view log")
+          }
+        case None =>
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.warn(s"kill pid $pidOrg failed")
+    }
   }
 
 }

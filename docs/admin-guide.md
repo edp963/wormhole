@@ -32,6 +32,8 @@ Admin 配置好 User，Namespace，UDF 和 Project 的访问权限后，User 类
 
 ## Namespace 管理
 
+Source/Sink/Lookup Namespace管理，其中Source Namespace有两种来源：DBus已接Namespace资源同步，参考[DBus对接](https://edp963.github.io/wormhole/how-to.html#dbus%E7%B3%BB%E7%BB%9F%E5%AF%B9%E6%8E%A5)，Kafka类型的数据源。
+
 目前只须在 Wormhole 上配置前四部分，Table Version/Database Partition/Table Partition 默认为 “*”。
 
 数据源系统只支持 Kafka，目标端系统支持 Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB/Kudu等。
@@ -74,7 +76,7 @@ namespace 系统类型为 Kafka/MongoDb/Es 时，若其作为 Sink Namespace，�
 
 支持联合主键配置，中间使用逗号分隔。Key 区分大小写，若数据来源为 Dbus，主键须配置为小写。
 
-#### Source Schema
+#### Source Schema 
 
 点击 namespace source schema 配置按钮，见下图，粘贴一条完整的数据样例至左侧文本框中，点击中间的按钮，生成右侧的配置表格。
 
