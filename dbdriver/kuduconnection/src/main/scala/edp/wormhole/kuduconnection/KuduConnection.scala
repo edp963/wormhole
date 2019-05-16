@@ -193,6 +193,7 @@ object KuduConnection extends Serializable {
       } else {
         queryByKeyInBatch(client, table, queryFieldsName, keyName, dataList, batchSize)
       }
+      logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName + "success")
     } catch {
       case e: Throwable =>
         logger.error("doQueryByKeyListInBatch", e)
