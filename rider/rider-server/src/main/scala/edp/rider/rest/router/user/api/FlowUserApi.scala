@@ -811,7 +811,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                                 if (rechargeType.protocolType.equals("all")) {
                                   backFillRecordCount += 1
                                   WormholeKafkaProducer.sendMessage(topicInfo.topicName, consumeRecord.value(), Some(consumeRecord.key()), instance.connUrl)
-                                } else if (recordKey.startsWith(rechargeType.protocolType.toLowerCase) ) {
+                                } else if (recordKey.contains(rechargeType.protocolType.toLowerCase) ) {
                                   backFillRecordCount += 1
                                   WormholeKafkaProducer.sendMessage(topicInfo.topicName, consumeRecord.value(), Some(consumeRecord.key()), instance.connUrl)
                                 }
