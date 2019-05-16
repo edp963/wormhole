@@ -83,6 +83,7 @@ object KuduConnection extends Serializable {
       try {
         logger.info("start to close kudu connection")
         client.close()
+        logger.info("close kudu connection finished")
       } catch {
         case e: Throwable =>
           logger.error("Close KuduClient Error!", e)
