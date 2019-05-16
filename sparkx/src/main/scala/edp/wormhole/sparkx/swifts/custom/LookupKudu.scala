@@ -17,7 +17,8 @@ import scala.collection.mutable.ListBuffer
 
 object LookupKudu extends EdpLogging {
 
-  def transform(session: SparkSession, df: DataFrame, sqlConfig: SwiftsSql, sourceNamespace: String, sinkNamespace: String, connectionConfig: ConnectionConfig, batchSize: Option[Int] = None): DataFrame = {
+  def transform(session: SparkSession, df: DataFrame, sqlConfig: SwiftsSql, sourceNamespace: String, sinkNamespace: String,
+                connectionConfig: ConnectionConfig, batchSize: Option[Int] = None): DataFrame = {
     val database = sqlConfig.lookupNamespace.get.split("\\.")(2)
     val fromIndex = sqlConfig.sql.indexOf(" from ")
     val afterFromSql = sqlConfig.sql.substring(fromIndex + 6).trim
@@ -62,8 +63,8 @@ object LookupKudu extends EdpLogging {
         val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
         keySchemaMap(lookupFieldNameArray.head) = (0, keyType, true)
 
-        originalData.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
-          val tupleList: mutable.Seq[List[String]] = subList.map(row => {
+//        originalData.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
+          val tupleList: mutable.Seq[List[String]] = originalData.map(row => {
             sqlConfig.sourceTableFields.get.toList.map(field => {
               val tmpKey = row.get(row.fieldIndex(field))
               if (tmpKey == null) null.asInstanceOf[String]
@@ -73,11 +74,12 @@ object LookupKudu extends EdpLogging {
           }).filter((keys: Seq[String]) => {
             !keys.contains(null)
           })
+
           val queryDataMap: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]] =
             KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
               lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray, batchSize.getOrElse(1))
 
-          subList.foreach((row: Row) => {
+        originalData.foreach((row: Row) => {
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
             val joinData = row.get(row.fieldIndex(sourceFieldName))
             if (joinData == null || queryDataMap == null || queryDataMap.isEmpty || !queryDataMap.contains(joinData.toString))
@@ -87,7 +89,7 @@ object LookupKudu extends EdpLogging {
             })
 
           })
-        })
+//        })
       } else {
         val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
         try {
