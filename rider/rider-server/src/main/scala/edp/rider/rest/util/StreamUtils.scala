@@ -669,6 +669,23 @@ object StreamUtils extends RiderLogger {
     else false
   }
 
+
+  def hidePid(stream: Stream): Stream = {
+    if(stream != null && stream.status == "starting") {
+      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
+        stream.launchConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
+        stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
+    } else stream
+  }
+
+  def hidePid(streams: Seq[Stream]): Seq[Stream] = {
+    if(streams != null && streams.nonEmpty) {
+      streams.map(stream => {
+        hidePid(stream)
+      })
+    } else streams
+  }
+
   //  def getConsumedOffset(streamId: Long, dbId: Long, topic: String): String = {
   //    val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
   //    val feedbackOffsetOpt = Await.result(feedbackOffsetDal.getLatestOffset(streamId, topic), minTimeOut)

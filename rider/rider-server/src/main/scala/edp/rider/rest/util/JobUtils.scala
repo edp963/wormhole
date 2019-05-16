@@ -426,4 +426,17 @@ object JobUtils extends RiderLogger {
     val timeValue = time.getOrElse("")
     if (timeValue.nonEmpty) timeValue.split("\\.")(0) else null
   }
+
+  def hidePid(job: Job): Job = {
+    if(job != null && job.status == "starting") {
+      Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+        job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, job.status, None, job.logPath, job.startedTime, job.stoppedTime, job.userTimeInfo)
+    } else job
+  }
+
+  def hidePid(jobs: Seq[Job]): Seq[Job] = {
+    if(jobs != null && jobs.nonEmpty) {
+      jobs.map(job => hidePid(job))
+    } else jobs
+  }
 }

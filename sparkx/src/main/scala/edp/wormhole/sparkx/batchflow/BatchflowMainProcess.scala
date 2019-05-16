@@ -450,21 +450,6 @@ object BatchflowMainProcess extends EdpLogging {
     })
   }
 
-  private def mergeTuple(dataSeq: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tableKeyList: List[String]): Seq[Seq[String]] = {
-    val keys2TupleMap = new mutable.HashMap[String, Seq[String]] //[keys,tuple]
-    dataSeq.foreach(dataArray => {
-      val opValue = SinkCommonUtils.fieldValue(UmsSysField.OP.toString, schemaMap, dataArray)
-      if (UmsOpType.BEFORE_UPDATE.toString != opValue) {
-        val keyValues = SinkCommonUtils.keyList2values(tableKeyList, schemaMap, dataArray)
-        val idInTuple = dataArray(schemaMap(UmsSysField.ID.toString)._1).toLong
-        if (!keys2TupleMap.contains(keyValues) || (idInTuple > keys2TupleMap(keyValues)(schemaMap(UmsSysField.ID.toString)._1).toLong)) {
-          keys2TupleMap(keyValues) = dataArray
-        }
-      }
-    })
-    keys2TupleMap.values.toList
-  }
-
   private def validityAndSinkProcess(protocolType: UmsProtocolType,
                                      sourceNamespace: String,
                                      sinkNamespace: String,
@@ -514,7 +499,7 @@ object BatchflowMainProcess extends EdpLogging {
           sendList
         } else {
           logInfo(uuid + "special config not i, merge happen")
-          mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
+          SparkUtils.mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
         }
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
 
