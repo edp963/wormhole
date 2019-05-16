@@ -45,6 +45,8 @@ cd wormhole
 mvn install package -Pwormhole
 ```
 
+**注: [若前端需要自编译，并且 node_modules 依赖包下载失败，可参考链接中issue](https://github.com/edp963/wormhole/issues/1008#issuecomment-491172069)**
+
 #### 配置环境变量
 
 **配置 SPARK_HOME/HADOOP_HOME 环境变量**
@@ -119,23 +121,22 @@ ldap = {
 }
 
 spark = {
-  wormholeServer.user = "wormhole"   #WormholeServer linux user
-  wormholeServer.ssh.port = 22       #ssh port, please set WormholeServer linux user can password-less login itself remote
   spark.home = "/usr/local/spark"
   yarn.queue.name = "default"        #WormholeServer submit spark streaming/job queue
   wormhole.hdfs.root.path = "hdfs://nn1/wormhole"   #WormholeServer hdfslog data default hdfs root path
   yarn.rm1.http.url = "localhost:8088"    #Yarn ActiveResourceManager address
   yarn.rm2.http.url = "localhost:8088"   #Yarn StandbyResourceManager address
+  #yarn.web-proxy.port = 8888    #Yarn web proxy port, just set if yarn service set yarn.web-proxy.address config
 }
 
 flink = {
   home = "/usr/local/flink"
   yarn.queue.name = "default"
-  feedback.state.count=100
-  checkpoint.enable=false
-  checkpoint.interval=60000
-  stateBackend="hdfs://nn1/flink-checkpoints"
-  feedback.interval=30
+  feedback.state.count = 100
+  checkpoint.enable = false
+  checkpoint.interval = 60000
+  stateBackend = "hdfs://nn1/flink-checkpoints"
+  feedback.interval = 30
 }
 
 zookeeper = {
@@ -166,18 +167,18 @@ kafka = {
 }
 
 #kerberos = {
-#  keyTab=""      #the keyTab will be used on yarn
-#  spark.principal=""   #the principal of spark
-#  spark.keyTab=""      #the keyTab of spark
-#  server.config=""     #the path of krb5.conf
-#  jaas.startShell.config="" #the path of jaas config file which should be used by start.sh
-#  jaas.yarn.config=""     #the path of jaas config file which will be uploaded to yarn
-#  server.enabled=false   #enable wormhole connect to Kerberized cluster
+#  keyTab = ""      #the keyTab will be used on yarn
+#  spark.principal = ""   #the principal of spark
+#  spark.keyTab = ""      #the keyTab of spark
+#  server.config = ""     #the path of krb5.conf
+#  jaas.startShell.config = "" #the path of jaas config file which should be used by start.sh
+#  jaas.yarn.config = ""     #the path of jaas config file which will be uploaded to yarn
+#  server.enabled = false   #enable wormhole connect to Kerberized cluster
 #}
 
-# choose monitor method among ES、MYSQL
-monitor ={
-   database.type="ES"
+# choose monitor method among ES/MYSQL
+monitor = {
+   database.type = "ES"
 }
 
 #Wormhole feedback data store, if doesn't want to config, you will not see wormhole processing delay and throughput
@@ -189,14 +190,6 @@ monitor ={
 #  password = ""
 #}
 
-#display wormhole processing delay and throughput data, get admin user token from grafana
-#garfana should set to be anonymous login, so you can access the dashboard through wormhole directly
-#if not set, please comment it
-
-#grafana = {
-#  url = "http://localhost:3000"
-#  admin.token = "jihefouglokoj"
-#}
 
 #delete feedback history data on time
 maintenance = {
@@ -206,7 +199,6 @@ maintenance = {
 
 
 #Dbus integration, support serveral DBus services, if not set, please comment it
-
 #dbus = {
 #  api = [
 #    {
@@ -220,10 +212,6 @@ maintenance = {
 #  ]
 #}
 ```
-
-#### rider-webapp
-
-**注: [若前端需要自定义开发，并且 node_modules 依赖包下载失败](https://github.com/edp963/wormhole/issues/1008#issuecomment-491172069)**
 
 #### Flink 高可用配置
 
@@ -253,9 +241,9 @@ high-availability.zookeeper.path.root: /flink
 
 wormhole 在 0.6 版本之前的 feedback state 默认存储在 ES 中，在 0.6 版本之后，将支持用户根据需求在 ES 与 MySQL 中间选择合适的存储库进行数据存储。如果需要将存储位置由 ES 迁往 MySQL，可以参照下面的步骤进行配置。通过配置 monitor.database.type 选择存储位置
 
-`monitor.database.type="MYSQL" #存储到mysql中`
+`monitor.database.type = "MYSQL" #存储到mysql中`
 
-`monitor.database.type="ES" #存储到ES中`
+`monitor.database.type = "ES" #存储到ES中`
 
 当选择存储到 mysql 时，需要在 wormhole/rider/conf/wormhole.sql 新建 feedback_flow_stats 表，并在 wormhole 配置的数据库中执行该文件，从而在数据库中建立 feedback_flow_stats 表
 
@@ -322,13 +310,13 @@ security.kerberos.login.contexts: client,kafkaClient
 
 ```
 kerberos = {
-  keyTab=""      #the keyTab will be used on yarn
-  spark.principal=""   #the principal of spark
-  spark.keyTab=""      #the keyTab of spark
-  server.config=""     #the path of krb5.conf
-  jaas.startShell.config="" #the path of jaas config file which should be used by start.sh
-  jaas.yarn.config=""     #the path of jaas config file which will be uploaded to yarn
-  server.enabled=false   #enable wormhole connect to Kerberized cluster
+  keyTab = ""      #the keyTab will be used on yarn
+  spark.principal = ""   #the principal of spark
+  spark.keyTab = ""      #the keyTab of spark
+  server.config = ""     #the path of krb5.conf
+  jaas.startShell.config = "" #the path of jaas config file which should be used by start.sh
+  jaas.yarn.config = ""     #the path of jaas config file which will be uploaded to yarn
+  server.enabled = false   #enable wormhole connect to Kerberized cluster
 }
 ```
 

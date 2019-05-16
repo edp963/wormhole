@@ -241,8 +241,6 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
 
 **配置完flow的Transformation后，通过点击浮框下方的”下一步”按钮，来进入到Confirmation步骤，对flow进行提交前的最后确认。当确认所有填写内容都没有问题后，就可以点击浮框下方的”提交”按钮来提交刚刚配置好的这个flow。否则，可以通过点击浮框下方的”上一步”按钮来返回之前的步骤，对错误的配置信息进行修改。**
 
-
-
 **启动 Flow， 配置Topic Offset信息**
 
    **Stream处于running状态时，才可以启动Flow**

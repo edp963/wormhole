@@ -451,11 +451,11 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                 if (StreamType.withName(stream.streamType) == StreamType.SPARK)
                   startStreamDirective(streamId, streamDirectiveOpt, session.userId)
                 val logPath = getLogPath(stream.name)
-                val result = startStream(stream, logPath)
+                val (result, pid) = startStream(stream, logPath)
                 riderLogger.info(s"user ${session.userId} start stream $streamId")
                 val status = if (result) StreamStatus.STARTING.toString
                 else StreamStatus.FAILED.toString
-                onComplete(streamDal.updateStatusByStart(streamId, status, session.userId, logPath).mapTo[Int]) {
+                onComplete(streamDal.updateStatusByStart(streamId, status, session.userId, logPath, pid).mapTo[Int]) {
                   case Success(_) =>
                     val stream = Await.result(streamDal.findById(streamId), minTimeOut).get
                     val startResponse = StartResponse(streamId,

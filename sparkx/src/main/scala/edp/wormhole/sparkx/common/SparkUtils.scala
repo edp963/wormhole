@@ -23,9 +23,10 @@ package edp.wormhole.sparkx.common
 
 import com.alibaba.fastjson.{JSONArray, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums
-import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
+import edp.wormhole.ums.{UmsField, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.CommonUtils
 import org.apache.spark.sql.Row
@@ -233,5 +234,20 @@ object SparkUtils extends EdpLogging {
     })
 
     startTopicPartitionOffsetJson
+  }
+
+  def mergeTuple(dataSeq: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tableKeyList: List[String]): Seq[Seq[String]] = {
+    val keys2TupleMap = new mutable.HashMap[String, Seq[String]] //[keys,tuple]
+    dataSeq.foreach(dataArray => {
+      val opValue = SinkCommonUtils.fieldValue(UmsSysField.OP.toString, schemaMap, dataArray)
+      if (UmsOpType.BEFORE_UPDATE.toString != opValue) {
+        val keyValues = SinkCommonUtils.keyList2values(tableKeyList, schemaMap, dataArray)
+        val idInTuple = dataArray(schemaMap(UmsSysField.ID.toString)._1).toLong
+        if (!keys2TupleMap.contains(keyValues) || (idInTuple > keys2TupleMap(keyValues)(schemaMap(UmsSysField.ID.toString)._1).toLong)) {
+          keys2TupleMap(keyValues) = dataArray
+        }
+      }
+    })
+    keys2TupleMap.values.toList
   }
 }

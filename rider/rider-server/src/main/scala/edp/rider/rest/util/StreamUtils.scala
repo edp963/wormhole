@@ -109,8 +109,8 @@ object StreamUtils extends RiderLogger {
               getAppStatusByRest(appInfoMap, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
             case "refresh_log" =>
               val logInfo = StreamType.withName(stream.streamType) match {
-                case StreamType.SPARK => YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
-                case _ => YarnClientLog.getFlinkAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+                case StreamType.SPARK => YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""), stream.sparkAppid.getOrElse(""))
+                case _ => YarnClientLog.getFlinkAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""), stream.sparkAppid.getOrElse(""))
               }
               logInfo._2 match {
                 case "running" =>
@@ -131,7 +131,7 @@ object StreamUtils extends RiderLogger {
                   case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case _ => AppInfo("", "starting", startedTime, stoppedTime)
+                  case _ => AppInfo(stream.sparkAppid.getOrElse(""), "starting", startedTime, stoppedTime)
                 }
               case "waiting" => sparkStatus.appState.toUpperCase match {
                 case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
@@ -221,7 +221,7 @@ object StreamUtils extends RiderLogger {
   }
 
 
-  def startStream(stream: Stream, logPath: String): Boolean = {
+  def startStream(stream: Stream, logPath: String): (Boolean, Option[String]) = {
     StreamType.withName(stream.streamType) match {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
@@ -614,7 +614,7 @@ object StreamUtils extends RiderLogger {
     Await.result(instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
 
-  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/$appName-${CommonUtils.currentNodSec}.log"
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/streams/$appName-${CommonUtils.currentNodSec}.log"
 
   def getStreamTime(time: Option[String]) = {
     val timeValue = time.getOrElse("")
@@ -667,6 +667,23 @@ object StreamUtils extends RiderLogger {
     val streamTopicRel = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === dbId), minTimeOut)
     if (streamTopicRel.nonEmpty) true
     else false
+  }
+
+
+  def hidePid(stream: Stream): Stream = {
+    if(stream != null && stream.status == "starting") {
+      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
+        stream.launchConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
+        stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
+    } else stream
+  }
+
+  def hidePid(streams: Seq[Stream]): Seq[Stream] = {
+    if(streams != null && streams.nonEmpty) {
+      streams.map(stream => {
+        hidePid(stream)
+      })
+    } else streams
   }
 
   //  def getConsumedOffset(streamId: Long, dbId: Long, topic: String): String = {
