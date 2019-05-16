@@ -28,6 +28,7 @@ import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.rest.util.StreamUtils
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.yarn.{ShellUtils, SubmitYarnJob}
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
@@ -61,7 +62,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       } else {
         //riderLogger.info(s"stream status ${streamMap(stream.id)._2}, yarn status ${stream.status}, stream pid ${streamPidMap(stream.id)}")
         if(streamMap(stream.id)._2 == "starting" && (stream.status == "waiting" || stream.status == "running")) {
-          SubmitYarnJob.killPidCommand(streamPidMap(stream.id))
+          SubmitYarnJob.killPidCommand(streamPidMap(stream.id), stream.name)
         }
         true
       }
@@ -101,7 +102,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val projectMap = getStreamProjectMap(streamSeq)
       streamSeq.map(
         stream => {
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
+          StreamDetail(StreamUtils.hidePid(stream), projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
         }
       )
     } catch {
