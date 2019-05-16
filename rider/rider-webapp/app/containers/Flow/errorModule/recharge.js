@@ -40,7 +40,7 @@ export class FlowRecharge extends React.Component {
     super(props)
     this.state = {
       visible: false,
-      typeOfOpTopics: 'increase'
+      typeOfOpTopics: 'increment'
     }
   }
 
@@ -82,10 +82,10 @@ export class FlowRecharge extends React.Component {
             label={locale === 'en' ? 'Type operated topics' : '操作topics类型'}
             labelCol={{span: 8}}
             wrapperCol={{span: 16}}>
-            <Radio.Group defaultValue="increase" onChange={this.handleReChangeVal}>
+            <Radio.Group defaultValue="increment" onChange={this.handleReChangeVal}>
               <Radio.Button value="initial">{locale === 'en' ? 'initial' : '全量'}</Radio.Button>
-              <Radio.Button value="increase">{locale === 'en' ? 'increase' : '增量'}</Radio.Button>
-              <Radio.Button value="all">{locale === 'en' ? 'initial and increase' : '全量and增量'}</Radio.Button>
+              <Radio.Button value="increment">{locale === 'en' ? 'increment' : '增量'}</Radio.Button>
+              <Radio.Button value="all">{locale === 'en' ? 'initial and increment' : '全量and增量'}</Radio.Button>
             </Radio.Group>
           </FormItem>
         </Form>
