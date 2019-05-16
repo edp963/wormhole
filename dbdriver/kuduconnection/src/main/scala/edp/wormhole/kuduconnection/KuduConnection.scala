@@ -81,6 +81,7 @@ object KuduConnection extends Serializable {
   def closeClient(client: KuduClient): Unit = {
     if (client != null)
       try {
+        logger.info("start to close kudu connection")
         client.close()
       } catch {
         case e: Throwable =>
@@ -159,6 +160,7 @@ object KuduConnection extends Serializable {
         if (valueMap.nonEmpty) queryResultMap(keysStr) = valueMap
 
       })
+      logger.info("doQueryByKeyList:" + kuduConfigurationMap(url) + ":::" + tableName + "success")
     } catch {
       case e: Throwable =>
         logger.error("doQueryByKeyList", e)
@@ -199,7 +201,8 @@ object KuduConnection extends Serializable {
       dataList.grouped(batchSize).foreach(data => {
         //        logger.info("data:"+data)
         val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
-          .setProjectedColumnNames(queryFieldsName) //指定输出列
+          .setProjectedColumnNames(queryFieldsName)
+        //指定输出列
         val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName), data)
         scannerBuilder.addPredicate(kuduPredicate)
         val scanner = scannerBuilder.build()
@@ -231,6 +234,7 @@ object KuduConnection extends Serializable {
         }
         //        logger.info("over!!!!!!!!!!!!!!!!!")
       })
+      logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName + "success")
     } catch {
       case e: Throwable =>
         logger.error("doQueryByKeyListInBatch", e)
@@ -306,7 +310,7 @@ object KuduConnection extends Serializable {
           }
         }
       })
-
+      logger.info("doQueryMultiByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName + "success")
     } catch {
       case e: Throwable =>
         logger.error("doQueryMultiByKeyListInBatch", e)
@@ -441,7 +445,7 @@ object KuduConnection extends Serializable {
           queryResultMap(keysStr).append(queryResult)
         }
       } //else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
-    }// else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
+    } // else queryResultMap(keysStr) = ListBuffer.empty[Map[String, (Any, String)]]
 
     queryResultMap
   }
@@ -501,12 +505,14 @@ object KuduConnection extends Serializable {
 
       closeSession(session)
 
+      session.hasPendingOperations
       errorsCount = session.countPendingErrors()
 
       if (errorsCount != 0) {
         logger.error("do " + optType + " has error,error count=" + errorsCount)
+      } else {
+        logger.info("doWrite:" + kuduConfigurationMap + ":::" + tableName + "success")
       }
-
     } catch {
       case e: Throwable =>
         logger.error("doWrite", e)

@@ -92,7 +92,7 @@ object LookupKuduHelper extends java.io.Serializable {
         ""
       }
       dbOutPutSchemaMap.foreach { case (name, (_, dataType, index)) =>
-        val value = if (queryFieldsResultMap.nonEmpty&&queryFieldsResultMap.contains(name)) queryFieldsResultMap(name)._1 else null.asInstanceOf[String]
+        val value = if (queryFieldsResultMap.nonEmpty && queryFieldsResultMap.contains(name)) queryFieldsResultMap(name)._1 else null.asInstanceOf[String]
         //val value = queryFieldsResultMap(name)._1
         arrayBuf(index) = if (value != null) {
           if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
@@ -104,12 +104,12 @@ object LookupKuduHelper extends java.io.Serializable {
         dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[Any]]
       }
       dataTupleMap(joinFieldsAsKey) += arrayBuf
-
+      logger.info(s"query data from table $tableName success")
     } catch {
       case ex: Throwable =>
         ex.printStackTrace()
         throw ex
-    } finally{
+    } finally {
       KuduConnection.closeClient(client)
     }
     dataTupleMap

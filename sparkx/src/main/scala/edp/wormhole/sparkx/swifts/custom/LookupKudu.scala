@@ -29,6 +29,7 @@ object LookupKudu extends EdpLogging {
     val table: KuduTable = client.openTable(tableName)
     val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
     val tableSchema: mutable.Map[String, String] = KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)
+    logInfo(s"query data from table $tableName success")
     KuduConnection.closeClient(client)
 
     val resultSchema: StructType = {
@@ -120,9 +121,10 @@ object LookupKudu extends EdpLogging {
 
             resultData
           })
+          logInfo(s"query data from table $tableName success")
         } catch {
           case e: Throwable =>
-            logInfo("LookupKudu", e)
+            logError("LookupKudu", e)
             throw e
         } finally {
           KuduConnection.closeClient(client)
