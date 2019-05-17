@@ -339,7 +339,7 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 配置数据转换逻辑，支持 SQL ，可以配置多条转换逻辑，调整逻辑顺序。
 
-支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳；Event Time为事件产生的时间，即数据产生时自带时间戳，在Wormhole系统中对应```ums_ts_```字段。暂时不支持Event Time，只支持Processing Time。
+支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳；Event Time为事件产生的时间，即数据产生时自带时间戳，在Wormhole系统中对应```ums_ts_```字段。
 
 ##### CEP
 
