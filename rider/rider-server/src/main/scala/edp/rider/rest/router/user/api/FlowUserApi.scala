@@ -752,7 +752,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                val response = Await.result(feedbackErrDal.findByFilter(feedbackErr => feedbackErr.flowId === flowId), minTimeOut).map(feedbackErr => {
+                val response = Await.result(feedbackErrDal.findByFilter(feedbackErr => feedbackErr.flowId === flowId), minTimeOut).sortBy(_.feedbackTime).reverse.map(feedbackErr => {
                   val flow = Await.result(flowDal.findByFilter(flow => flow.id === feedbackErr.flowId), minTimeOut).headOption.get
                   new SimpleFeedbackErr(feedbackErr.id, feedbackErr.projectId, feedbackErr.batchId, feedbackErr.streamId,
                     flow.flowName, feedbackErr.sourceNamespace, feedbackErr.sinkNamespace, feedbackErr.dataType, feedbackErr.errorPattern,
