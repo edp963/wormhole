@@ -794,12 +794,12 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                       val topicList = topics.map(topic => JsonUtils.json2caseClass[FeedbackErrTopicInfo](topic.toString)).seq
                       var rst = true
                       val partitionResults: ListBuffer[FeedbackPartitionResult] = new ListBuffer[FeedbackPartitionResult]()
+                      WormholeKafkaProducer.init(instance.connUrl, None, RiderConfig.kerberos.enabled)
+                      val kafkaConsumer = WormholeKafkaConsumer.initConsumer(instance.connUrl, FlowUtils.getFlowName(feedbackError.get.flowId, feedbackError.get.sourceNamespace, feedbackError.get.sinkNamespace), None, RiderConfig.kerberos.enabled)
                       topicList.foreach(topicInfo => {
-                        WormholeKafkaProducer.init(instance.connUrl, None, RiderConfig.kerberos.enabled)
-                        topicInfo.partitionOffset.map(parOffset => {
-                          val kafkaConsumer = WormholeKafkaConsumer.initConsumer(instance.connUrl, FlowUtils.getFlowName(feedbackError.get.flowId, feedbackError.get.sourceNamespace, feedbackError.get.sinkNamespace), None, RiderConfig.kerberos.enabled)
+                        topicInfo.partitionOffset.filter(partition=>partition.to>partition.from).foreach(parOffset => {
                           val startTime = DateUtils.currentyyyyMMddHHmmss
-                          val consumerRecordIterator = WormholeKafkaConsumer.consumeRecordsBetweenOffsetRange(kafkaConsumer, new TopicPartition(topicInfo.topicName, parOffset.num), parOffset.from,parOffset.to,5000).iterator()
+                          val consumerRecordIterator = WormholeKafkaConsumer.consumeRecordsBetweenOffsetRange(kafkaConsumer, new TopicPartition(topicInfo.topicName, parOffset.num), parOffset.from,parOffset.to,3000).iterator()
                           var isSuccess = true
                           var backFillRecordCount = 0
                           while (consumerRecordIterator.hasNext) {
@@ -823,12 +823,13 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                               }
                             }
                           }
-                          kafkaConsumer.close()
+
                           val partitionResult = new FeedbackPartitionResult(topicInfo.topicName, parOffset.num, startTime, DateUtils.currentyyyyMMddHHmmss, backFillRecordCount, isSuccess)
                           partitionResults += partitionResult
                         })
                       })
 
+                      kafkaConsumer.close()
                       val resultLog = new RechargeResultLog(0L, feedbackError.get.id, JsonUtils.caseClass2json(partitionResults), session.userId.toString, DateUtils.currentyyyyMMddHHmmss, DateUtils.currentyyyyMMddHHmmss, if (rst) 1 else 0)
                       rechargeResultLogDal.insert(resultLog)
                       complete(OK, setSuccessResponse(session))
