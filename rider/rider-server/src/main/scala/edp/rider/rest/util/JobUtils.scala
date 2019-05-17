@@ -383,6 +383,7 @@ object JobUtils extends RiderLogger {
     val result = job.status match {
       case "starting" =>
         appInfo.appState.toUpperCase match {
+          case "STARTING" => AppInfo(appInfo.appId, "starting", appInfo.startedTime, appInfo.finishedTime)
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
           case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
           case "WAITING" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
