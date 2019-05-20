@@ -88,12 +88,13 @@ object YarnClientLog extends RiderLogger {
       val isFailed = fileLines.count(s => s.toLowerCase contains s"the flink yarn cluster has failed")
       val isSubmitFailed=fileLines.count(s => s.toLowerCase contains s"the program finished with the following exception")
       val noFileExists = fileLines.count(s => s.toLowerCase contains "no such file")
+      val lostClass=fileLines.count(s => s.toLowerCase contains "could not find")
 //      val isRunning = fileLines.count(s => s contains s"Flink JobManager is now running on")
 //      val isAccepted = fileLines.count(s => s contains s"YARN application has been deployed successfully")
 //      val isFinished = if(appId == "") 0 else fileLines.count(s => s contains s"Application $appId finished")
 
       val status =
-        if (noFileExists > 0 ||isFailed > 0 || isSubmitFailed>0) StreamStatus.FAILED.toString
+        if (noFileExists > 0 ||isFailed > 0 || isSubmitFailed > 0 || lostClass > 0) StreamStatus.FAILED.toString
         else curStatus
       (appId, status)
     }
