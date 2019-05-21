@@ -209,7 +209,7 @@ object ParseSwiftsSqlInternal {
       fieldsStr = getFieldsWithType(joinNamespace, sql)
     }
 
-    syntaxCheck(sql, lookupFields)
+//    syntaxCheck(sql, lookupFields)
     val lookupFieldsAlias = getAliasLookupFields(sql, lookupFields)
     SwiftsSql(optType.toString, fieldsStr, sql, None, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
