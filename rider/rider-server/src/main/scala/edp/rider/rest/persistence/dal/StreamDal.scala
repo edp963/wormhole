@@ -61,7 +61,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
         false
       } else {
         //riderLogger.info(s"stream status ${streamMap(stream.id)._2}, yarn status ${stream.status}, stream pid ${streamPidMap(stream.id)}")
-        if(streamMap(stream.id)._2 == "starting" && (stream.status == "waiting" || stream.status == "running")) {
+        if(streamMap(stream.id)._2 == "starting" && (stream.status == "waiting" || stream.status == "running" || stream.status == "failed")) {
           SubmitYarnJob.killPidCommand(streamPidMap(stream.id), stream.name)
         }
         true
