@@ -185,12 +185,26 @@ object KuduConnection extends Serializable {
       val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
       val keyType: Type = fieldTypeMap(keyName)
 
-      val dataList: Seq[String] = tupleList.map(row => {
+      val dataOriginList: Seq[String] = tupleList.map(row => {
         row(schemaMap(keyName)._1)
       })
 
+      val dataList: Seq[Any] = tupleList.map(row => {
+        val keyData = row(schemaMap(keyName)._1)
+        keyType match {
+          case Type.STRING =>
+            keyData
+          case Type.INT64 =>
+            keyData.toLong
+          case Type.INT8 | Type.INT16 | Type.INT32 =>
+            keyData.toInt
+          case _ =>
+            keyData
+        }
+      })
+
       queryResultMap = if (batchSize == 1) {
-        queryOneRowByOneKey(client, table, queryFieldsName, keyName, dataList, keyType, tableSchema)
+        queryOneRowByOneKey(client, table, queryFieldsName, keyName, dataOriginList, keyType, tableSchema)
       } else {
         queryByKeyInBatch(client, table, queryFieldsName, keyName, dataList, batchSize)
       }
@@ -207,7 +221,7 @@ object KuduConnection extends Serializable {
   }
 
   private def queryByKeyInBatch(client: KuduClient, table: KuduTable, queryFieldsName: Seq[String], keyName: String,
-                         dataList: Seq[String],batchSize:Int): mutable.HashMap[String, Map[String, (Any, String)]] ={
+                         dataList: Seq[Any],batchSize:Int): mutable.HashMap[String, Map[String, (Any, String)]] ={
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
     dataList.grouped(batchSize).foreach(data => {
       val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
