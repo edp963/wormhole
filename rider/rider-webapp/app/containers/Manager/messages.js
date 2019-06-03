@@ -27,6 +27,7 @@ export default defineMessages({
   streamCreate: { id: 'rider.app.table.create.action' },
   streamModify: { id: 'rider.app.table.modify.action' },
   streamDelete: { id: 'rider.app.table.delete.action' },
+  streamYarnLink: { id: 'rider.app.table.yarn.link.action' },
   streamSureDelete: { id: 'rider.app.table.sure.delete' },
   streamSureStop: { id: 'rider.app.table.sure.stop' },
   streamModalCancel: { id: 'rider.app.modal.cancel' },
@@ -40,5 +41,6 @@ export default defineMessages({
   streamModalReset: { id: 'rider.containers.Stream.reset.btn' },
   streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
   streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
-  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' }
+  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' },
+  streamSetPriority: { id: 'rider.app.table.priority.action' }
 })

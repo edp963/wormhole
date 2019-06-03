@@ -79,7 +79,7 @@ export function* getSingleUdf ({ payload }) {
   if (payload.roleType === 'admin') {
     urlTemp = `${api.projectList}/${payload.projectId}/udfs`
   } else if (payload.roleType === 'user') {
-    urlTemp = `${api.projectUserList}/${payload.projectId}/udfs`
+    urlTemp = `${api.projectUserList}/${payload.projectId}/udfs/${payload.type || 'all'}`
   } else if (payload.roleType === 'adminSelect') {
     urlTemp = `${api.projectList}/${payload.projectId}/udfs?public=false`
   }
@@ -106,9 +106,11 @@ export function* addUdf ({payload}) {
       data: {
         functionName: payload.values.functionName,
         fullClassName: payload.values.fullName,
-        jarName: payload.values.jarName,
+        jarName: payload.values && payload.values.jarName || '',
         desc: payload.values.desc,
-        public: publicFinal
+        streamType: payload.values.streamType,
+        public: publicFinal,
+        mapOrAgg: payload.values.mapOrAgg
       }
     })
     if (result.code && (result.code === 409 || result.code === 412)) {
@@ -150,14 +152,16 @@ export function* editUdf ({payload}) {
       data: {
         functionName: payload.values.functionName,
         fullClassName: payload.values.fullName,
-        jarName: payload.values.jarName,
+        jarName: payload.values && payload.values.jarName || '',
         desc: payload.values.desc,
         pubic: publicFinal,
         id: payload.values.id,
         createTime: payload.values.createTime,
         createBy: payload.values.createBy,
         updateTime: payload.values.updateTime,
-        updateBy: payload.values.updateBy
+        updateBy: payload.values.updateBy,
+        streamType: payload.values.streamType,
+        mapOrAgg: payload.values.mapOrAgg
       }
     })
     if (result.code && result.code === 412) {

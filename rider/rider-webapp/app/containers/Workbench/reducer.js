@@ -21,12 +21,14 @@
 import { fromJS } from 'immutable'
 import {
   LOAD_SOURCE_NAMESPACES,
-  LOAD_SOURCE_NAMESPACES_SUCCESS
+  LOAD_SOURCE_NAMESPACES_SUCCESS,
+  CHANGE_TABS
 } from './constants'
 
 const initialState = fromJS({
   sourceNamespaces: false,
-  error: false
+  error: false,
+  activeKey: 'flow'
 })
 
 export function workbenchReducer (state = initialState, { type, payload }) {
@@ -35,6 +37,8 @@ export function workbenchReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case LOAD_SOURCE_NAMESPACES_SUCCESS:
       return state.set('sourceNamespaces', payload.sourceNamespaces)
+    case CHANGE_TABS:
+      return state.set('activeKey', payload.key)
     default:
       return state
   }

@@ -56,7 +56,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                         val flow = tuple._2.get
                         try {
                           val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
-                          if (startFlow(stream.id, stream.streamType, flow.id, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""), flow.updateBy)) {
+                          if (startFlow(stream.id, stream.name, stream.streamType, flow.id, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""), flow.tableKeys.getOrElse(""), flow.updateBy)) {
                             riderLogger.info(s"user ${session.userId} start flow ${flow.id} success.")
                             complete(OK, ResponseJson[AppFlowResponse](getHeader(200, null), AppFlowResponse(flow.id, flow.status)))
                           } else {

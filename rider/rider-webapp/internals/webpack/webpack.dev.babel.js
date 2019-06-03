@@ -9,6 +9,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const logger = require('../../server/logger')
 const cheerio = require('cheerio')
 const pkg = require(path.resolve(process.cwd(), 'package.json'))
+const overrideAntd = require('../../app/assets/less/override/override-antd')
+
 const dllPlugin = pkg.dllPlugin
 
 const plugins = [
@@ -42,7 +44,7 @@ module.exports = require('./webpack.base.babel')({
     },
     {
       test: /\.less$/,
-      loaders: ['style-loader', 'css-loader', 'postcss-loader', 'less-loader']
+      loaders: ['style-loader', 'css-loader', 'postcss-loader', `less-loader?{"sourceMap": true, "modifyVars": ${JSON.stringify(overrideAntd)}}`]
     }
   ],
 

@@ -30,7 +30,7 @@ import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, Ses
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils.minTimeOut
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.spark.SparkJobClientLog
+import edp.rider.yarn.YarnClientLog
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
@@ -44,7 +44,8 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(OK, getHeader(403, session))
+                //complete(OK, getHeader(403, session))
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
               }
               else {
                 val streams = streamDal.getBriefDetail()
@@ -65,7 +66,8 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(OK, getHeader(403, session))
+                //complete(OK, getHeader(403, session))
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
               }
               else {
                 val streams = streamDal.getStreamDetail()
@@ -85,7 +87,8 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
+              //complete(OK, getHeader(403, session))
+              complete(OK, setFailedResponse(session, "Insufficient Permission"))
             }
             else {
               val streams = streamDal.getBriefDetail(Some(id))
@@ -104,7 +107,8 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
+              //complete(OK, getHeader(403, session))
+              complete(OK, setFailedResponse(session, "Insufficient Permission"))
             }
             else {
                 try {
@@ -133,13 +137,14 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
+              //complete(OK, getHeader(403, session))
+              complete(OK, setFailedResponse(session, "Insufficient Permission"))
             }
             else {
               onComplete(streamDal.getStreamNameByStreamID(streamId).mapTo[Stream]) {
                 case Success(stream) =>
                   riderLogger.info(s"user ${session.userId} refresh stream log where stream id is $streamId success.")
-                  val log = SparkJobClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
+                  val log = YarnClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
                   complete(OK, ResponseJson[String](getHeader(200, session), log))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} refresh stream log where stream id is $streamId failed", ex)
@@ -157,12 +162,20 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
+              //complete(OK, getHeader(403, session))
+              complete(OK, setFailedResponse(session, "Insufficient Permission"))
             }
             else {
-              val stream = streamDal.getStreamDetail(Some(id), Some(Seq(streamId))).head
-              riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
-              complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
+               if(session.projectIdList.contains(id)){
+                 val stream = streamDal.getStreamDetail(Some(id), Some(Seq(streamId))).head
+                 riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
+                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
+               }
+              else {
+                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                 //complete(OK, getHeader(403, session))
+                 complete(OK, setFailedResponse(session, "Insufficient Permission"))
+              }
             }
         }
       }

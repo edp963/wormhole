@@ -1,0 +1,42 @@
+{
+  "protocol": {
+    "type": "feedback_flow_start_directive"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "directive_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "nullable": false
+      },{
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },{
+        "name": "flow_id",
+        "type": "long",
+        "nullable": false
+      },{
+        "name": "result_desc",
+        "type": "string",
+        "nullable": true
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ "2016-06-01 01:00:11.345123", 1,"success",2 ,101,"成功"]
+    }
+  ]
+}

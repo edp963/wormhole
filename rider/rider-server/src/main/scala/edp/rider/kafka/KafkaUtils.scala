@@ -20,43 +20,37 @@
 
 package edp.rider.kafka
 
-import edp.rider.common.RiderLogger
-import edp.wormhole.kafka.WormholeGetOffsetShell
+import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.wormhole.kafka.WormholeTopicCommand
 
 import scala.language.postfixOps
 
-case class GetLatestOffsetException(ex: Exception) extends Exception
 
 object KafkaUtils extends RiderLogger {
 
-  def getKafkaLatestOffset(brokers: String, topic: String): String = {
-    try {
-      WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get kafka latest offset failed", ex)
-        throw GetLatestOffsetException(ex)
+  def createRiderKafkaTopic(): Unit = {
+
+    if (!RiderConfig.kerberos.enabled) {
+      try {
+        WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
+        riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
+      } catch {
+        case _: Exception =>
+          riderLogger.warn(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed, " +
+            s"please check the ${RiderConfig.consumer.feedbackTopic} topic does exist, " +
+            s"if doesn't, please create it manually with 1 partition")
+      }
+      try {
+        WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
+        riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
+      } catch {
+        case _: Exception =>
+          riderLogger.warn(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic failed, " +
+            s"please check the ${RiderConfig.spark.wormholeHeartBeatTopic} topic does exist, " +
+            s"if doesn't, please create it manually with 1 partition")
+      }
     }
   }
 
-  def getKafkaLatestOffset(brokers: String, topic: String, partition: Int): String = {
-    try {
-      val offsets = WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
-      offsets.split(",")(partition).split(":")(1)
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get kafka latest offset failed", ex)
-        throw GetLatestOffsetException(ex)
-    }
-  }
-
-  def getKafkaEarliestOffset(brokers: String, topic: String): String = {
-    try {
-      WormholeGetOffsetShell.getTopicOffsets(brokers, topic, -2)
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get kafka latest offset failed", ex)
-        throw GetLatestOffsetException(ex)
-    }
-  }
+  def getPartNumByOffset(offset: String): Int = offset.split(",").length
 }

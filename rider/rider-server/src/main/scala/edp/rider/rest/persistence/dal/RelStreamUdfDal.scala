@@ -34,22 +34,25 @@ import scala.concurrent.duration.Duration.Inf
 
 class RelStreamUdfDal(relStreamUdfTable: TableQuery[RelStreamUdfTable], udfTable: TableQuery[UdfTable]) extends BaseDalImpl[RelStreamUdfTable, RelStreamUdf](relStreamUdfTable) with RiderLogger {
 
-  def getStreamUdf(streamIds: Seq[Long], udfIdsOpt: Option[Seq[Long]] = None): Seq[StreamUdfTemp] = {
+  def getStreamUdf(streamIds: Seq[Long], udfIdsOpt: Option[Seq[Long]] = None): Seq[StreamUdfResponse] = {
     val udfQuery = udfIdsOpt match {
-      case Some(udfIds) => udfTable.filter(_.id inSet(udfIds))
-      case None => udfTable
+      case Some(udfIds) => udfTable.filter(_.id inSet (udfIds)).filter(_.streamType === "spark")
+      case None => udfTable.filter(_.streamType === "spark")
     }
     try {
       Await.result(db.run((relStreamUdfTable.filter(_.streamId inSet streamIds) join udfQuery on (_.udfId === _.id))
         .map {
-          case (relStreamUdf, udf) => (relStreamUdf.udfId, relStreamUdf.streamId, udf.functionName, udf.fullClassName, udf.jarName) <> (StreamUdfTemp.tupled, StreamUdfTemp.unapply)
-        }.result).mapTo[Seq[StreamUdfTemp]], minTimeOut)
+          case (relStreamUdf, udf) => (relStreamUdf.udfId, relStreamUdf.streamId, udf.functionName, udf.fullClassName, udf.jarName) <> (StreamUdfResponse.tupled, StreamUdfResponse.unapply)
+        }.result).mapTo[Seq[StreamUdfResponse]], minTimeOut)
     } catch {
       case ex: Exception =>
-        throw DatabaseSearchException(ex.getMessage, ex.getCause)
+        throw ex
     }
   }
 
+  def getStreamUdf(streamId: Long): Seq[StreamUdfResponse] = {
+    getStreamUdf(Seq(streamId))
+  }
 
   def getDeleteUdfIds(streamId: Long, udfIds: Seq[Long]): Seq[Long] = {
     val udfs = Await.result(super.findByFilter(udf => udf.streamId === streamId), minTimeOut)

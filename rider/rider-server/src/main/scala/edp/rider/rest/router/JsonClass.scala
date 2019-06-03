@@ -29,7 +29,7 @@ case class SessionClass(userId: Long, projectIdList: List[Long], roleType: Strin
 
 case class LoginResult(user: User, session: SessionClass)
 
-case class ChangeUserPwdClass(id: Long, oldPass: String, newPass: String)
+case class ChangeUserPwdClass(id: Long, oldPass: Option[String], newPass: String)
 
 case class ActionClass(action: String, flowIds: String)
 

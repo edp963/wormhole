@@ -75,13 +75,14 @@ export function projectUdfsLoaded (udfs) {
   }
 }
 
-export function loadSingleUdf (projectId, roleType, resolve) {
+export function loadSingleUdf (projectId, roleType, resolve, type) {
   return {
     type: LOAD_SINGLE_UDF,
     payload: {
       projectId,
       roleType,
-      resolve
+      resolve,
+      type
     }
   }
 }

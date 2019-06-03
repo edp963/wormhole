@@ -41,6 +41,8 @@ import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Radio from 'antd/lib/radio'
+import { Checkbox } from 'antd'
+const CheckboxGroup = Checkbox.Group
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
@@ -64,7 +66,8 @@ export class WorkbenchFlowForm extends React.Component {
       defaultSinkNsData: [],
       hdfslogSourceNsData: [],
       hdfslogSinkDSValue: '',
-      routingNsData: []
+      routingNsData: [],
+      sinkNamespaceResult: []
     }
   }
 
@@ -83,6 +86,7 @@ export class WorkbenchFlowForm extends React.Component {
   // 通过不同的 Source Data System 显示不同的 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
     const { streamDiffType, flowMode, projectIdGeted, streamId } = this.props
+    this.props.emitDataSystem(val)
     if (val) {
       switch (streamDiffType) {
         case 'default':
@@ -130,7 +134,15 @@ export class WorkbenchFlowForm extends React.Component {
       }
     }
   }
-
+  namespaceChange = (value, selectedOptions) => {
+    let id = selectedOptions[2].id
+    let sinkNamespaceResult = this.state.sinkNamespaceResult
+    sinkNamespaceResult.forEach(v => {
+      if (v.id === id) {
+        this.props.form.setFieldsValue({tableKeys: v.keys})
+      }
+    })
+  }
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
     if (val) {
@@ -140,6 +152,7 @@ export class WorkbenchFlowForm extends React.Component {
       if (streamId !== 0) {
         this.props.onLoadSinkTypeNamespace(projectIdGeted, streamId, val, 'sinkType', (result) => {
           this.setState({
+            sinkNamespaceResult: result,
             defaultSinkNsData: generateSourceSinkNamespaceHierarchy(val, result)
           })
           if (flowMode === 'add' || flowMode === 'copy') {
@@ -157,6 +170,7 @@ export class WorkbenchFlowForm extends React.Component {
   }
 
   changeStreamType = (e) => {
+    this.props.emitFlowFunctionType(e.target.value)
     this.props.onInitStreamTypeSelect(e.target.value)
     this.setState({
       hdfslogSinkDSValue: ''
@@ -171,8 +185,8 @@ export class WorkbenchFlowForm extends React.Component {
       transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform,
       step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass,
       selectStreamKafkaTopicValue, routingSinkTypeNsData, sinkConfigCopy,
-      initResultFieldClass, initDataShowClass, onInitStreamNameSelect,
-      initialHdfslogCascader, initialRoutingCascader, initialRoutingSinkCascader
+      initResultFieldClass, initDataShowClass, onInitStreamNameSelect, initialDefaultCascader,
+      initialHdfslogCascader, initialRoutingCascader, initialRoutingSinkCascader, flowSourceNsSys
     } = this.props
 
     const { getFieldDecorator } = form
@@ -257,10 +271,13 @@ export class WorkbenchFlowForm extends React.Component {
         'sinkNamespace',
         'sinkConfig'
       ])
+      formDSNSValues.sourceDataSystem = flowSourceNsSys
+      formDSNSValues.sinkDataSystem = flowSourceNsSys
     } else if (streamDiffType === 'routing') {
       formDSNSValues = this.props.form.getFieldsValue([
         'sourceDataSystem'
       ])
+      formDSNSValues.sourceDataSystem = flowSourceNsSys
     }
 
     const step3ConfirmDSNS = Object.keys(formDSNSValues).map(key => (
@@ -407,30 +424,71 @@ export class WorkbenchFlowForm extends React.Component {
       }
     }
 
+    const flowProtocolCheckboxList = [
+      { label: 'Increment', value: 'increment' },
+      { label: 'Initial', value: 'initial' },
+      { label: 'Backfill', value: 'backfill' }
+    ]
     const streamNameOptions = selectStreamKafkaTopicValue.length === 0
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue } = this.props
+    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, timeCharacteristic } = this.props
 
+    // let maxParallelism = 0
+    // for (let v of selectStreamKafkaTopicValue) {
+    //   if (v.id === streamId) maxParallelism = v.maxParallelism
+    // }
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
         <Row gutter={8} className={stepClassNames[0]}>
           <Card title="Stream" className="ri-workbench-form-card-style stream-card">
             <Col span={24}>
-              <FormItem label="Stream Type" {...itemStyle}>
+              <FormItem label="Flow name" {...itemStyle}>
+                {getFieldDecorator('flowName', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('flow name', 'Flow name')
+                  }]
+                })(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Stream type" {...itemStyle}>
                 {getFieldDecorator('streamType', {
                   rules: [{
                     required: true,
-                    message: operateLanguageSelect('stream type', 'Stream Type')
+                    message: operateLanguageSelect('type', 'Type')
+                  }],
+                  initialValue: flowSubPanelKey
+                })(
+                  <RadioGroup className="radio-group-style" disabled={flowDisabledOrNot} size="default" onChange={this.props.changeStreamType('flow')}>
+                    <RadioButton value="spark" className="radio-btn-style radio-btn-extra">Spark</RadioButton>
+                    <RadioButton value="flink" className="radio-btn-style radio-btn-extra">Flink</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Function Type" {...itemStyle}>
+                {getFieldDecorator('functionType', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('function type', 'Function Type')
                   }],
                   initialValue: 'default'
                 })(
                   <RadioGroup className="radio-group-style" onChange={this.changeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
-                    <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
-                    <RadioButton value="routing" className="radio-btn-style" disabled={flowDisabledOrNot}>Routing</RadioButton>
+                    {flowSubPanelKey === 'flink' ? '' : (
+                      <RadioButton value="hdfslog" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
+                    )}
+                    {flowSubPanelKey === 'flink' ? '' : (
+                      <RadioButton value="routing" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Routing</RadioButton>
+                    )}
                   </RadioGroup>
                 )}
               </FormItem>
@@ -475,6 +533,21 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
+            {flowSubPanelKey === 'flink' ? (
+              <Col span={24}>
+                <FormItem label="Parallelism" {...itemStyle}>
+                  {getFieldDecorator('parallelism', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageFillIn('parallelism', 'Parallelism')
+                    }],
+                    initialValue: 6
+                  })(
+                    <InputNumber min={1} />
+                  )}
+                </FormItem>
+              </Col>
+            ) : ''}
           </Card>
           <Card title="Source" className="ri-workbench-form-card-style source-card">
             <Col span={24}>
@@ -510,6 +583,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={defaultSourceNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
+                    onChange={(value, selectedOptions) => initialDefaultCascader(value, selectedOptions)}
                   />
                 )}
               </FormItem>
@@ -531,7 +605,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={hdfslogSourceNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={(e) => initialHdfslogCascader(e)}
+                    onChange={(value, selectedOptions) => initialHdfslogCascader(value, selectedOptions)}
                   />
                 )}
               </FormItem>
@@ -553,7 +627,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={(e) => initialRoutingCascader(e)}
+                    onChange={(value, selectedOptions) => initialRoutingCascader(value, selectedOptions)}
                   />
                 )}
               </FormItem>
@@ -566,13 +640,16 @@ export class WorkbenchFlowForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('protocol', 'Protocol')
                   }],
-                  hidden: streamTypeHiddens[0]
+                  hidden: streamTypeHiddens[0],
+                  initialValue: ['increment', 'initial']
                 })(
-                  <RadioGroup className="radio-group-style" size="default">
-                    <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton>
-                    <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
-                    <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
-                  </RadioGroup>
+                  <CheckboxGroup options={flowProtocolCheckboxList} />
+                  // <RadioGroup className="radio-group-style" size="default">
+                  //   {/* <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton> */}
+                  //   <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
+                  //   <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
+                  //   <RadioButton value="backfill" className="radio-btn-style radio-btn-extra">Backfill</RadioButton>
+                  // </RadioGroup>
                 )}
               </FormItem>
             </Col>
@@ -622,6 +699,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={defaultSinkNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
+                    onChange={this.namespaceChange}
                   />
                 )}
               </FormItem>
@@ -647,7 +725,13 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-
+            <Col span={24}>
+              <FormItem label="Table keys" {...itemStyle}>
+                {getFieldDecorator('tableKeys')(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
             <Col span={24} className={`result-field-class ${streamDiffType === 'default' ? '' : 'hide'}`}>
               <FormItem label="Result Fields" {...itemStyle}>
                 {getFieldDecorator('resultFields', {
@@ -692,7 +776,6 @@ export class WorkbenchFlowForm extends React.Component {
                 })(<Input />)}
               </FormItem>
             </Col>
-
             <Col span={24} className={`ri-input-text ${streamTypeClass[1]}`}>
               <FormItem label="Data System" {...itemStyle}>
                 {getFieldDecorator('hdfslogDataSys', {
@@ -774,65 +857,91 @@ export class WorkbenchFlowForm extends React.Component {
               })(<Input />)}
             </FormItem>
           </Col>
-
-          <Col span={24} className={transConnectClass}>
-            <div className="ant-col-6 ant-form-item-label">
-              <label htmlFor="#">Event Time Processing</label>
-            </div>
-            <div className="ant-col-17">
-              <div className="ant-form-item-control">
-                {etpStrategyTag}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className={transConnectClass}>
+              <div className="ant-col-6 ant-form-item-label">
+                <label htmlFor="#">Event Time Processing</label>
               </div>
-            </div>
-          </Col>
+              <div className="ant-col-17">
+                <div className="ant-form-item-control">
+                  {etpStrategyTag}
+                </div>
+              </div>
+            </Col>
+          )}
           <Col span={24} className="hide">
             <FormItem>
-              {getFieldDecorator('etpStrategy', {})(<Input />)}
+              {getFieldDecorator('etpStrategy', {
+                hidden: flowSubPanelKey === 'flink'
+              })(<Input />)}
             </FormItem>
           </Col>
-
-          <Col span={16} className={`ds-class ${transConnectClass}`}>
-            <FormItem label="Sample Show" {...itemStyleDFS}>
-              {getFieldDecorator('dataframeShow', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageSelect('sample show', 'Sample Show')
-                }],
-                hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
-              })(
-                <RadioGroup className="radio-group-style" onChange={(e) => initDataShowClass(e.target.value)} size="default">
-                  <RadioButton value="false" className="radio-btn-style radio-btn-extra">False</RadioButton>
-                  <RadioButton value="true" className="radio-btn-style">True</RadioButton>
-                </RadioGroup>
-              )}
-            </FormItem>
-          </Col>
-          <Col span={7} className={`ds-class ${dataframeShowSelected}`}>
-            <FormItem label="Number" {...itemStyleDFSN}>
-              {getFieldDecorator('dataframeShowNum', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageFillIn('number', 'Number')
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 10,
-                hidden: stepHiddens[1] || streamTypeHiddens[0]
-              })(
-                <InputNumber min={10} step={10} />
-              )}
-            </FormItem>
-          </Col>
-
-          <Col span={24} className="hide">
-            <FormItem label="Swifts Specific Config" {...itemStyle}>
-              {getFieldDecorator('swiftsSpecificConfig', {
-                hidden: stepHiddens[1] || streamTypeHiddens[0]
-              })(
-                <Input placeholder="Swifts Specific Config" />
-              )}
-            </FormItem>
-          </Col>
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={16} className={`ds-class ${transConnectClass}`}>
+              <FormItem label="Sample Show" {...itemStyleDFS}>
+                {getFieldDecorator('dataframeShow', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('sample show', 'Sample Show')
+                  }],
+                  hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
+                })(
+                  <RadioGroup className="radio-group-style" onChange={(e) => initDataShowClass(e.target.value)} size="default">
+                    <RadioButton value="false" className="radio-btn-style radio-btn-extra">False</RadioButton>
+                    <RadioButton value="true" className="radio-btn-style">True</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={7} className={`ds-class ${dataframeShowSelected}`}>
+              <FormItem label="Number" {...itemStyleDFSN}>
+                {getFieldDecorator('dataframeShowNum', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('number', 'Number')
+                  }, {
+                    validator: forceCheckNum
+                  }],
+                  initialValue: 10,
+                  hidden: stepHiddens[1] || streamTypeHiddens[0]
+                })(
+                  <InputNumber min={10} step={10} />
+                )}
+              </FormItem>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className="hide">
+              <FormItem label="Swifts Specific Config" {...itemStyle}>
+                {getFieldDecorator('swiftsSpecificConfig', {
+                  hidden: stepHiddens[1] || streamTypeHiddens[0]
+                })(
+                  <Input placeholder="Swifts Specific Config" />
+                )}
+              </FormItem>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={16} className={`ds-class ${transConnectClass}`}>
+              <FormItem label="Time Characteristic" labelCol={{span: 9}} wrapperCol={{span: 14}}>
+                {getFieldDecorator('time_characteristic', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('Time Characteristic', 'Time Characteristic')
+                  }],
+                  hidden: stepHiddens[1],
+                  initialValue: 'processing_time'
+                })(
+                  <RadioGroup className="radio-group-style" size="default">
+                    <RadioButton value="processing_time">Processing Time</RadioButton>
+                    <RadioButton value="event_time">Event Time</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+          ) : ''}
         </Row>
         {/* Step 3 */}
         <Row gutter={8} className={`ri-workbench-confirm-step ${stepClassNames[2]}`}>
@@ -908,35 +1017,54 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
-          <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
-            <div className="ant-row ant-form-item">
-              <Row>
-                <Col span={8} className="ant-form-item-label">
-                  <label htmlFor="#">Event Time Processing</label>
-                </Col>
-                <Col span={15}>
-                  <div className="ant-form-item-control">
-                    <strong className="value-font-style">{etpStrategyConfirmValue}</strong>
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </Col>
-          <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
-            <div className="ant-row ant-form-item">
-              <Row>
-                <Col span={8} className="ant-form-item-label">
-                  <label htmlFor="#">Dataframe Show</label>
-                </Col>
-                <Col span={15}>
-                  <div className="ant-form-item-control">
-                    <strong className="value-font-style">{this.props.dataframeShowNumValue}</strong>
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </Col>
-
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
+              <div className="ant-row ant-form-item">
+                <Row>
+                  <Col span={8} className="ant-form-item-label">
+                    <label htmlFor="#">Event Time Processing</label>
+                  </Col>
+                  <Col span={15}>
+                    <div className="ant-form-item-control">
+                      <strong className="value-font-style">{etpStrategyConfirmValue}</strong>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
+              <div className="ant-row ant-form-item">
+                <Row>
+                  <Col span={8} className="ant-form-item-label">
+                    <label htmlFor="#">Dataframe Show</label>
+                  </Col>
+                  <Col span={15}>
+                    <div className="ant-form-item-control">
+                      <strong className="value-font-style">{this.props.dataframeShowNumValue}</strong>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
+              <div className="ant-row ant-form-item">
+                <Row>
+                  <Col span={8} className="ant-form-item-label">
+                    <label htmlFor="#">Time Characteristic</label>
+                  </Col>
+                  <Col span={15}>
+                    <div className="ant-form-item-control">
+                      <strong className="value-font-style">{timeCharacteristic}</strong>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          ) : ''}
           <Col span={24} className={streamTypeClass[1]}>
             <div className="ant-row ant-form-item">
               <Row>
@@ -945,7 +1073,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{hdfslogSinkDSValue}</strong>
+                    <strong className="value-font-style">{flowSourceNsSys}</strong>
                   </div>
                 </Col>
               </Row>
@@ -973,7 +1101,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{hdfslogSinkDSValue}</strong>
+                    <strong className="value-font-style">{flowSourceNsSys}</strong>
                   </div>
                 </Col>
               </Row>
@@ -1082,13 +1210,20 @@ WorkbenchFlowForm.propTypes = {
   initDataShowClass: PropTypes.func,
   onInitStreamTypeSelect: PropTypes.func,
   initialHdfslogCascader: PropTypes.func,
+  initialDefaultCascader: PropTypes.func,
   initialRoutingSinkCascader: PropTypes.func,
   initialRoutingCascader: PropTypes.func,
   flowKafkaTopicValue: PropTypes.string,
   flowKafkaInstanceValue: PropTypes.string,
   onLoadSourceSinkTypeNamespace: PropTypes.func,
   onLoadSinkTypeNamespace: PropTypes.func,
-  sinkConfigCopy: PropTypes.string
+  sinkConfigCopy: PropTypes.string,
+  flowSourceNsSys: PropTypes.string,
+  emitDataSystem: PropTypes.func,
+  changeStreamType: PropTypes.func,
+  flowSubPanelKey: PropTypes.string,
+  emitFlowFunctionType: PropTypes.func,
+  timeCharacteristic: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {

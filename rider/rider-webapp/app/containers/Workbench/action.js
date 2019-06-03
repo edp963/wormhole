@@ -21,7 +21,8 @@
 import {
   LOAD_SOURCE_NAMESPACES,
   LOAD_SOURCE_NAMESPACES_SUCCESS,
-  GET_ERROR
+  GET_ERROR,
+  CHANGE_TABS
 } from './constants'
 
 export function loadSourceNamaspaces () {
@@ -47,3 +48,12 @@ export function getError (error) {
     }
   }
 }
+export function changeTabs (key) {
+  return {
+    type: CHANGE_TABS,
+    payload: {
+      key
+    }
+  }
+}
+

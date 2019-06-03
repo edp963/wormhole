@@ -43,6 +43,7 @@ import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Checkbox from 'antd/lib/checkbox'
 import Radio from 'antd/lib/radio'
+import Select from 'antd/lib/select'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
@@ -61,12 +62,12 @@ export class WorkbenchJobForm extends React.Component {
     super(props)
     this.state = {
       sinkConfigClass: '',
-      checked: false,
       sourceNsData: [],
       sinkNsData: [],
       backfillSinkDSValue: '',
       namespaceId: '',
-      backfillTopicValue: ''
+      backfillTopicValue: '',
+      sinkNamespaceResult: []
     }
   }
   componentWillReceiveProps (props) {
@@ -91,8 +92,6 @@ export class WorkbenchJobForm extends React.Component {
       callback(locale === 'en' ? textEn : textZh)
     }
   }
-
-  onChangeCheckbox = (e) => this.setState({ checked: e.target.checked })
 
   // 通过 Source Data System 显示 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
@@ -127,7 +126,6 @@ export class WorkbenchJobForm extends React.Component {
       }
     }
   }
-
   // 通过 Sink Data System 显示 Sink Namespace 内容
   onSinkDataSystemItemSelect = (val) => {
     const { projectIdGeted, jobMode, locale } = this.props
@@ -137,6 +135,7 @@ export class WorkbenchJobForm extends React.Component {
 
       this.props.onLoadJobSinkNs(projectIdGeted, val, 'sinkType', (result) => {
         this.setState({
+          sinkNamespaceResult: result,
           sinkNsData: generateSourceSinkNamespaceHierarchy(val, result)
         })
         if (jobMode === 'add') {
@@ -150,7 +149,17 @@ export class WorkbenchJobForm extends React.Component {
       sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
     })
   }
-
+  namespaceChange = (value, selectedOptions) => {
+    let id = selectedOptions[2].id
+    let sinkNamespaceResult = this.state.sinkNamespaceResult
+    sinkNamespaceResult.forEach(v => {
+      if (v.id === id) {
+        this.props.form.setFieldsValue({tableKeys: v.keys})
+      }
+    })
+    console.log('value:', value)
+    console.log('selectedOptions:', selectedOptions)
+  }
   changeJobType = (e) => {
     this.props.onInitJobTypeSelect(e.target.value)
     this.props.clearSinkData()
@@ -164,8 +173,9 @@ export class WorkbenchJobForm extends React.Component {
   render () {
     const { jobDiffType, step, form, jobMode, fieldSelected, jobTranTableConfirmValue, onShowJobTransModal,
       onShowJobSinkConfigModal, jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
-      onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs,
-      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue
+      onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs, jobSourceNsSys,
+      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue,
+      initialSourceNsVersion
     } = this.props
     const { getFieldDecorator } = form
     const { sinkConfigClass, sourceNsData, sinkNsData, backfillSinkDSValue, backfillTopicValue } = this.state
@@ -187,7 +197,7 @@ export class WorkbenchJobForm extends React.Component {
       wrapperCol: { span: 17 }
     }
 
-    let formValues = ''
+    let formValues = {}
     if (jobDiffType === 'default') {
       formValues = this.props.form.getFieldsValue([
         'jobName',
@@ -208,7 +218,7 @@ export class WorkbenchJobForm extends React.Component {
         'protocol'
       ])
     }
-
+    formValues.sourceDataSystem = jobSourceNsSys
     const step3ConfirmDSNS = Object.keys(formValues).map(key => (
       <Col span={24} key={key}>
         <div className="ant-row ant-form-item">
@@ -497,6 +507,20 @@ export class WorkbenchJobForm extends React.Component {
               </FormItem>
             </Col>
             <Col span={24}>
+              <FormItem label="Version" {...itemStyle}>
+                {getFieldDecorator('sourceNamespaceVersion', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('version', 'Version')
+                  }]
+                })(
+                  <Select style={{ width: 120 }} allowClear onFocus={initialSourceNsVersion}>
+                    {this.props.sourceNsVersionList.map((v, i) => (<Select.Option value={v} key={i}>{v}</Select.Option>))}
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
               <FormItem label="Protocol" {...itemStyle}>
                 {getFieldDecorator('protocol', {
                   rules: [{
@@ -548,11 +572,18 @@ export class WorkbenchJobForm extends React.Component {
                     options={sinkNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
+                    onChange={this.namespaceChange}
                   />
                 )}
               </FormItem>
             </Col>
-
+            <Col span={24}>
+              <FormItem label="Table keys" {...itemStyle}>
+                {getFieldDecorator('tableKeys')(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
             <Col span={24} className={`result-field-class ${jobDiffType === 'default' ? '' : 'hide'}`}>
               <FormItem label="Result Fields" {...itemStyle}>
                 {getFieldDecorator('resultFields', {
@@ -599,12 +630,10 @@ export class WorkbenchJobForm extends React.Component {
 
             <Col span={24} className={jobTypeClass[0]}>
               <FormItem label="Sink Protocol" {...itemStyle}>
-                {getFieldDecorator('sinkProtocol', {})(
-                  <Checkbox
-                    checked={this.state.checked}
-                    onChange={this.onChangeCheckbox}
-                  >Snapshot
-                  </Checkbox>
+                {getFieldDecorator('sinkProtocol', {
+                  valuePropName: 'checked'
+                })(
+                  <Checkbox>Snapshot</Checkbox>
                 )}
               </FormItem>
             </Col>
@@ -721,23 +750,23 @@ export class WorkbenchJobForm extends React.Component {
         <Row gutter={8} className={`ri-workbench-confirm-step ${stepClassNames[2]}`}>
           {step3ConfirmDSNS}
           <Col span={24}>
-            <div className="ant-row ant-form-item">
+            <div className={`ant-row ant-form-item ${jobTypeClass[1]}`}>
               <Row>
                 <Col span={8} className="ant-form-item-label">
                   <label htmlFor="#">Sink Data System</label>
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{backfillSinkDSValue}</strong>
+                    <strong className="value-font-style">{jobSourceNsSys}</strong>
                   </div>
                 </Col>
               </Row>
             </div>
           </Col>
           <Col span={24}>
-            <div className="ant-row ant-form-item">
+            <div className={`ant-row ant-form-item ${jobTypeClass[1]}`}>
               <Row>
-                <Col span={8} className="ant-form-item-label">
+                <Col span={8} className={`ant-form-item-label`}>
                   <label htmlFor="#">Sink Namespace</label>
                 </Col>
                 <Col span={15}>
@@ -763,9 +792,9 @@ export class WorkbenchJobForm extends React.Component {
             </div>
           </Col>
           <Col span={24}>
-            <div className="ant-row ant-form-item">
+            <div className={`ant-row ant-form-item ${jobTypeClass[0]}`}>
               <Row>
-                <Col span={8} className={`ant-form-item-label ${jobTypeClass[0]}`}>
+                <Col span={8} className={`ant-form-item-label`}>
                   <label htmlFor="#">Transformation</label>
                 </Col>
                 <Col span={15}>
@@ -832,7 +861,9 @@ WorkbenchJobForm.propTypes = {
   onInitJobTypeSelect: PropTypes.func,
   backfillSinkNsValue: PropTypes.string,
   clearSinkData: PropTypes.func,
-
+  jobSourceNsSys: PropTypes.string,
+  sourceNsVersionList: PropTypes.array,
+  initialSourceNsVersion: PropTypes.func,
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string
 }

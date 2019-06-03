@@ -38,48 +38,48 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
                        nsDatabaseTable: TableQuery[NsDatabaseTable],
                        feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[StreamInTopicTable, StreamInTopic](streamInTopicTable) with RiderLogger {
 
-  def getStreamTopic(streamIds: Seq[Long], latestOffset: Boolean = true): Seq[StreamTopicTemp] = {
-    try {
-      val streamTopics = Await.result(db.run((streamInTopicTable.filter(_.streamId inSet streamIds) join nsDatabaseTable on (_.nsDatabaseId === _.id))
-        .map {
-          case (streamInTopic, nsDatabase) => (streamInTopic.nsDatabaseId, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
-        }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
-      if (latestOffset) getConsumedMaxOffset(streamTopics)
-      else streamTopics
+  //  def getStreamTopic(streamIds: Seq[Long], latestOffset: Boolean = true): Seq[StreamTopicTemp] = {
+  //    try {
+  //      val streamTopics = Await.result(db.run((streamInTopicTable.filter(_.streamId inSet streamIds) join nsDatabaseTable on (_.nsDatabaseId === _.id))
+  //        .map {
+  //          case (streamInTopic, nsDatabase) => (streamInTopic.nsDatabaseId, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
+  //        }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
+  //      //      if (latestOffset) getConsumedMaxOffset(streamTopics)
+  //      //      else streamTopics
+  //      streamTopics
+  //    } catch {
+  //      case ex: Exception =>
+  //        throw DatabaseSearchException(ex.getMessage, ex.getCause)
+  //    }
+  //  }
 
-    } catch {
-      case ex: Exception =>
-        throw DatabaseSearchException(ex.getMessage, ex.getCause)
-    }
+  def getAutoRegisteredTopics(streamId: Long): Seq[StreamTopicTemp] = {
+    Await.result(db.run((streamInTopicTable.filter(_.streamId === streamId) join nsDatabaseTable on (_.nsDatabaseId === _.id))
+      .map {
+        case (streamInTopic, nsDatabase) => (streamInTopic.id, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
+      }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
   }
 
-  def getConsumedMaxOffset(streamTopics: Seq[StreamTopicTemp]): Seq[StreamTopicTemp] = {
-    try {
-      val seq = new ListBuffer[StreamTopicTemp]
-      streamTopics.map(_.streamId).distinct.foreach(
-        streamId => {
-          val topicSeq = streamTopics.filter(_.streamId == streamId)
-          val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
-          val map = new mutable.HashMap[String, String]()
-          topicFeedbackSeq.foreach(topic => {
-            if (!map.contains(topic.topicName))
-              map(topic.topicName) = topic.partitionOffsets.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(",")
-          })
-          topicSeq.foreach(
-            topic => {
-              if (map.contains(topic.name))
-                seq += StreamTopicTemp(topic.id, topic.streamId, topic.name, map(topic.name), topic.rate)
-              else seq += StreamTopicTemp(topic.id, topic.streamId, topic.name,
-                topic.partitionOffsets.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(","), topic.rate)
-            }
-          )
-        })
-      seq
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
-        throw ex
-    }
+  def getAutoRegisteredTopicNameMap(streamId: Long): Map[Long, String] = {
+    getAutoRegisteredTopics(streamId).map(topic => (topic.id, topic.name)).toMap
+  }
+
+  def getAutoRegisteredTopics(streamIds: Seq[Long]): Seq[StreamTopicTemp] = {
+    Await.result(db.run((streamInTopicTable.filter(_.streamId inSet streamIds) join nsDatabaseTable on (_.nsDatabaseId === _.id))
+      .map {
+        case (streamInTopic, nsDatabase) => (streamInTopic.id, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
+      }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
+  }
+
+  def checkAutoRegisteredTopicExists(streamId: Long, topic: String): Boolean = {
+    var exist = false
+    val topicSearch = Await.result(db.run(
+      (nsDatabaseTable.filter(_.nsDatabase === topic) join streamInTopicTable.filter(_.streamId === streamId)
+        on (_.id === _.nsDatabaseId)).map {
+        case (db, _) => db
+      }.result).mapTo[Seq[NsDatabase]], minTimeOut)
+    if (topicSearch.nonEmpty) exist = true
+    exist
   }
 
   def updateOffset(streamId: Long, topicId: Long, offset: String, rate: Int, userId: Long): Future[Int] = {
@@ -87,4 +87,27 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
       .map(topic => (topic.partitionOffsets, topic.rate, topic.updateTime, topic.updateBy))
       .update(offset, rate, currentSec, userId)).mapTo[Int]
   }
+
+  def updateOffset(topics: Seq[UpdateTopicOffset]): Seq[Int] = {
+    topics.map(topic =>
+      Await.result(db.run(streamInTopicTable.filter(_.id === topic.id).map(topic => (topic.partitionOffsets)).update(topic.offset)).mapTo[Int], minTimeOut))
+  }
+
+  def updateByStartOrRenew(streamId: Long, topics: Seq[PutTopicDirective], userId: Long): Boolean = {
+    val topicMap = getAutoRegisteredTopics(streamId).map(topic => (topic.name, topic.id)).toMap
+    topics.filter(_.action.getOrElse(1) == 1).map(
+      topic => Await.result(
+        db.run(streamInTopicTable.filter(_.id === topicMap(topic.name))
+          .map(topic => (topic.partitionOffsets, topic.rate, topic.updateTime, topic.updateBy))
+          .update(topic.partitionOffsets, topic.rate, currentSec, userId)), minTimeOut)
+    )
+    true
+  }
+
+  def updateOffsetAndRate(streamId: Long, topicId: Long, offset: String, rate: Int, userId: Long): Future[Int] = {
+    db.run(streamInTopicTable.filter(topic => topic.streamId === streamId && topic.nsDatabaseId === topicId)
+      .map(topic => (topic.partitionOffsets, topic.rate, topic.updateTime, topic.updateBy))
+      .update(offset, rate, currentSec, userId)).mapTo[Int]
+  }
+
 }

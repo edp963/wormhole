@@ -16,6 +16,11 @@
         "nullable": false
       },
       {
+        "name": "flow_id",  //add
+        "type": "long",
+        "nullable": false
+      },
+      {
         "name": "ums_ts_",
         "type": "datetime",
         "nullable": false
@@ -39,13 +44,18 @@
         "name": "kafka_topic",
         "type": "string",
         "nullable": false
+      },
+      {
+        "name": "source_increment_topic",
+        "type": "string",
+        "nullable": false
       }
     ]
   },
   "payload": [
     {
-      "tuple": [ 3,1,"2016-04-11 12:23:34.345123","ums", "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
-        "localhost:9092,localhost:9092,","wh3test2" ]
+      "tuple": [ 3,1,1,"2016-04-11 12:23:34.345123","ums", "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
+        "localhost:9092,localhost:9092,","wh3test2","source_t1" ]
     }
   ]
 }

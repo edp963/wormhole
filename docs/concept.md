@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Concept
 title: Concept
-description: Wormhole WH_VERSION_SHORT Concept page
+description: Wormhole Concept page
 ---
 
 * This will become a table of contents (this text will be scraped).
@@ -21,7 +21,7 @@ Namespace是Wormhole定义的唯一定位数据系统上数据表的规范，由
 - Database Partition 代表 Database 的分区名称（目前 Wormhole 中处理时用“*”匹配所有分区的数据）
 - Table Partition 代表 Table 的分表名称（目前 Wormhole 中处理时用“*”匹配所有分表的数据）
 
-例如：mysql.test.social.user.*.*.*    kafka.test.social.user.*.*.*
+例如：`mysql.test.social.user.*.*.*    kafka.test.social.user.*.*.*`
 
 ## UMS（统一消息规范）
 
@@ -106,7 +106,7 @@ namespace 指定消息的来源，fields 指定表结构信息，其中 `ums_id_
 
 **若一个 sourceNamespace 的消息需要随机分配到多个 partition，消息的 key 可设置为`data_increment_data.kafka.kafka01.datatopic.user.*.*.*...abc 或 data_increment_data.kafka.kafka01.datatopic.user.*.*.*...bcd`，即在 sourceNamespace 后面添加“…”，之后可添加随机数或任意字符。**
 
-**若 UMS_Extension 类型数据有增删改操作切需要幂等写入，也须配置 `ums_id_,ums_ts_,ums_op_` 三个字段。具体配置方式请参考 Admin-Guide Namespace章节。**
+**若 UMS_Extension 类型数据有增删改操作且需要幂等写入，也须配置 `ums_id_,ums_ts_,ums_op_` 三个字段。具体配置方式请参考 Admin-Guide Namespace章节。**
 
 ## Stream
 

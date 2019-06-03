@@ -21,44 +21,42 @@
 
 package edp.rider.rest.persistence.dal
 
-import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.kafka.KafkaUtils
+import edp.rider.common.RiderLogger
+import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils.minTimeOut
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-import edp.rider.module.DbModule._
-import edp.rider.service.util.FeedbackOffsetUtil.feedbackOffsetQuery
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[FeedbackOffsetTable, FeedbackOffset](feedbackOffsetTable) with RiderLogger{
+class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[FeedbackOffsetTable, FeedbackOffset](feedbackOffsetTable) with RiderLogger {
 
   def getLatestOffset(streamId: Long, topic: String): Future[Option[FeedbackOffset]] = {
-    db.run(feedbackOffsetTable.filter(str => str.streamId === streamId && str.topicName === topic ).sortBy(_.feedbackTime.desc).result.headOption)
+    db.run(feedbackOffsetTable.filter(str => str.streamId === streamId && str.topicName === topic).sortBy(_.feedbackTime.desc).result.headOption)
   }
 
-  def getDistinctStreamTopicList(streamId: Long): Future[Seq[StreamTopicPartitionId]] ={
+  def getDistinctStreamTopicList(streamId: Long): Future[Seq[StreamTopicPartitionId]] = {
     db.run(feedbackOffsetTable.filter(str => str.streamId === streamId).
-      map{case(str)=>(str.streamId,str.topicName,str.partitionNum ) <> (StreamTopicPartitionId.tupled, StreamTopicPartitionId.unapply)
+      map { case (str) => (str.streamId, str.topicName, str.partitionNum) <> (StreamTopicPartitionId.tupled, StreamTopicPartitionId.unapply)
       }.distinct.result).mapTo[Seq[StreamTopicPartitionId]]
   }
 
-  def getDistinctList: Future[Seq[IdStreamTopicPartitionId]] ={
-    db.run(feedbackOffsetTable.map{case(str)=>(str.streamId,str.topicName) <> (IdStreamTopicPartitionId.tupled, IdStreamTopicPartitionId.unapply) }
+  def getDistinctList: Future[Seq[IdStreamTopicPartitionId]] = {
+    db.run(feedbackOffsetTable.map { case (str) => (str.streamId, str.topicName) <> (IdStreamTopicPartitionId.tupled, IdStreamTopicPartitionId.unapply) }
       .distinct.result).mapTo[Seq[IdStreamTopicPartitionId]]
   }
 
 
-  def deleteHistory( pastNdays : String, reservedIds: Seq[Long]) = {
-    super.deleteByFilter(str=> str.feedbackTime <= pastNdays && !str.id.inSet(reservedIds))
+  def deleteHistory(pastNdays: String) = {
+    val deleteSeq = Await.result(db.run(feedbackOffsetTable.withFilter(_.feedbackTime <= pastNdays)
+      .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
   }
 
-//  def getFeedbackTopicOffset(topicName: String): String = {
-//    val offsetSeq = Await.result(db.run(feedbackOffsetQuery.withFilter(_.topicName === topicName).sortBy(_.feedbackTime.desc).take(1).result).mapTo[Seq[FeedbackOffset]], Duration.Inf)
-//    if (offsetSeq.isEmpty) KafkaUtils.getKafkaLatestOffset(RiderConfig.consumer.brokers, topicName)
-//    else offsetSeq.head.partitionOffsets
-//  }
+  def getStreamTopicsFeedbackOffset(streamId: Long, topicsNum: Long) = {
+    Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicsNum + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
+  }
 
 }

@@ -10,11 +10,17 @@ cd ums; mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true;
 cd sparkx mvn clean package -U -Dmaven.test.skip=true;
 
 -- for windows idea2016 terminal --
-mvn --non-recursive clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true 
-cd common
+mvn --non-recursive clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd util
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
+cd ums
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd common
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd dbdriver
 cd sql4es5
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
@@ -24,33 +30,61 @@ cd ../
 cd dbpool
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
+cd redispool
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../../
+cd externalclient
 cd zookeeper
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
 cd hadoop
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
-cd ../
+cd ../../
+cd kafkatool
 cd kafka08
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
 cd kafka010
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd kafka010-2
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../../
-cd ums
+cd interface
+cd sparkxinterface
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
-cd common/sparkxinterface
+cd flinkxinterface
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd publicinterface
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../../
+cd sinks
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd swifts
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
 cd sparkx
+mvn clean package -U -Dmaven.test.skip=true
+cd ../
+cd flinkx
 mvn clean package -U -Dmaven.test.skip=true
 cd ../
 
 
-cd common
+
 cd util
 mvn clean install
 cd ../
+cd ums
+mvn clean install
+cd ../
+cd common
+mvn clean install
+cd ../
+cd dbdriver
 cd sql4es5
 mvn clean install
 cd ../
@@ -60,25 +94,46 @@ cd ../
 cd dbpool
 mvn clean install
 cd ../
+cd redispool
+mvn clean install
+cd ../../
+cd externalclient
 cd zookeeper
 mvn clean install
 cd ../
 cd hadoop
 mvn clean install
-cd ../
+cd ../../
+cd kafkatool
 cd kafka08
 mvn clean install
 cd ../
 cd kafka010
 mvn clean install
+cd ../
+cd kafka010-2
+mvn clean install
 cd ../../
-cd ums
+cd interface
+cd sparkxinterface
 mvn clean install
 cd ../
-cd common/sparkxinterface
+cd flinkxinterface
+mvn clean install
+cd ../
+cd publicinterface
 mvn clean install
 cd ../../
+cd sinks
+mvn clean install
+cd ../
+cd swifts
+mvn clean install
+cd ../
 cd sparkx
+mvn clean package -Dmaven.test.skip=true
+cd ../
+cd flinkx
 mvn clean package -Dmaven.test.skip=true
 cd ../
 

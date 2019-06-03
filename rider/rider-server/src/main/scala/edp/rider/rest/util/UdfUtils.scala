@@ -7,12 +7,12 @@ import edp.rider.rest.util.CommonUtils.{currentMicroSec, currentSec, minTimeOut}
 import edp.rider.rest.util.StreamUtils.riderLogger
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.ums.UmsProtocolType.DIRECTIVE_UDF_ADD
+import edp.wormhole.util.JsonUtils
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.sys.process._
 import scala.language.postfixOps
-import edp.wormhole.common.util.JsonUtils._
 
 object UdfUtils extends RiderLogger {
   def checkHdfsPathExist(jarName: String): Boolean = {
@@ -45,7 +45,7 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfTemp], userId: Long) = {
+  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfResponse], userId: Long) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       udfSeq.foreach({
@@ -109,7 +109,7 @@ object UdfUtils extends RiderLogger {
                |
           """.stripMargin.replaceAll("\\n", "")
           riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directive $msg")
-          PushDirective.sendUdfDirective(streamId, udfInfo(2), jsonCompact(msg))
+          PushDirective.sendUdfDirective(streamId, udfInfo(2), JsonUtils.jsonCompact(msg))
       })
       riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directives success.")
     } catch {
@@ -119,9 +119,20 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def removeUdfDirective(streamId: Long, function: Option[String] = None, userId: Long) = {
+  //  def removeUdfDirective(streamId: Long, function: Option[String] = None, userId: Long): Unit = {
+  //    try {
+  //      PushDirective.removeUdfDirective(streamId, RiderConfig.zk, function)
+  //      riderLogger.info(s"user $userId remove udf directive success.")
+  //    } catch {
+  //      case ex: Exception =>
+  //        riderLogger.error(s"user $userId remove udf directive failed", ex)
+  //        throw ex
+  //    }
+  //  }
+
+  def removeUdfDirective(streamId: Long, userId: Long): Unit = {
     try {
-      PushDirective.removeUdfDirective(streamId, function)
+      PushDirective.removeUdfDirective(streamId)
       riderLogger.info(s"user $userId remove udf directive success.")
     } catch {
       case ex: Exception =>
@@ -129,6 +140,5 @@ object UdfUtils extends RiderLogger {
         throw ex
     }
   }
-
 
 }

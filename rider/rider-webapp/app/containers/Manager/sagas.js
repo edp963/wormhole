@@ -22,6 +22,8 @@ import { takeLatest, takeEvery } from 'redux-saga'
 import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_USER_STREAMS,
+  LOAD_FLOW_LIST,
+  SET_FLOW_PRIORITY,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_STREAM_DETAIL,
@@ -36,11 +38,18 @@ import {
   OPERATE_STREAMS,
   DELETE_STREAMS,
   STARTORRENEW_STREAMS,
-  LOAD_LASTEST_OFFSET
+  LOAD_LASTEST_OFFSET,
+  POST_USER_TOPIC,
+  DELETE_USER_TOPIC,
+  LOAD_UDFS,
+  LOAD_STREAM_CONFIGS,
+  LOAD_YARN_UI
 } from './constants'
 
 import {
   userStreamsLoaded,
+  flowListLoaded,
+  flowListOfPrioritySubmited,
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
   streamDetailLoaded,
@@ -57,12 +66,15 @@ import {
   streamDeleted,
   streamStartOrRenewed,
   streamOperatedError,
-  lastestOffsetLoaded
+  lastestOffsetLoaded,
+  postUserTopicLoaded,
+  deleteUserTopicLoaded
 } from './action'
 
 import request from '../../utils/request'
 import api from '../../utils/api'
 import { notifySagasError } from '../../utils/util'
+import { message } from 'antd'
 
 export function* getUserStreams ({ payload }) {
   try {
@@ -76,6 +88,43 @@ export function* getUserStreams ({ payload }) {
 
 export function* getUserStreamsWatcher () {
   yield fork(takeLatest, LOAD_USER_STREAMS, getUserStreams)
+}
+
+export function* getFlowList ({ payload }) {
+  try {
+    const flows = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/flows/order`)
+    yield put(flowListLoaded(flows.payload.flowPrioritySeq))
+    payload.resolve()
+  } catch (err) {
+    notifySagasError(err, 'getFlowList')
+  }
+}
+
+export function* getFlowListWatcher () {
+  yield fork(takeLatest, LOAD_FLOW_LIST, getFlowList)
+}
+
+export function* setPriority ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/flows/order`,
+      data: payload.flows
+    })
+    if (result.header && result.header.code !== 200) {
+      yield put(streamOperatedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header && result.header.code === 200) {
+      yield put(flowListOfPrioritySubmited(result.payload))
+      payload.resolve()
+    }
+  } catch (err) {
+    notifySagasError(err, 'setPriority')
+  }
+}
+
+export function* setPriorityWathcer () {
+  yield fork(takeEvery, SET_FLOW_PRIORITY, setPriority)
 }
 
 export function* getAdminAllStreams ({ payload }) {
@@ -126,9 +175,9 @@ export function* getStreamDetailWatcher () {
 export function* getStreamNameValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`)
-    if (result.code === 409) {
-      yield put(streamNameValueErrorLoaded(result.msg))
-      payload.reject(result.msg)
+    if (result.header && result.header.code === 451) {
+      yield put(streamNameValueErrorLoaded(result.payload))
+      payload.reject(result.payload)
     } else {
       yield put(streamNameValueLoaded(result.payload))
       payload.resolve()
@@ -155,7 +204,7 @@ export function* getKafka ({ payload }) {
 export function* getKafkaWatcher () {
   yield fork(takeLatest, LOAD_KAFKA, getKafka)
 }
-
+// ======= 由下面api替代 ====
 export function* getStreamConfigJvm ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/streams/default/config/jvm`)
@@ -183,6 +232,20 @@ export function* getStreamConfigSpark ({ payload }) {
 export function* getStreamConfigSparkWatcher () {
   yield fork(takeLatest, LOAD_STREAM_CONFIG_SPARK, getStreamConfigSpark)
 }
+// ------------ 下面 替代 上面 ---
+export function* getStreamDefaultconfigs ({ payload }) {
+  try {
+    const result = yield call(request, `${api.userStream}/streams/defaultconfigs?streamType=${payload.type}`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getStreamDefaultconfigs')
+  }
+}
+
+export function* getStreamDefaultconfigsWatcher () {
+  yield fork(takeLatest, LOAD_STREAM_CONFIGS, getStreamDefaultconfigs)
+}
+// ============================
 
 export function* getLogs ({ payload }) {
   try {
@@ -305,6 +368,9 @@ export function* startOrRenewStream ({ payload }) {
     } else if (result.header.code && result.header.code === 200) {
       yield put(streamStartOrRenewed(result.payload))
       payload.resolve()
+    } else {
+      yield put(streamOperatedError(result.payload))
+      payload.reject(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'startOrRenewStream')
@@ -316,8 +382,18 @@ export function* startOrRenewStreamWathcer () {
 }
 
 export function* getLastestOffset ({ payload }) {
+  let req = null
+  if (payload.type === 'get') {
+    req = `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`
+  } else if (payload.type === 'post') {
+    req = {
+      method: 'post',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`,
+      data: payload.topics
+    }
+  }
   try {
-    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics/offsets/latest`)
+    const result = yield call(request, req)
     if (result.code && result.code === 200) {
       yield put(lastestOffsetLoaded(result.msg))
       payload.resolve(result.msg)
@@ -334,8 +410,88 @@ export function* getLastestOffsetWatcher () {
   yield fork(takeLatest, LOAD_LASTEST_OFFSET, getLastestOffset)
 }
 
+export function* addUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined`,
+      data: payload.topic
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(postUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'addUserTopic')
+  }
+}
+
+export function* addUserTopicWatcher () {
+  yield fork(takeEvery, POST_USER_TOPIC, addUserTopic)
+}
+
+export function* removeUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined/${payload.topicId}`
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(deleteUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'removeUserTopic')
+  }
+}
+
+export function* removeUserTopicWatcher () {
+  yield fork(takeEvery, DELETE_USER_TOPIC, removeUserTopic)
+}
+
+export function* getUdfs ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/udfs`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getUdfs')
+  }
+}
+
+export function* getUdfsWatcher () {
+  yield fork(takeEvery, LOAD_UDFS, getUdfs)
+}
+
+export function* getYarnUi ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/yarnUi`)
+    if (result.header.code === 200) {
+      payload.resolve(result.payload)
+    } else {
+      message.warning(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'getYarnUi')
+  }
+}
+
+export function* getYarnUiWatcher () {
+  yield fork(takeEvery, LOAD_YARN_UI, getYarnUi)
+}
 export default [
   getUserStreamsWatcher,
+  getFlowListWatcher,
+  setPriorityWathcer,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
   getStreamDetailWatcher,
@@ -350,5 +506,10 @@ export default [
   operateStreamWathcer,
   deleteStreamWathcer,
   startOrRenewStreamWathcer,
-  getLastestOffsetWatcher
+  getLastestOffsetWatcher,
+  addUserTopicWatcher,
+  removeUserTopicWatcher,
+  getUdfsWatcher,
+  getStreamDefaultconfigsWatcher,
+  getYarnUiWatcher
 ]

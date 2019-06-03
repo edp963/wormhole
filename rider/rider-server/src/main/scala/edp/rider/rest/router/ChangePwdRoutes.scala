@@ -29,9 +29,10 @@ import edp.rider.common.RiderLogger
 import edp.rider.module.{BusinessModule, ConfigurationModule, PersistenceModule}
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.util.{AuthorizationProvider, PassWordNotMatch, UserNotFound}
+import edp.rider.rest.util.{AuthorizationProvider, CommonUtils, PassWordNotMatch, UserNotFound}
 import io.swagger.annotations._
 
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 @Api(value = "/changepwd", consumes = "application/json")
@@ -59,18 +60,23 @@ class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with B
             onComplete(modules.userDal.findById(changePwd.id).mapTo[Option[User]]) {
               case Success(userOpt) => userOpt match {
                 case Some(user) =>
-                  if (user.password == changePwd.oldPass) {
-                    onComplete(modules.userDal.update(updatePass(user, changePwd.newPass)).mapTo[Int]) {
-                      case Success(_) =>
-                        riderLogger.info(s"${session.userId} change password success.")
-                        complete(OK, getHeader(200, session))
-                      case Failure(ex) =>
-                        riderLogger.error(s"${session.userId} change password failed", ex)
-                        complete(OK, getHeader(451, ex.getMessage, session))
+                  if (changePwd.oldPass.nonEmpty) {
+                    if (user.password == changePwd.oldPass.get) {
+                      onComplete(modules.userDal.update(updatePass(user, changePwd.newPass)).mapTo[Int]) {
+                        case Success(_) =>
+                          riderLogger.info(s"${session.userId} change password success.")
+                          complete(OK, getHeader(200, session))
+                        case Failure(ex) =>
+                          riderLogger.error(s"${session.userId} change password failed", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
+                      }
+                    } else {
+                      riderLogger.warn(s"${session.userId} change password failed, the old password is wrong.")
+                      complete(PassWordNotMatch.statusCode, getHeader(PassWordNotMatch.statusCode.intValue, session))
                     }
                   } else {
-                    riderLogger.warn(s"${session.userId} change password failed, the old password is wrong.")
-                    complete(PassWordNotMatch.statusCode, getHeader(PassWordNotMatch.statusCode.intValue, session))
+                    Await.result(modules.userDal.update(updatePass(user, changePwd.newPass)), CommonUtils.minTimeOut)
+                    complete(OK, getHeader(200, session))
                   }
                 case None =>
                   riderLogger.warn(s"${session.userId} change password failed, the user doesn't exist.")

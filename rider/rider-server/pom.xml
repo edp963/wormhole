@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.4.2-SNAPSHOTS</version>
+        <version>0.6.1</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-kafka-010</artifactId>
+            <artifactId>wormhole-kafka-010-2</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -63,6 +63,36 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-auth</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-hadoop</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_2.11</artifactId>
             <version>${akka.version}</version>
@@ -78,6 +108,12 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-stream-kafka_${scala.binary.version}</artifactId>
             <version>${akka-stream-kafka.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.typesafe.akka</groupId>
+                    <artifactId>akka-stream_2.11</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -95,6 +131,12 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>2.8.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
             <version>2.8.6</version>
         </dependency>
 
@@ -136,6 +178,11 @@
             <version>${slick.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.underscore</groupId>
+            <artifactId>slickless_${scala.binary.version}</artifactId>
+            <version>0.3.2</version>
+        </dependency>
 
         <dependency>
             <groupId>com.pauldijou</groupId>
@@ -169,17 +216,17 @@
         </dependency>
 
         <!--kafka dependencies-->
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${scala.binary.version}</artifactId>
-            <version>${kafka.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.apache.kafka</groupId>-->
+            <!--<artifactId>kafka_${scala.binary.version}</artifactId>-->
+            <!--<version>0.10.2.2</version>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>junit</groupId>-->
+                    <!--<artifactId>junit</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+        <!--</dependency>-->
 
         <!--es http dependencies-->
         <dependency>
@@ -195,59 +242,59 @@
         </dependency>
 
         <!--<dependency>-->
-            <!--<groupId>com.github.jsqlparser</groupId>-->
-            <!--<artifactId>jsqlparser</artifactId>-->
-            <!--<version>1.0</version>-->
+        <!--<groupId>com.github.jsqlparser</groupId>-->
+        <!--<artifactId>jsqlparser</artifactId>-->
+        <!--<version>1.0</version>-->
         <!--</dependency>-->
 
     </dependencies>
 
     <!--<build>-->
-        <!--<plugins>-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-shade-plugin</artifactId>-->
-                <!--<configuration>-->
-                    <!--<relocations>-->
-                        <!--<relocation>-->
-                            <!--<pattern>com.google.common</pattern>-->
-                            <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
-                        <!--</relocation>-->
-                    <!--</relocations>-->
-                    <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>shade</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<filters>-->
-                                <!--<filter>-->
-                                    <!--<artifact>*:*</artifact>-->
-                                    <!--<excludes>-->
-                                        <!--<exclude>META-INF/*.SF</exclude>-->
-                                        <!--<exclude>META-INF/*.DSA</exclude>-->
-                                        <!--<exclude>META-INF/*.RSA</exclude>-->
-                                    <!--</excludes>-->
-                                <!--</filter>-->
-                            <!--</filters>-->
-                            <!--<promoteTransitiveDependencies>true</promoteTransitiveDependencies>-->
-                            <!--<transformers>-->
-                                <!--<transformer-->
-                                        <!--implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">-->
-                                    <!--<resource>reference.conf</resource>-->
-                                <!--</transformer>-->
-                                <!--<transformer-->
-                                        <!--implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                                    <!--<mainClass>edp.rider.RiderStarter</mainClass>-->
-                                <!--</transformer>-->
-                            <!--</transformers>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
-        <!--</plugins>-->
+    <!--<plugins>-->
+    <!--<plugin>-->
+    <!--<groupId>org.apache.maven.plugins</groupId>-->
+    <!--<artifactId>maven-shade-plugin</artifactId>-->
+    <!--<configuration>-->
+    <!--<relocations>-->
+    <!--<relocation>-->
+    <!--<pattern>com.google.common</pattern>-->
+    <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
+    <!--</relocation>-->
+    <!--</relocations>-->
+    <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
+    <!--</configuration>-->
+    <!--<executions>-->
+    <!--<execution>-->
+    <!--<phase>package</phase>-->
+    <!--<goals>-->
+    <!--<goal>shade</goal>-->
+    <!--</goals>-->
+    <!--<configuration>-->
+    <!--<filters>-->
+    <!--<filter>-->
+    <!--<artifact>*:*</artifact>-->
+    <!--<excludes>-->
+    <!--<exclude>META-INF/*.SF</exclude>-->
+    <!--<exclude>META-INF/*.DSA</exclude>-->
+    <!--<exclude>META-INF/*.RSA</exclude>-->
+    <!--</excludes>-->
+    <!--</filter>-->
+    <!--</filters>-->
+    <!--<promoteTransitiveDependencies>true</promoteTransitiveDependencies>-->
+    <!--<transformers>-->
+    <!--<transformer-->
+    <!--implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">-->
+    <!--<resource>reference.conf</resource>-->
+    <!--</transformer>-->
+    <!--<transformer-->
+    <!--implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
+    <!--<mainClass>edp.rider.RiderStarter</mainClass>-->
+    <!--</transformer>-->
+    <!--</transformers>-->
+    <!--</configuration>-->
+    <!--</execution>-->
+    <!--</executions>-->
+    <!--</plugin>-->
+    <!--</plugins>-->
     <!--</build>-->
 </project>

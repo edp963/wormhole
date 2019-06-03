@@ -200,6 +200,58 @@ export class ProjectUdfTable extends React.Component {
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleJarName: visible
       }, () => this.searchInput.focus())
+    }, {
+      title: 'Stream Type',
+      dataIndex: 'streamType',
+      key: 'streamType',
+      // className: 'text-align-center',
+      sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
+      sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Stream Type"
+            value={this.state.searchTextStreamType}
+            onChange={this.onInputChange('searchTextStreamType')}
+            onPressEnter={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleStreamType: visible
+      }, () => this.searchInput.focus())
+    },
+    {
+      title: 'Map Or Agg',
+      dataIndex: 'mapOrAgg',
+      key: 'mapOrAgg',
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="map or agg"
+            value={this.state.searchTextMapOrAgg}
+            onChange={this.onInputChange('searchTextMapOrAgg')}
+            onPressEnter={this.onSearch('mapOrAgg', 'searchTextMapOrAgg', 'filterDropdownVisibleMapOrAgg')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('mapOrAgg', 'searchTextMapOrAgg', 'filterDropdownVisibleMapOrAgg')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleMapOrAgg,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleMapOrAgg: visible
+      }, () => this.searchInput.focus())
     }]
 
     return (

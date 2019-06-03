@@ -46,6 +46,11 @@ case class SimpleDbus(id: Long,
                       topic: String,
                       createTime: String) extends SimpleBaseEntity
 
+case class DBusNamespaceResponse(status: String,
+                                 message: String,
+                                 payload: Seq[SimpleDbus])
+
+case class DBusUser(email: String, password: String)
 
 class DbusTable(_tableTag: Tag) extends BaseTable[Dbus](_tableTag, "dbus") {
   def * = (id, dbusId, namespace, kafka, topic, instanceId, databaseId, createTime, synchronizedTime) <> (Dbus.tupled, Dbus.unapply)

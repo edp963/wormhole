@@ -21,104 +21,113 @@
 
 package edp.rider.kafka
 
-import akka.Done
 import akka.actor.Actor
-import akka.kafka.ConsumerMessage.CommittableOffsetBatch
+import akka.kafka.scaladsl.Consumer
 import akka.kafka.scaladsl.Consumer.Control
+import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Keep, Sink}
-import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.kafka.TopicSource._
-import edp.rider.module._
-import edp.rider.rest.persistence.entities.FeedbackOffset
-import edp.rider.rest.util.CommonUtils._
-import edp.rider.service.MessageService
-import edp.rider.service.util.CacheMap
-import edp.wormhole.kafka.WormholeTopicCommand
+import akka.stream.scaladsl.{Keep, Sink, Source}
+import edp.rider.common.{Consume, RiderConfig, RiderLogger, Stop}
+import FeedbackProcess._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.language.postfixOps
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
-class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl)
-  extends Actor with RiderLogger {
-
-  import RiderConsumer._
+class RiderConsumer extends Actor with RiderLogger {
 
   implicit val materializer = ActorMaterializer()
 
-  override def preStart(): Unit = {
-    try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
-      riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
-    } catch {
-      case _: kafka.common.TopicExistsException =>
-        riderLogger.info(s"${RiderConfig.consumer.feedbackTopic} topic already exists")
-      case ex: Exception =>
-        riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
-    }
-    try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
-      riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
-    } catch {
-      case _: kafka.common.TopicExistsException =>
-        riderLogger.info(s"${RiderConfig.spark.wormholeHeartBeatTopic} topic already exists")
-      case ex: Exception =>
-        riderLogger.error(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic failed", ex)
-    }
-
-    super.preStart()
-    self ! Start
+  override def receive: Receive = {
+    case Consume =>
+      feedbackConsume()
+    case Stop =>
+      super.postStop()
   }
 
-  override def receive: Receive = {
-    case Start =>
-      riderLogger.info("Initializing RiderConsumer")
+  def feedbackConsume(): Unit = {
+    try {
+      createConsumer(RiderConfig.consumer.group_id)
+        .groupedWithin(RiderConfig.consumer.batchRecords, RiderConfig.consumer.batchDuration)
+        .map(processMessage)
+        .toMat(Sink.ignore)(Keep.both)
+        .run()
+      riderLogger.info("RiderConsumer started")
+    } catch {
+      case ex: Exception =>
+        riderLogger.error("RiderConsumer started failed", ex)
+    }
+  }
 
-      try {
+  def createConsumer(groupId: String): Source[ConsumerRecord[String, String], Control] = {
+    val propertyMap = new mutable.HashMap[String, String]()
+    propertyMap(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG) = RiderConfig.getIntConfig("kafka.consumer.session.timeout.ms", 60000).toString
+    propertyMap(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG) = RiderConfig.getIntConfig("kafka.consumer.heartbeat.interval.ms", 50000).toString
+    propertyMap(ConsumerConfig.MAX_POLL_RECORDS_CONFIG) = RiderConfig.getIntConfig("kafka.consumer.max.poll.records", 500).toString
+    propertyMap(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG) = RiderConfig.getIntConfig("kafka.consumer.request.timeout.ms", 80000).toString
+    propertyMap(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG) = RiderConfig.getIntConfig("kafka.consumer.max.partition.fetch.bytes", 10485760).toString
+    propertyMap(ConsumerConfig.FETCH_MIN_BYTES_CONFIG) = 0.toString
+    propertyMap(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG) = "true"
+    propertyMap(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG) = RiderConfig.consumer.autoCommitIntervalMs.toString
+    propertyMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) = RiderConfig.getStringConfig("kafka.consumer.auto.offset.reset", "latest")
+    if (RiderConfig.kerberos.enabled) {
+      propertyMap("security.protocol") = "SASL_PLAINTEXT"
+      propertyMap("sasl.kerberos.service.name") = "kafka"
+    }
 
-        createFromOffset(RiderConfig.consumer.group_id)(context.system).foreach(
-          source => {
-            val (control, future) = source.mapAsync(1)(processMessage)
-              .toMat(Sink.ignore)(Keep.both)
-              .run()
-            context.become(running(control))
+    val consumerSettings = new ConsumerSettings(propertyMap.toMap, Option(RiderConfig.consumer.keyDeserializer),
+      Option(RiderConfig.consumer.valueDeserializer),
+      RiderConfig.consumer.pollInterval,
+      RiderConfig.consumer.pollTimeout,
+      RiderConfig.consumer.stopTimeout,
+      RiderConfig.consumer.closeTimeout,
+      RiderConfig.consumer.commitTimeout,
+      RiderConfig.consumer.wakeupTimeout,
+      RiderConfig.consumer.maxWakeups,
+      RiderConfig.consumer.dispatcher)
+      .withBootstrapServers(RiderConfig.consumer.brokers)
+      .withGroupId(RiderConfig.consumer.group_id)
 
-            future.onFailure {
-              case ex =>
-                riderLogger.error(s"RiderConsumer stream failed due to error", ex)
-                throw ex
-                self ! Stop
+    Consumer.plainSource(consumerSettings, Subscriptions.topics(RiderConfig.consumer.feedbackTopic))
+  }
+
+
+  private def processMessage(records: Seq[ConsumerRecord[String, String]]): Unit = {
+    try {
+//      val sparkxFlowErrorBuffer = new ListBuffer[Ums]
+//     // val sparkxStreamErrorBuffer = new ListBuffer[Ums]
+      val sparkxFlowStatsBuffer = new ListBuffer[Ums]
+//      val flinkxFlowErrorBuffer = new ListBuffer[Ums]
+      val feedbackErrorBuffer = new ListBuffer[Ums]
+      val feedbackFlowStartBuffer = new ListBuffer[Ums]
+
+      records.foreach(record => {
+        if (record != null) {
+          val ums = json2Ums(record.value())
+          if (ums != null) {
+            val key = ums.protocol.`type`.toString
+            if(key.startsWith(FEEDBACK_FLOW_ERROR.toString)){
+              feedbackErrorBuffer.append(ums)
+            }else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)) {
+              sparkxFlowStatsBuffer.append(ums)
+            }  else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
+              feedbackFlowStartBuffer.append(ums)
             }
           }
-        )
+        }
+      })
 
-        riderLogger.info("RiderConsumer started")
-      } catch {
-        case ex: Exception =>
-          riderLogger.error("RiderConsumer started failed", ex)
-          self ! Stop
-      }
-  }
+      doFeedbackError(feedbackErrorBuffer.toList)
+      //doStreamBatchError(sparkxStreamErrorBuffer.toList)
+      doSparkxFlowStats(sparkxFlowStatsBuffer.toList)
+      doFeedbackDirective(feedbackFlowStartBuffer.toList)
 
-
-  def running(control: Control): Receive = {
-    case Stop =>
-      riderLogger.info("RiderConsumerShutting stop ")
-
-      control.shutdown().andThen {
-        case _ =>
-          context.stop(self)
-      }
-
-  }
-
-  def getProtocolFromKey(key: String): UmsProtocolType = {
-    val protocolTypeStr: String = key.substring(0, key.indexOf(".") - 1)
-    UmsProtocolType.umsProtocolType(protocolTypeStr)
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"process feedback batch message, $records", e)
+    }
   }
 
   private def json2Ums(json: String): Ums = {
@@ -126,63 +135,9 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
       UmsSchemaUtils.toUms(json)
     } catch {
       case e: Throwable =>
-        riderLogger.error(s"feedback $json convert to case class failed", e)
-        Ums(UmsProtocol(UmsProtocolType.FEEDBACK_DIRECTIVE), UmsSchema("defaultNamespace"))
+        riderLogger.error(s"feedback $json convert to ums failed", e)
+        null
     }
   }
-
-  private def processMessage(msg: Message): Future[Message] = {
-    riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.topic()}, ${msg.partition()}), ${msg.offset()}]")
-    if (msg.key() != null)
-      riderLogger.info(s"Consumed key: ${msg.value().toString}")
-    val curTs = currentMillSec
-    val defaultStreamIdForRider = 0
-    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.topic(), msg.partition(), msg.offset())
-    val partitionOffsetStr = CacheMap.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.topic(), RiderConfig.consumer.partitions)
-    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
-
-    if (msg.value() == null || msg.value() == "") {
-      riderLogger.error(s"feedback message value is null: ${msg.toString}")
-    } else {
-      val messageService = new MessageService(modules)
-      try {
-        val ums: Ums = json2Ums(msg.value())
-        riderLogger.debug(s"Consumed protocol: ${ums.protocol.`type`.toString}")
-        ums.protocol.`type` match {
-          case FEEDBACK_DATA_INCREMENT_HEARTBEAT =>
-            messageService.doFeedbackHeartbeat(ums)
-          case FEEDBACK_DATA_INCREMENT_TERMINATION =>
-            messageService.doFeedbackHeartbeat(ums)
-          case FEEDBACK_DATA_BATCH_TERMINATION =>
-            messageService.doFeedbackHeartbeat(ums)
-          case FEEDBACK_DIRECTIVE =>
-            messageService.doFeedbackDirective(ums)
-          case FEEDBACK_FLOW_ERROR =>
-            messageService.doFeedbackFlowError(ums)
-          case FEEDBACK_FLOW_STATS =>
-            if (RiderConfig.es != null)
-              messageService.doFeedbackFlowStats(ums)
-          case FEEDBACK_STREAM_BATCH_ERROR =>
-            messageService.doFeedbackStreamBatchError(ums)
-          case FEEDBACK_STREAM_TOPIC_OFFSET =>
-            messageService.doFeedbackStreamTopicOffset(ums)
-          case _ => riderLogger.info(s"illegal protocol type ${ums.protocol.`type`.toString}")
-        }
-      } catch {
-        case e: Exception =>
-          riderLogger.error(s"parse protocol error key: ${msg.key()} value: ${msg.value()}", e)
-      }
-    }
-    Future.successful(msg)
-  }
-
-}
-
-object RiderConsumer extends RiderLogger {
-  type Message = ConsumerRecord[Array[Byte], String]
-
-  case object Start
-
-  case object Stop
 
 }

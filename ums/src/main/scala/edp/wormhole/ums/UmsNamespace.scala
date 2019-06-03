@@ -85,6 +85,7 @@ object UmsDataSystem extends Enumeration {
   val KAFKA = Value("kafka")
   val REDIS = Value("redis")
   val KUDU = Value("kudu")
+  val GREENPLUM = Value("greenplum")
   val UNKONWN = Value("")
 
   def dataSystem(s: String) = UmsDataSystem.withName(s.toLowerCase)

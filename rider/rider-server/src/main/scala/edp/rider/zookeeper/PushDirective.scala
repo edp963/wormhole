@@ -22,90 +22,89 @@
 package edp.rider.zookeeper
 
 import edp.rider.common.{GetZookeeperDataException, RiderConfig, RiderLogger}
-import edp.wormhole.common.zookeeper.WormholeZkClient
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 
 case class SendDirectiveException(message: String) extends Exception(message)
 
 object PushDirective extends RiderLogger {
-
-  val rootPath = "/wormhole/"
+  
   val flowDir = "/flow"
   val topicDir = "/offset/watch"
   val udfDir = "/udf"
 
 
-  def sendFlowStartDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk): Boolean = {
-    val path = s"$rootPath$streamId${flowDir}/batchflow->$sourceNamespace->$sinkNamespace"
+  def sendFlowStartDirective(flowId: Long, streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
+    //val path = s"${RiderConfig.zk.path}/$streamId$flowDir/$flowId/batchflow->$sourceNamespace->$sinkNamespace"
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/batchflow->$flowId->$sourceNamespace->$sinkNamespace"
     setDataToPath(zkUrl, path, flowStartJson)
   }
 
-  def getFlowStartDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk): String = {
-    val path = s"$rootPath$streamId${flowDir}/batchflow->$sourceNamespace->$sinkNamespace"
+  def getFlowStartDirective(flowId: Long, streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk.address): String = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/batchflow->$flowId->$sourceNamespace->$sinkNamespace"
     new String(WormholeZkClient.getData(zkUrl, path))
   }
 
-  def sendFlowStopDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk): Unit = {
-    val path = s"$rootPath$streamId${flowDir}/batchflow->$sourceNamespace->$sinkNamespace"
+  def sendFlowStopDirective(flowId: Long, streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk.address): Unit = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/batchflow->$flowId->$sourceNamespace->$sinkNamespace"
     deleteData(zkUrl, path)
   }
 
-  def sendHdfsLogFlowStartDirective(streamId: Long, sourceNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk): Boolean = {
-    val path = s"$rootPath$streamId${flowDir}/hdfslog->$sourceNamespace->$sourceNamespace"
+  def sendHdfsLogFlowStartDirective(flowId: Long, streamId: Long, sourceNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/hdfslog->$flowId->$sourceNamespace->$sourceNamespace"
     setDataToPath(zkUrl, path, flowStartJson)
   }
 
-  def sendHdfsLogFlowStopDirective(streamId: Long, sourceNamespace: String, zkUrl: String = RiderConfig.zk): Unit = {
-    val path = s"$rootPath$streamId${flowDir}/hdfslog->$sourceNamespace->$sourceNamespace"
+  def sendHdfsLogFlowStopDirective(flowId: Long, streamId: Long, sourceNamespace: String, zkUrl: String = RiderConfig.zk.address): Unit = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/hdfslog->$flowId->$sourceNamespace->$sourceNamespace"
     deleteData(zkUrl, path)
   }
 
-  def sendRouterFlowStartDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk): Boolean = {
-    val path = s"$rootPath$streamId${flowDir}/router->$sourceNamespace->$sinkNamespace"
+  def sendRouterFlowStartDirective(flowId: Long, streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/router->$flowId->$sourceNamespace->$sinkNamespace"
     setDataToPath(zkUrl, path, flowStartJson)
   }
 
-  def sendRouterFlowStopDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk): Unit = {
-    val path = s"$rootPath$streamId${flowDir}/router->$sourceNamespace->$sinkNamespace"
+  def sendRouterFlowStopDirective(flowId: Long, streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk.address): Unit = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/router->$flowId->$sourceNamespace->$sinkNamespace"
     deleteData(zkUrl, path)
   }
 
-  def sendTopicDirective(streamId: Long, directiveList: String, zkUrl: String = RiderConfig.zk): Boolean = {
-    val path = s"$rootPath$streamId$topicDir"
+  def sendTopicDirective(streamId: Long, directiveList: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
+    val path = s"${RiderConfig.zk.path}/$streamId$topicDir"
     //    riderLogger.info(s"topic zk path: $path")
     setDataToPath(zkUrl, path, directiveList)
   }
 
-  def removeTopicDirective(streamId: Long, zkUrl: String = RiderConfig.zk): Unit = {
-    val path = s"$rootPath$streamId$topicDir"
+  def removeTopicDirective(streamId: Long, zkUrl: String = RiderConfig.zk.address): Unit = {
+    val path = s"${RiderConfig.zk.path}/$streamId$topicDir"
     deleteData(zkUrl, path)
   }
 
-  def removeStreamDirective(streamId: Long, zkUrl: String = RiderConfig.zk): Unit = {
-    val path = s"$rootPath$streamId"
+  def removeStreamDirective(streamId: Long, zkUrl: String = RiderConfig.zk.address): Unit = {
+    val path = s"${RiderConfig.zk.path}/$streamId"
     deleteData(zkUrl, path)
   }
 
-  def sendUdfDirective(streamId: Long, functionName: String, directive: String, zkUrl: String = RiderConfig.zk): Boolean = {
-    val path = s"$rootPath$streamId$udfDir/$functionName"
+  def sendUdfDirective(streamId: Long, functionName: String, directive: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
+    val path = s"${RiderConfig.zk.path}/$streamId$udfDir/$functionName"
     //    riderLogger.info(s"topic zk path: $path")
     setDataToPath(zkUrl, path, directive)
   }
 
-  def removeUdfDirective(streamId: Long, functionName: Option[String], zkUrl: String = RiderConfig.zk): Unit = {
-    val path =
-      functionName match {
-        case Some(function) => s"$rootPath$streamId$udfDir/$function"
-        case None => s"$rootPath$streamId$udfDir"
-      }
-    deleteData(zkUrl, path)
+  def removeUdfDirective(streamId: Long, zkUrl: String, functionName: String): Unit = {
+    deleteData(zkUrl, s"${RiderConfig.zk.path}/$streamId$udfDir/$functionName")
   }
 
-  def getUdfDirective(streamId: Long, zkUrl: String = RiderConfig.zk): Seq[String] = {
-    val path = s"$rootPath$streamId$udfDir"
+  def removeUdfDirective(streamId: Long, zkUrl: String = RiderConfig.zk.address): Unit = {
+    deleteData(zkUrl, s"${RiderConfig.zk.path}/$streamId$udfDir")
+  }
+
+  def getUdfDirective(streamId: Long, zkUrl: String = RiderConfig.zk.address): Seq[String] = {
+    val path = s"${RiderConfig.zk.path}/$streamId$udfDir"
     getData(zkUrl, path)
   }
 
-  private def getData(zkUrl: String = RiderConfig.zk, path: String): Seq[String] = {
+  private def getData(zkUrl: String = RiderConfig.zk.address, path: String): Seq[String] = {
     try {
       if (WormholeZkClient.checkExist(zkUrl, path)) {
         val childSeq = WormholeZkClient.getChildren(zkUrl, path)
@@ -119,7 +118,7 @@ object PushDirective extends RiderLogger {
     }
   }
 
-  private def deleteData(zkUrl: String = RiderConfig.zk, path: String): Unit = {
+  private def deleteData(zkUrl: String = RiderConfig.zk.address, path: String): Unit = {
     try {
       WormholeZkClient.delete(zkUrl, path)
     } catch {
@@ -129,7 +128,7 @@ object PushDirective extends RiderLogger {
     }
   }
 
-  private def setDataToPath(zkUrl: String = RiderConfig.zk, path: String, context: String): Boolean = {
+  private def setDataToPath(zkUrl: String = RiderConfig.zk.address, path: String, context: String): Boolean = {
     var rc = false
     try {
       if (!WormholeZkClient.checkExist(zkUrl, path))

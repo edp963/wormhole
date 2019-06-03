@@ -45,7 +45,7 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal,
           if (map.contains(udf.id))
             map(udf.id).sorted.mkString(",")
           else ""
-        Some(UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
+        Some(UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg,
           udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, projectNames))
       case None => None
 
@@ -62,10 +62,10 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal,
           udfs.foreach(
             udf =>
               if (udfProjectMap.contains(udf.id))
-                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
+                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg,
                   udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, udfProjectMap(udf.id).sorted.mkString(","))
               else
-                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
+                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg,
                   udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, "")
           )
           udfProjectSeq
@@ -84,17 +84,19 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal,
       val projects = Await.result(projectDal.findByFilter(_.id inSet relProject.map(_.projectId)), minTimeOut).map(_.name)
       val streams = Await.result(streamDal.findByFilter(_.id inSet relStream.map(_.streamId)), minTimeOut).map(_.name)
       if (projects.nonEmpty && streams.nonEmpty) {
-        riderLogger.info(s"project ${projects.mkString(",")} and stream ${streams.mkString(",")} still using UDF $id, can't delete it")
+        riderLogger.info(s"project ${projects.mkString(",")} and stream ${streams.mkString(",")} still use UDF $id, can't delete it")
         (false, s"please revoke project ${projects.mkString(",")}, stream ${streams.mkString(",")} and UDF binding relation first")
       } else if (projects.nonEmpty && streams.isEmpty) {
-        riderLogger.info(s"project ${projects.mkString(",")} still using UDF $id, can't delete it")
+        riderLogger.info(s"project ${projects.mkString(",")} still use UDF $id, can't delete it")
         (false, s"please revoke project ${projects.mkString(",")} and UDF binding relation first")
       } else if (projects.isEmpty && streams.nonEmpty) {
-        riderLogger.info(s"stream ${streams.mkString(",")} still using UDF $id, can't delete it")
+        riderLogger.info(s"stream ${streams.mkString(",")} still use UDF $id, can't delete it")
         (false, s"please revoke stream ${streams.mkString(",")} and UDF binding relation first")
       } else {
         val jarName = Await.result(super.findById(id), minTimeOut).get.jarName
-        UdfUtils.deleteHdfsPath(jarName)
+        val sameJarUdfs = Await.result(super.findByFilter(udf => udf.jarName === jarName && udf.id =!= id), minTimeOut)
+        if (sameJarUdfs.isEmpty)
+          UdfUtils.deleteHdfsPath(jarName)
         Await.result(super.deleteById(id), minTimeOut)
         (true, "success")
       }

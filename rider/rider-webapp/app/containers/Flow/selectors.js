@@ -21,6 +21,7 @@
 import { createSelector } from 'reselect'
 
 const selectFlow = () => (state) => state.get('flow')
+const selectStream = () => (state) => state.get('stream')
 
 const selectFlows = () => createSelector(
   selectFlow(),
@@ -37,9 +38,32 @@ const selectFlowSubmitLoading = () => createSelector(
   (flowState) => flowState.get('flowSubmitLoading')
 )
 
+const selectFlowStartModalLoading = () => createSelector(
+  selectFlow(),
+  (flowState) => flowState.get('flowStartModalLoading')
+)
+const selectStreamFilterId = () => createSelector(
+  selectStream(),
+  (streamState) => streamState.get('streamFilterId')
+)
+
+const selectConfirmRechargeLoading = () => createSelector(
+  selectFlow(),
+  (streamState) => streamState.get('confirmRechargeLoading')
+)
+
+const selectRechargeHistory = () => createSelector(
+  selectFlow(),
+  (streamState) => streamState.get('rechargeHistoryList')
+)
+
 export {
   selectFlow,
   selectFlows,
   selectError,
-  selectFlowSubmitLoading
+  selectFlowSubmitLoading,
+  selectFlowStartModalLoading,
+  selectStreamFilterId,
+  selectConfirmRechargeLoading,
+  selectRechargeHistory
 }

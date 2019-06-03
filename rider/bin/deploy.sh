@@ -1,10 +1,13 @@
 #!/bin/bash
 
+WORMHOLE_HOME=$(cd $(dirname $0); dirname "$PWD")
+
 # check if we have a valid WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME and if java is not available
 if [ -z "${WORMHOLE_HOME}" ]; then
     echo "ERROR!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
     exit 1
 fi
+
 
 if [ -z "${SPARK_HOME}" ]; then
     echo "ERROR!!: SPARK_HOME is not defined correctly, please specify SPARK_HOME first."
@@ -20,11 +23,8 @@ echo "set hdfs permission for wormholeServer user"
 #source /etc/profile
 #source ~/.bash_profile
 
-WORMHOLE_USER=`grep "wormholeServer.user" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
+WORMHOLE_USER=`whoami`
 echo "WormholeServer user: $WORMHOLE_USER"
-
-WORMHOLE_USER_SSH_PORT=`grep "wormholeServer.ssh.port" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \# -f1 | sed -e 's/[ \t\r]*//'`
-echo "WormholeServer user ssh port: $WORMHOLE_USER_SSH_PORT"
 
 WORMHOLE_HDFS_ROOT=`grep "wormhole.hdfs.root.path" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 echo "WormholeServer hdfs root path: $WORMHOLE_HDFS_ROOT"

@@ -21,34 +21,23 @@
 
 package edp.rider.schedule
 
-import akka.actor.{Actor, ActorRef, Props}
-import edp.rider.common.RiderLogger
-import edp.rider.module.{ActorModuleImpl, ConfigurationModuleImpl, PersistenceModuleImpl}
+import akka.actor.Actor
+import edp.rider.common.{HistoryDelete, RiderLogger, Stop, RefreshYarn}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.language.postfixOps
+class SchedulerActor extends Actor with RiderLogger {
 
-object Scheduler extends ConfigurationModuleImpl with RiderLogger {
-  lazy val modules = new ConfigurationModuleImpl with ActorModuleImpl with PersistenceModuleImpl
+  override def receive = {
+    case HistoryDelete =>
+      ScheduledTask.deleteHistory
+      riderLogger.info(s"Rider delete feedback data timer scheduler ${new java.util.Date().toString} start")
 
-  def start: Unit = {
-    val system = modules.system
-    val schedulerActor: ActorRef = system.actorOf(Props[SchedulerActor])
-    system.scheduler.schedule(30.seconds, 1.days, schedulerActor, "databaseMaintenance")
+    case RefreshYarn =>
+      ScheduledTask.updateAllStatusByYarn
+      //riderLogger.info(s"Rider update stream status by yarn app status ${new java.util.Date().toString} start")
 
+    case Stop =>
+      super.postStop()
   }
-
-  class SchedulerActor extends Actor {
-    riderLogger.info("start delete history")
-    def receive = {
-      case "databaseMaintenance" => {
-        ScheduledTask.deleteHistory
-        riderLogger.info(s"Rider delete feedback data timer scheduler ${new java.util.Date().toString} start")
-      }
-      case _ => {}
-        riderLogger.info(s"timer ${new java.util.Date().toString}")
-    }
-  }
-
 }
+
+

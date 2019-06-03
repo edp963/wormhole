@@ -7,9 +7,9 @@ import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.RiderLogger
 import edp.rider.rest.util.CommonUtils.minTimeOut
-import edp.wormhole.common.util.JsonUtils._
-import scala.concurrent.duration._
+import edp.wormhole.util.JsonUtils._
 
+import scala.concurrent.duration._
 import scala.concurrent.Await
 
 case class DataSourceJsonData(esVersion: Int,

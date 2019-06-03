@@ -1,0 +1,52 @@
+{
+  "protocol": {
+    "type": "feedback_flinkx_flow_error"
+  },
+  "schema": {
+    "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
+    "fields": [
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "flow_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "sink_namespace",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "data_info",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "error_info",
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [
+        "2016-06-01 01:00:11.345123",
+        1,
+        5,
+        "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
+        "ums_ts_:2016-05-01 01:00:11.345123;ums_id_:2;ums_op:i;name:Lily",
+        "abc"
+      ]
+    }
+  ]
+}
