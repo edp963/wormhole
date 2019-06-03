@@ -34,12 +34,17 @@
         "name": "partitions_offset",//全量partition内容
         "type": "string",
         "nullable": false
+      },
+      {
+        "name": "topic_type",  //add (increment/initial)
+         "type": "string",
+        "nullable": false
       }
     ]
   },
   "payload": [
     {
-      "tuple": [ 1,2,"2016-04-11 12:23:34.345123","testname", 100,"0:12,1:13,2:22" ]
+      "tuple": [ 1,2,"2016-04-11 12:23:34.345123","testname", 100,"0:12,1:13,2:22", "increment" ]
     }
   ]
 }

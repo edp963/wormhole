@@ -1,0 +1,43 @@
+{
+  "from": 0,
+  "size":1000,
+  "query": {
+    "bool": {
+      "must": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "projectId": {
+                  "query": #PROJECT_ID#,
+                  "type": "phrase"
+                }
+              }
+            },
+            {
+              "match": {
+                "streamId": {
+                  "query": #STREAM_ID#,
+                  "type": "phrase"
+                }
+              }
+            },{
+              "range":{
+                "umsTs":{
+                  "gte": "#START_TIME#",
+                  "lte": "#END_TIME#"
+                }
+              }
+            }]
+        }
+      }
+    }
+  },
+  "sort": [
+    {
+      "umsTs": {
+        "order": "asc"
+      }
+    }
+  ]
+}

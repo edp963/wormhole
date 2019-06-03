@@ -90,6 +90,7 @@ export class SchemaTypeConfig extends React.Component {
     } else {
       this.setState({ currentUmsTableData: [] })
     }
+    this.setState({umsopable: props.umsopable, umsopKey: props.umsopKey})
   }
 
   handleChangeFieldType = (record) => (afterType) => {
@@ -192,15 +193,21 @@ export class SchemaTypeConfig extends React.Component {
       this.setState({
         umsopKey: key,
         umsopable: false
+      }, () => {
+        this.props.emitUmSopable(this.state.umsopable)
       })
     } else if (umsopKey === key) { // 选择自己和取消自己
       this.setState({
         umsopable: !this.state.umsopable
+      }, () => {
+        this.props.emitUmSopable(this.state.umsopable)
       })
     } else if (umsopKey !== key) { // 选择其他
       this.setState({
         umsopKey: key,
         umsopable: true
+      }, () => {
+        this.props.emitUmSopable(this.state.umsopable, this.state.umsopKey)
       })
     }
   }
@@ -749,7 +756,8 @@ SchemaTypeConfig.propTypes = {
   repeatRenameArr: PropTypes.array,
   repeatArrayArr: PropTypes.array,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  emitUmSopable: PropTypes.func
 }
 
 const mapStateToProps = createStructuredSelector({

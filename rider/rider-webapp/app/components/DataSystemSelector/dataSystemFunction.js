@@ -35,7 +35,8 @@ export function loadDataSystemData () {
     { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
     { value: 'parquet', text: 'Parquet' },
-    { value: 'kudu', text: 'Kudu' }
+    { value: 'kudu', text: 'Kudu' },
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return dataSystemData
 }
@@ -54,7 +55,9 @@ export function filterDataSystemData () {
     {text: 'redis', value: 'redis'},
     {text: 'vertica', value: 'vertica'},
     {text: 'parquet', value: 'parquet'},
-    {text: 'kudu', value: 'kudu'}
+    {text: 'kudu', value: 'kudu'},
+    {text: 'log', value: 'log'},
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return dataSystemValue
 }
@@ -67,7 +70,8 @@ export function sourceDataSystemData () {
     { value: 'app', text: 'App' },
     { value: 'mysql', icon: 'icon-mysql' },
     { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-    { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
+    { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return sourceDataSystemData
 }
@@ -84,7 +88,8 @@ export function sinkDataSystemData () {
     { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
     { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-    { value: 'kudu', text: 'Kudu' }
+    { value: 'kudu', text: 'Kudu' },
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return sinkDataSystemData
 }
@@ -102,7 +107,8 @@ export function jobSinkDataSystemData () {
     { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
     { value: 'parquet', text: 'Parquet' },
-    { value: 'kudu', text: 'Kudu' }
+    { value: 'kudu', text: 'Kudu' },
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return sinkDataSystemData
 }
@@ -115,7 +121,9 @@ export function flowTransformationDadaHide () {
     { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
     { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
     { value: 'phoenix', text: 'Phoenix' },
-    { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} }
+    { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'kudu', text: 'Kudu' }
   ]
   return transformData
 }
@@ -131,7 +139,8 @@ export function flowTransformationDadaShow () {
     { value: 'hbase', icon: 'icon-hbase1' },
     { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
     { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
-    {value: 'kudu', text: 'Kudu'}
+    {value: 'kudu', text: 'Kudu'},
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return transformData
 }

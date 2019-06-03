@@ -6,119 +6,72 @@
     }
   },
   "mappings": {
-    "#ESINDEX#": {
+    "#ESTYPE#": {
       "properties": {
-        "statsId": {
-          "type": "string",
-          "index": "not_analyzed"
+        "projectId": {
+          "type": "long"
         },
         "batchId": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "projectId": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "streamId": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "streamName": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "flowId": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
-        "flowNamespace": {
-          "type": "string",
-          "index": "not_analyzed"
+        "source_ns": {
+          "type": "keyword"
+        },
+        "sink_ns": {
+          "type": "keyword"
+        },
+        "data_type": {
+          "type": "keyword"
+        },
+        "topics": {
+          "type": "keyword"
         },
         "rddCount": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "throughput": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "umsTs": {
-          "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "dataGeneratedTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "rddTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
-        "directiveTs": {
+        "dataProcessTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
-        },
-        "DataProcessTs": {
-          "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "swiftsTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "sinkTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "doneTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
-        "intervalDataProcessToDataums": {
-          "type": "long",
-          "index": "not_analyzed"
+        "interval": {
+          "type": "object"
         },
-        "intervalDataProcessToDone": {
-          "type": "long",
-          "index": "not_analyzed"
+        "feedbackTime": {
+          "type": "date",
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
-        "intervalDataProcessToSwifts": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataProcessToSink": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataProcessToRdd": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataumsToDone": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalRddToDone": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalSwiftsToSink": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalSinkToDone": {
-          "type": "long",
-          "index": "not_analyzed"
+        "createTime": {
+          "type": "date",
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         }
       }
     }

@@ -82,7 +82,7 @@
   }
 
   border: 0 !important;
-  background-color: @ri-block-color !important;
+  background-color: @ri-block-color  !important;
   margin-bottom: 5px;
 
   .ant-card-head {
@@ -101,13 +101,14 @@
   .ant-card-body {
     background-color: @ri-bg-color;
     padding-top: 8px !important;
-    padding-bottom: 0 !important;
+    padding-bottom: 8px !important;
     padding-left: 24px !important;
   }
 
   .card-content {
     font-weight: 500;
     height: 20px !important;
+    line-height: 20px;
   }
 
   .partition-content {
@@ -131,9 +132,10 @@
   }
 }
 
-.stream-start-form-udf-style, .stream-renew-form-udf-style {
+.stream-start-form-udf-style,
+.stream-renew-form-udf-style {
   border: 0 !important;
-  background-color: @ri-block-color !important;
+  background-color: @ri-block-color  !important;
   margin-bottom: 5px;
 
   .ant-form-item {
@@ -214,6 +216,7 @@
 .apply-all-btn {
   .ant-btn-ghost {
     border-color: #bdbdbd !important;
+    vertical-align: middle;
   }
 }
 
@@ -225,10 +228,12 @@
   .ant-btn-ghost {
     border-color: #bdbdbd !important;
   }
+
   .stream-start-lastest-consumed-offset {
     text-align: center;
     margin-left: -20px;
   }
+
   .stream-start-lastest-kafka-offset {
     text-align: center;
     margin-left: -55px;
@@ -247,12 +252,11 @@
 
 .rate-class {
   flex-shrink: 0; // 空间不足时，不缩小
-  width: 127px;
+  width: 100px;
 }
 
 .topic-info-class {
   flex: 1; // 空间不足时，缩小
-  margin-left: 20px;
 }
 
 .udf-info-wrapper {
@@ -295,10 +299,44 @@
 
 .offset-content {
   .ant-input-number {
-    width: 142px !important;
+    width: 120px !important;
   }
 }
 
-.stream-start-renew-modal {
-
+.set-priority {
+  position: relative;
+  z-index: 0;
+  background-color: rgb(243, 243, 243);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(239, 239, 239);
+  border-image: initial;
+  border-radius: 3px;
+  outline: none;
+  max-height: 80vh;
+  overflow: auto;
+}
+.sort-item {
+  position: relative;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  width: 100%;
+  background-color: rgb(255, 255, 255);
+  box-sizing: border-box;
+  user-select: none;
+  color: rgb(51, 51, 51);
+  font-weight: 400;
+  padding: 0px 20px;
+  border-bottom: 1px solid rgb(239, 239, 239);
+  height: 36px;
+  cursor: move;
+  z-index: 1000000000!important;
+}
+.text-center {
+  text-align: center;
+}
+.loading {
+  text-align: center;
+  background: #E0E0E0;
 }

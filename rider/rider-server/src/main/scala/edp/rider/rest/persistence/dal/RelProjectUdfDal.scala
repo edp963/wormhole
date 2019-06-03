@@ -53,7 +53,25 @@ class RelProjectUdfDal(udfTable: TableQuery[UdfTable],
   def getNonPublicUdfByProjectId(id: Long): Future[Seq[Udf]] = {
     db.run((udfTable.filter(_.public === false) join relProjectUdfTable.filter(_.projectId === id) on (_.id === _.udfId))
       .map {
-        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
+        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.streamType, udf.mapOrAgg, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
+      }.result).mapTo[Seq[Udf]]
+  }
+
+  def getUdfByPIdSType(id: Long, streamType: String): Future[Seq[Udf]] = {
+    if(streamType == "flink" || streamType == "spark") {
+      val privateUdfs = Await.result(getNonPublicUdfByPIdSType(id, streamType), minTimeOut)
+      val publicUdfs: Seq[Udf] = Await.result(db.run(udfTable.filter(_.public === true).filter(_.streamType === streamType).result), minTimeOut)
+      Future(privateUdfs union publicUdfs)
+    }
+    else {
+      getUdfByProjectId(id)
+    }
+  }
+
+  def getNonPublicUdfByPIdSType(id: Long, streamType: String): Future[Seq[Udf]] = {
+    db.run((udfTable.filter(_.public === false).filter(_.streamType === streamType) join relProjectUdfTable.filter(_.projectId === id) on (_.id === _.udfId))
+      .map {
+        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.streamType, udf.mapOrAgg, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
       }.result).mapTo[Seq[Udf]]
   }
 

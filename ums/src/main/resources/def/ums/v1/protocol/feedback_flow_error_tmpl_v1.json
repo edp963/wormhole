@@ -6,12 +6,26 @@
     "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
     "fields": [
       {
+        "name": "data_type",//data_batch_data/data_increment_data/data_initial_data/all(包含前三种)
+        "type": "string",
+        "nullable": false
+      },{
         "name": "ums_ts_",
         "type": "datetime",
         "nullable": false
       },
       {
+        "name": "batch_id",
+        "type": "string",
+        "nullable": false
+      },
+      {
         "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "flow_id",
         "type": "long",
         "nullable": false
       },
@@ -41,7 +55,17 @@
         "nullable": false
       },
       {
-        "name": "batch_id",
+        "name": "topics",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "error_pattern",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "data_info",//flink有效
         "type": "string",
         "nullable": false
       }
@@ -49,7 +73,24 @@
   },
   "payload": [
     {
-      "tuple": [  "2016-06-01 01:00:11.345123",1,"oracle.oracle02.db.table.v2.dbpar01.tablepar01", "10001", "2016-06-01 01:00:11.345123","2001", "2016-06-01 01:00:11.345123", "10000","error","abc" ]
+      "tuple": [
+        "data_increment_data",
+        "2016-06-01 01:00:11.345123",
+        "eiwugerhhh",
+        1,
+        1,
+        "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
+        "2016-06-01 01:00:11.345123",
+        "2016-06-01 01:00:11.345123",
+        100,
+        "error",
+        "abc",
+        "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\", \"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]",
+        "flow/stream",
+        "数据"
+      ]
     }
   ]
 }
+
+// topic_type (increment/initial)

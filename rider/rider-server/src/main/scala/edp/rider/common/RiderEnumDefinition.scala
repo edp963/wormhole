@@ -21,6 +21,17 @@
 
 package edp.rider.common
 
+object UserRoleType extends Enumeration {
+  type UserRoleType = Value
+
+  val ADMIN = Value("admin")
+  val USER = Value("user")
+  val APP = Value("app")
+
+  def userRowType(s: String) = UserRoleType.withName(s.toLowerCase)
+}
+
+
 object FlowStatus extends Enumeration {
   type FlowStatus = Value
 
@@ -45,6 +56,9 @@ object Action extends Enumeration {
   val MODIFY = Value("modify")
   val RENEW = Value("renew")
   val DELETE = Value("delete")
+  val BATCHSELECT = Value("batchSelect")
+  val DRIFT = Value("drift")
+
 
   def action(s: String) = Action.withName(s.toLowerCase)
 }
@@ -83,8 +97,8 @@ object DbPermission extends Enumeration {
   def dbPermission(s: String) = DbPermission.withName(s)
 }
 
-object SparkAppStatus extends Enumeration {
-  type SparkAppStatus = Value
+object YarnAppStatus extends Enumeration {
+  type YarnAppStatus = Value
 
   val STARTING = Value("STARTING")
   val ACCEPTED = Value("ACCEPTED")
@@ -92,8 +106,10 @@ object SparkAppStatus extends Enumeration {
   val SUCCEEDED = Value("SUCCEEDED")
   val KILLED = Value("KILLED")
   val FINISHED = Value("FINISHED")
+  val FAILED = Value("FAILED")
+  val CANCELED = Value("CANCELED")
 
-  def sparkAppStatus(s: String) = StreamStatus.withName(s.toUpperCase)
+  def yarnAppStatus(s: String) = YarnAppStatus.withName(s.toUpperCase)
 }
 
 
@@ -121,10 +137,49 @@ object JobType extends Enumeration {
   def getJobType(s: String) = JobType.withName(s.toLowerCase)
 }
 
+object ProtocolType extends Enumeration {
+  type JobType = Value
+
+  val INCREMENT = Value("1")
+  val INITIAL = Value("2")
+  val BATCH = Value("3")
+
+  def getProtocolType(s: String) = ProtocolType.withName(s.toLowerCase)
+}
+
 object JobSinkProtocol extends Enumeration {
   type JobSinkProtocol = Value
 
   val SNAPSHOT = Value("snapshot")
 
   def getJobSinkProtocol(s: String) = JobSinkProtocol.withName(s.toLowerCase)
+}
+
+object FunctionType extends Enumeration {
+  type FunctionType = Value
+  val DEFAULT = Value("default")
+  val HDFSLOG = Value("hdfslog")
+  val ROUTIING = Value("routing")
+
+  def functionType(s: String) = FunctionType.withName(s.toLowerCase)
+
+}
+
+object StreamType extends Enumeration {
+  type StreamType = Value
+  val SPARK = Value("spark")
+  val FLINK = Value("flink")
+
+  def streamType(s: String) = StreamType.withName(s.toLowerCase)
+
+}
+
+
+object FeedbackDirectiveType extends Enumeration {
+  type FeedbackDirectiveType = Value
+  val FLOW = Value("flow")
+  val UDF = Value("udf")
+  val TOPIC = Value("topic")
+
+  def feedbackDirectiveType(s: String) = FeedbackDirectiveType.withName(s.toLowerCase)
 }

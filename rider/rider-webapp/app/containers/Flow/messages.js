@@ -33,7 +33,19 @@ export default defineMessages({
   flowTableStart: { id: 'rider.app.table.start.action' },
   flowSureStart: { id: 'rider.app.table.sure.start' },
   flowTableStop: { id: 'rider.app.table.stop.action' },
+  flowTableDrift: { id: 'rider.app.table.drift.action' },
+  flowTableChart: { id: 'rider.app.table.chart.action' },
   flowSureStop: { id: 'rider.app.table.sure.stop' },
   flowTableRenew: { id: 'rider.app.table.renew.action' },
-  flowTableCopy: { id: 'rider.app.table.copy.action' }
+  flowTableCopy: { id: 'rider.app.table.copy.action' },
+  flowModalView: { id: 'rider.containers.Flow.view.btn' },
+  flowModalReset: { id: 'rider.containers.Flow.reset.btn' },
+  flowModalCancel: { id: 'rider.app.modal.cancel' },
+  streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
+  streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
+  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' },
+  streamSureStart: { id: 'rider.app.table.sure.start' },
+  flowErrorList: { id: 'rider.app.table.error.list.action' },
+  errorListBackfillData: { id: 'rider.app.table.error.list.backfill.data.action' },
+  errorListBackfillHistory: { id: 'rider.app.table.error.list.backfill.history.action' }
 })

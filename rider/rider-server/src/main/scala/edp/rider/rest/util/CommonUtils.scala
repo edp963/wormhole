@@ -25,8 +25,8 @@ import java.time.ZonedDateTime
 
 import com.alibaba.fastjson.JSON
 import edp.rider.common.RiderLogger
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.DtFormat
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.DtFormat
 
 import scala.concurrent.duration._
 
@@ -42,15 +42,17 @@ object CommonUtils extends RiderLogger {
 
   def currentMicroSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MICROSEC)
 
+  def currentNodMicroSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_NOD_MILLISEC)
+
   def minTimeOut = 120.seconds
 
-  def maxTimeOut = 600.seconds
+  def maxTimeOut = 5.minute
 
   def streamSubmitTimeout = 120.seconds
 
   val keyEqualValuePattern = "([a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*(&[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*)*)".r.pattern
 
-  val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
+  val streamConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
 
   val namePattern = "[^\\.]*".r.pattern
 
@@ -86,10 +88,10 @@ object CommonUtils extends RiderLogger {
     keyEqualValuePattern.matcher(str.split(",").mkString("&")).matches()
   }
 
-  def isStreamSparkConfig(str: String): Boolean = {
+  def isStreamConfig(str: String): Boolean = {
     if (str == "" || str == null)
       return true
-    streamSparkConfigPattern.matcher(str).matches()
+    streamConfigPattern.matcher(str).matches()
   }
 
 }

@@ -26,7 +26,7 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.{AppInfo, RiderLogger}
 import edp.rider.rest.persistence.dal.{JobDal, ProjectDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.util.StreamUtils
+import edp.rider.rest.util.{JobUtils, StreamUtils}
 //import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AppUtils._
@@ -54,11 +54,14 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                     prepare(Some(appJob), None, session, projectId) match {
                       case Right(tuple) =>
                         val job = tuple._1.get
-                        val logPath = StreamUtils.getLogPath(job.name)
+                        val logPath = JobUtils.getLogPath(job.name)
                         try {
-                          startJob(job, logPath)
-                          riderLogger.info(s"user ${session.userId} start job ${job.id} success.")
-                          complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(job.id, job.status)))
+                          val (result, pid) = startJob(job, logPath)
+                          val status = if (result) "starting" else "failed"
+                          riderLogger.info(s"user ${session.userId} start job ${job.id}")
+                          if (status == "failed")
+                            jobDal.updateJobStatus(job.id, AppInfo(pid.orNull, status, job.startedTime.get, currentSec), logPath)
+                          complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(job.id, status)))
                         } catch {
                           case ex: Exception =>
                             riderLogger.error(s"user ${session.userId} start job ${job.id} failed", ex)
@@ -101,9 +104,10 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                   riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.head.status}, can't stop now.")
                   complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
                 } else {
-                  val status = killJob(jobId)
-                  riderLogger.info(s"user ${session.userId} stop job $jobId success.")
-                  complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(jobId, status)))
+                  val (status, stopSuccess) = killJob(jobId)
+                  riderLogger.info(s"user ${session.userId} stop job $jobId ${stopSuccess.toString}.")
+                  if (stopSuccess) complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(jobId, status)))
+                  else complete(OK, getHeader(400, s"job $jobId status stop failed.", null))
                 }
               } catch {
                 case ex: Exception =>

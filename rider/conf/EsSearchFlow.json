@@ -1,0 +1,45 @@
+{
+  "from": 0,
+  "size":1000,
+  "query": {
+    "bool": {
+      "must": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "projectId": {
+                  "query": "#PROJECT_ID#",
+                  "type": "phrase"
+                }
+              }
+            },
+            {
+              "match": {
+                "flowId": {
+                  "query": "#FLOW_ID#",
+                  "type": "phrase"
+                }
+              }
+            },
+            {
+              "range":{
+                "feedbackTime":{
+                  "ge": "#START_TIME#",
+                  "le": "#END_TIME#"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "sort": [
+    {
+      "feedbackTime": {
+        "order": "asc"
+      }
+    }
+  ]
+}

@@ -27,23 +27,14 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-import scala.concurrent.duration.Duration.Inf
-import scala.collection.mutable.ListBuffer
+
 import scala.concurrent.Await
 
 class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], streamDal: StreamDal) extends BaseDalImpl[FeedbackHeartbeatTable, FeedbackHeartbeat](heartbeatTable) {
 
   def deleteHistory(pastNdays: String) = {
-    //    val ignoreIds = new ListBuffer[Long]
-    //    val existSeq = Await.result(super.findAll, Inf).map(
-    //      heartbeat => StreamNamespace(heartbeat.streamId, heartbeat.namespace)
-    //    ).distinct
-    //    val streamIds = Await.result(streamDal.findAll, maxTimeOut).map(_.id)
-    //    existSeq.filter(heartbeat => streamIds.contains(heartbeat.streamId)).map(heartbeat => {
-    //      val maxHeartbeat = Await.result(db.run(heartbeatTable.filter(table => table.streamId === heartbeat.streamId && table.namespace === heartbeat.ns).sortBy(_.feedbackTime).take(1).result), minTimeOut)
-    //      if (maxHeartbeat.nonEmpty) ignoreIds += maxHeartbeat.head.id
-    //    })
-    //    Await.result(super.deleteByFilter(heartbeat => heartbeat.feedbackTime <= pastNdays && !heartbeat.id.inSet(ignoreIds)), maxTimeOut)
-    Await.result(super.deleteByFilter(heartbeat => heartbeat.feedbackTime <= pastNdays), maxTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }

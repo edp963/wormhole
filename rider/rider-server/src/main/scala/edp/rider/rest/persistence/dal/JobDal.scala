@@ -21,12 +21,17 @@
 
 package edp.rider.rest.persistence.dal
 
+import edp.rider.RiderStarter.modules
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.common.AppInfo
-import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.rider.common.{AppInfo, AppResult}
+import edp.rider.rest.util.JobUtils
+import edp.rider.yarn.YarnClientLog.getAppStatusByLog
+import edp.rider.yarn.{ShellUtils, SubmitYarnJob, YarnStatusQuery}
+import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
+import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
@@ -79,12 +84,24 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
     var usedMemory = 0
     val jobResources: Seq[AppResource] = jobSeq.map(
       job => {
-        val config = json2caseClass[StartConfig](job.startConfig)
+        val config = JsonUtils.json2caseClass[StartConfig](job.startConfig)
         usedCores += config.driverCores + config.executorNums * config.perExecutorCores
         usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
         AppResource(job.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
       }
     )
     (usedCores, usedMemory, jobResources)
+  }
+
+  def updateJobStatusByYarn(jobs: Seq[Job], appInfoMap: Map[String, AppResult]): Unit = {
+    if (jobs != null && jobs.nonEmpty) {
+      jobs.map(job => {
+        val appInfo = JobUtils.mappingSparkJobStatus(job, appInfoMap)
+        if((appInfo.appId, appInfo.appState, JobUtils.getJobTime(Option(appInfo.startedTime)) , JobUtils.getJobTime(Option(appInfo.finishedTime))) != (job.sparkAppid.getOrElse(""), job.status, JobUtils.getJobTime(job.startedTime), JobUtils.getJobTime(job.stoppedTime)))
+          if(job.status == "starting" && (appInfo.appState == "running" || appInfo.appState == "waiting" || appInfo.appState == "failed"))
+            SubmitYarnJob.killPidCommand(job.sparkAppid, job.name)
+          modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
+      })
+    }
   }
 }

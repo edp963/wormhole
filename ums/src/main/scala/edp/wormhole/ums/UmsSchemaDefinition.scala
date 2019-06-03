@@ -21,12 +21,11 @@
 
 package edp.wormhole.ums
 
-import edp.wormhole.common.WormholeDefault._
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import edp.wormhole.util.config.WormholeDefault._
+import edp.wormhole.util.{CommonUtils, DateUtils}
 import org.joda.time.DateTime
-import edp.wormhole.common.util.CommonUtils._
-import edp.wormhole.common.util.DateUtils._
 
 case class Ums(protocol: UmsProtocol,
                schema: UmsSchema,
@@ -55,10 +54,7 @@ case class UmsField(name: String,
   lazy val nullable_get = nullable.getOrElse(false)
 }
 
-case class UmsTuple(tuple: Seq[String])// {
-//  def umsTupleValues(fields: Seq[UmsField]): Seq[Any] =
-//    for (i <- fields.indices) yield UmsFieldType.umsFieldValue(tuple(i), fields(i).`type`)
-//}
+case class UmsTuple(tuple: Seq[String])
 
 object UmsFieldType extends Enumeration {
   type UmsFieldType = Value
@@ -92,16 +88,16 @@ object UmsFieldType extends Enumeration {
   def umsFieldType(s: String) = UmsFieldType.withName(s.toLowerCase)
 
   def umsFieldValue(v: String, umsFieldType: UmsFieldType): Any = umsFieldType match {
-    case STRING => any2string(nullify(v))
-    case INT => s2int(nullify(v))
-    case LONG => s2long(nullify(v))
-    case FLOAT => s2float(nullify(v))
-    case DOUBLE => s2double(nullify(v))
-    case DECIMAL => s2decimal(nullify(v))
-    case BOOLEAN => s2boolean(nullify(v))
-    case BINARY => base64s2byte(nullify(v))
-    case DATE => dt2dateTime(nullify(v))
-    case DATETIME => dt2dateTime(nullify(v))
+    case STRING => CommonUtils.any2string(nullify(v))
+    case INT => CommonUtils.s2int(nullify(v))
+    case LONG => CommonUtils.s2long(nullify(v))
+    case FLOAT => CommonUtils.s2float(nullify(v))
+    case DOUBLE => CommonUtils.s2double(nullify(v))
+    case DECIMAL => CommonUtils.s2decimal(nullify(v))
+    case BOOLEAN => CommonUtils.s2boolean(nullify(v))
+    case BINARY => CommonUtils.base64s2byte(nullify(v))
+    case DATE => DateUtils.dt2dateTime(nullify(v))
+    case DATETIME => DateUtils.dt2dateTime(nullify(v))
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $umsFieldType")
   }
 
@@ -174,19 +170,41 @@ object UmsProtocolType extends Enumeration {
   val DIRECTIVE_HDFSLOG_FLOW_STOP = Value("directive_hdfslog_flow_stop")
   val DIRECTIVE_ROUTER_FLOW_START = Value("directive_router_flow_start")
   val DIRECTIVE_ROUTER_FLOW_STOP = Value("directive_router_flow_stop")
+  val DIRECTIVE_UDF_ADD = Value("directive_udf_add")
 
   val FEEDBACK_DATA_BATCH_TERMINATION = Value("feedback_data_batch_termination")
   val FEEDBACK_DATA_INCREMENT_HEARTBEAT = Value("feedback_data_increment_heartbeat")
   val FEEDBACK_DATA_INCREMENT_TERMINATION = Value("feedback_data_increment_termination")
-  val FEEDBACK_DIRECTIVE = Value("feedback_directive")
+  val FEEDBACK_FLOW_START_DIRECTIVE = Value("feedback_flow_start_directive")
   val FEEDBACK_FLOW_ERROR = Value("feedback_flow_error")
   val FEEDBACK_FLOW_STATS = Value("feedback_flow_stats")
+
+  @Deprecated
+  val FEEDBACK_SPARKX_FLOW_STATS = Value("feedback_sparkx_flow_stats")
+  @Deprecated
+  val FEEDBACK_DIRECTIVE = Value("feedback_directive")
+  @Deprecated
+  val FEEDBACK_SPARKX_FLOW_ERROR = Value("feedback_sparkx_flow_error")
+  @Deprecated
+  val FEEDBACK_FLOW_SPARKX_ERROR = Value("feedback_flow_sparkx_error")
+  @Deprecated
+  val FEEDBACK_FLINKX_FLOW_ERROR = Value("feedback_flinkx_flow_error")
+  @Deprecated
   val FEEDBACK_STREAM_BATCH_ERROR = Value("feedback_stream_batch_error")
+  @Deprecated
   val FEEDBACK_STREAM_TOPIC_OFFSET = Value("feedback_stream_topic_offset")
 
-  val DIRECTIVE_UDF_ADD = Value("directive_udf_add")
 
   def umsProtocolType(s: String) = UmsProtocolType.withName(s.toLowerCase)
+
+
+}
+
+object DataTypeEnum extends Enumeration {
+  type DataTypeEnum = Value
+
+  val UMS = Value("ums")
+  val UMS_EXTENSION = Value("ums_extendion")
 }
 
 

@@ -28,7 +28,6 @@ import edp.rider.rest.util.CommonUtils.{maxTimeOut, minTimeOut}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -58,22 +57,8 @@ class FeedbackFlowErrDal(feedbackFlowErrTable: TableQuery[FeedbackFlowErrTable],
   }
 
   def deleteHistory(pastNdays: String) = {
-    val ignoreIds = new ListBuffer[Long]
-    val existSeq = Await.result(super.findAll, maxTimeOut).map(
-      flowError => StreamSourceSink(flowError.streamId, flowError.sourceNamespace, flowError.sinkNamespace)
-    ).distinct
-    val streamIds = Await.result(streamDal.findAll, maxTimeOut).map(_.id)
-    val sourceSinks = Await.result(flowDal.findAll, maxTimeOut).map(flow => flow.sourceNs + "#" + flow.sinkNs)
-    existSeq.filter(flowError => streamIds.contains(flowError.streamId))
-      .filter(flowError => sourceSinks.contains(flowError.sourceNs + "#" + flowError.sinkNs))
-      .map(flowError => {
-        val maxFlowError = Await.result(
-          db.run(feedbackFlowErrTable
-            .filter(table => table.streamId === flowError.streamId &&
-              table.sourceNamespace === flowError.sourceNs && table.sinkNamespace === flowError.sinkNs)
-            .sortBy(_.feedbackTime).take(1).result), minTimeOut)
-        if (maxFlowError.nonEmpty) ignoreIds += maxFlowError.head.id
-      })
-    Await.result(super.deleteByFilter(flowError => flowError.feedbackTime <= pastNdays && !flowError.id.inSet(ignoreIds)), maxTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(feedbackFlowErrTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }

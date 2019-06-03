@@ -1,0 +1,112 @@
+{
+  "protocol": {
+    "type": "feedback_sparkx_flow_stats"
+  },
+  "schema": {
+    "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
+    "fields": [
+      {
+        "name": "data_type",//data_batch_data/data_increment_data/data_initial_data
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "batch_id",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "flow_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "sink_namespace",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "topics",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "rdd_count",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "data_generated_ts",//data ums_ts_max
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "rdd_generated_ts",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "directive_process_start_ts",
+        "type": "long",
+        "nullable": false
+//      },
+//      {
+//        "name": "stream_merge_ts",
+//        "type": "long",
+//        "nullable": false
+      },
+      {
+        "name": "data_process_start_ts",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "swifts_start_ts",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "sink_start_ts",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "done_ts",
+        "type": "long",
+        "nullable": false
+      }
+      ]
+  },
+  "payload": [
+    {
+      "tuple": [
+        "data_batch_data",
+        "2016-04-11 12:23:34.345123",
+        "owhgherb",
+        1,
+        1,
+        "oracle.oracle01.db.table1.v3.dbpar01.tablepar01",
+        "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\",\"partition_offset\":[{\"partition_num\":10,\"startOffset\":10,\"endOffset\":11}]}]",
+        1234,
+        1467001590267,
+        1467001590367,
+        1467001590467,
+        1467001590567,
+        1467001590667,
+        1467001590767,
+        1467001590667,
+        1467001590767
+      ]
+    }
+  ]
+}

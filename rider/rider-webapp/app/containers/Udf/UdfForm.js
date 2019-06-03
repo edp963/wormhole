@@ -34,18 +34,53 @@ const RadioButton = Radio.Button
 import { selectLocale } from '../LanguageProvider/selectors'
 
 export class UdfForm extends React.Component {
+
   render () {
     const { getFieldDecorator } = this.props.form
-    const { type, locale } = this.props
-
+    const { type, locale, streamType } = this.props
     const itemStyle = {
       labelCol: { span: 6 },
       wrapperCol: { span: 16 }
     }
+    const udfDisabledOrNot = type === 'edit'
 
     return (
       <Form>
         <Row gutter={8}>
+          <Col span={24}>
+            <FormItem label="Stream type" {...itemStyle}>
+              {getFieldDecorator('streamType', {
+                rules: [{
+                  required: true,
+                  message: locale === 'en' ? 'Stream type cannot be empty' : 'Stream Type 不能为空'
+                }],
+                initialValue: 'spark'
+              })(
+                <RadioGroup className="radio-group-style" disabled={udfDisabledOrNot} size="default" onChange={this.props.changeUdfStreamType}>
+                  <RadioButton value="spark" className="radio-btn-style radio-btn-extra">Spark</RadioButton>
+                  <RadioButton value="flink" className="radio-btn-style radio-btn-extra">Flink</RadioButton>
+                </RadioGroup>
+              )}
+            </FormItem>
+          </Col>
+          <Col span={24}>
+            <FormItem label="map or agg" {...itemStyle}>
+              {getFieldDecorator('mapOrAgg', {
+                rules: [{
+                  required: true,
+                  message: locale === 'en' ? 'Map or agg cannot be empty' : 'map or agg 不能为空'
+                }],
+                initialValue: 'udf'
+              })(
+                <RadioGroup className="radio-group-style" disabled={udfDisabledOrNot} size="default" onChange={this.props.changeUdfMapOrAgg}>
+                  <RadioButton value="udf" className="radio-btn-style radio-btn-extra">udf</RadioButton>
+                  {
+                    streamType === 'flink' ? (<RadioButton value="udaf" className="radio-btn-style radio-btn-extra">udaf</RadioButton>) : ''
+                  }
+                </RadioGroup>
+              )}
+            </FormItem>
+          </Col>
           <Col span={24}>
             <FormItem className="hide">
               {getFieldDecorator('id', {
@@ -86,20 +121,22 @@ export class UdfForm extends React.Component {
               )}
             </FormItem>
           </Col>
-
-          <Col span={24}>
-            <FormItem label="Jar Name" {...itemStyle}>
-              {getFieldDecorator('jarName', {
-                rules: [{
-                  required: true,
-                  message: locale === 'en' ? 'Please fill in jar name' : '请填写 Jar Name'
-                }]
-              })(
-                <Input placeholder="Jar Name" />
-              )}
-            </FormItem>
-          </Col>
-
+          {
+            streamType === 'spark' ? (
+              <Col span={24}>
+                <FormItem label="Jar Name" {...itemStyle}>
+                  {getFieldDecorator('jarName', {
+                    rules: [{
+                      required: true,
+                      message: locale === 'en' ? 'Please fill in jar name' : '请填写 Jar Name'
+                    }]
+                  })(
+                    <Input placeholder="Jar Name" />
+                  )}
+                </FormItem>
+              </Col>
+            ) : ''
+          }
           <Col span={24}>
             <FormItem label="Public" {...itemStyle}>
               {getFieldDecorator('public', {
@@ -125,7 +162,10 @@ export class UdfForm extends React.Component {
 UdfForm.propTypes = {
   form: PropTypes.any,
   type: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  streamType: PropTypes.string,
+  changeUdfStreamType: PropTypes.func,
+  changeUdfMapOrAgg: PropTypes.func
 }
 
 const mapStateToProps = createStructuredSelector({

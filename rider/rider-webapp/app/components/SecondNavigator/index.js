@@ -97,9 +97,9 @@ class SecondNavigator extends React.Component {
           <MenuItem key="workbench" className={`ri-menu-item ri-menu-item-extra ${secondNavSelectedClass[0]}`}>
             <Icon type="desktop" />Workbench
           </MenuItem>
-          <MenuItem key="performance" className={`ri-menu-item ri-menu-item-extra ${secondNavSelectedClass[1]}`}>
+          {/* <MenuItem key="performance" className={`ri-menu-item ri-menu-item-extra ${secondNavSelectedClass[1]}`}>
             <Icon type="bar-chart" />Performance
-          </MenuItem>
+          </MenuItem> */}
         </Menu>
       </div>
     )

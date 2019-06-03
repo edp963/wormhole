@@ -21,7 +21,8 @@ module.exports = (options) => ({
       {
         test: /\.js$/, // Transform all .js files required somewhere with Babel
         loader: 'babel-loader',
-        exclude: /node_modules/,
+        include: [path.resolve(process.cwd(), 'build'), path.resolve(process.cwd(), 'app'), path.resolve(process.cwd(), 'internals'),
+          path.resolve(process.cwd(), 'server'), path.resolve(process.cwd(), 'node_modules/array-move')],
         query: options.babelQuery
       },
       {
@@ -73,6 +74,9 @@ module.exports = (options) => ({
   ]),
   resolve: {
     modules: ['app', 'node_modules'],
+    alias: {
+      fonts: path.resolve(process.cwd(), 'app/assets/fonts')
+    },
     extensions: [
       '.js',
       '.jsx',

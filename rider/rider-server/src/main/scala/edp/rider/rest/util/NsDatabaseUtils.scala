@@ -26,8 +26,9 @@ import edp.rider.RiderStarter.modules
 import edp.rider.rest.persistence.entities.{NsDatabase, PushDownConnection}
 import edp.rider.rest.util.CommonUtils.{isKeyEqualValue, _}
 import edp.rider.rest.util.NamespaceUtils._
-import edp.wormhole.common.KVConfig
+import edp.wormhole.util.config.KVConfig
 import slick.jdbc.MySQLProfile.api._
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
@@ -35,7 +36,7 @@ object NsDatabaseUtils {
 
   def getDbConfig(nsSys: String, config: String): Option[Seq[KVConfig]] = {
     nsSys match {
-      case "mysql" | "postgresql" | "oracle" | "vertica" =>
+      case "mysql" | "postgresql" | "oracle" | "vertica" | "greenplum" =>
         if (config == null || config == "") None
         else if (isKeyEqualValue(config)) {
           val seq = new ListBuffer[KVConfig]

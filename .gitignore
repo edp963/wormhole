@@ -1,4 +1,4 @@
-logs/
+*.log
 project/target/
 project/project/
 target/
@@ -22,5 +22,5 @@ derby.log
 metastore_db
 spark-warehouse
 *.bak
-common/kafka08/dependency-reduced-pom.xml
+*dependency-reduced-pom.xml
 docs/_site

@@ -7,9 +7,9 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>{{ page.title }} - Wormhole {{site.WH_VERSION_SHORT}} Documentation</title>
+        <title>{{ page.title }} - Wormhole Documentation</title>
         {% if page.description %}
-          <meta name="description" content="{{page.description | replace: 'WH_VERSION_SHORT', site.WH_VERSION_SHORT}}">
+          <meta name="description" content="{{page.description}}">
         {% endif %}
 
         {% if page.redirect %}
@@ -57,7 +57,7 @@
             <div class="navbar-inner">
                 <div class="container">
                     <div class="brand"><a href="index.html">
-                      <img src="img/wormhole-logo.png" style="width:222px; margin-top:4px;"/></a><span class="version">{{site.WH_VERSION_SHORT}}</span>
+                      <img src="img/wormhole-logo.png" style="width:222px; margin-top:4px;"/></a>
                     </div>
                     <ul class="nav">
                         <li><a href="index.html">Overview</a></li>

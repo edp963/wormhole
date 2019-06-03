@@ -23,24 +23,22 @@ package edp.rider.rest.router.app.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
-import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.service.util.FeedbackOffsetUtil
-import edp.wormhole.common.util.JsonUtils
-//import edp.rider.rest.router.JsonProtocol._
-import edp.wormhole.common.util.DateUtils._
+import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.JsonUtils
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
+class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackErrDal: FeedbackErrDal, feedbackOffsetDal: FeedbackOffsetDal, monitorInfoDal: MonitorInfoDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def getFlowHealthByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "health") {
     (projectId, streamId, flowId) =>
@@ -61,7 +59,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                 riderLogger.error(s"user ${session.userId} request to get flow $flowId health information, but the stream $streamId doesn't exist")
                 complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
               }
-              onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
+              onComplete(flowDal.getById(flowId).mapTo[Option[FlowStreamInfo]]) {
                 case Success(flowStreamOpt) =>
                   riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
                   flowStreamOpt match {
@@ -69,10 +67,11 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                       try {
                         flowDal.updateStatusByFeedback(flowStream.id, flowStream.status)
                         val maxWatermark =
-                          Await.result(feedbackFlowErrDal.getSinkErrorMaxWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
-                        val minWatermark = Await.result(feedbackFlowErrDal.getSinkErrorMinWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
-                        val errorCount = Await.result(feedbackFlowErrDal.getSinkErrorCount(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse(0L)
-                        val fLatestWatermark = ElasticSearch.queryESFlowMax(projectId, streamId, flowId, "dataGeneratedTs")._2
+                          Await.result(feedbackErrDal.getSinkErrorMaxWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
+                        val minWatermark = Await.result(feedbackErrDal.getSinkErrorMinWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
+                        val errorCount = Await.result(feedbackErrDal.getSinkErrorCount(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse(0L)
+                        val fLatestWatermark = if (RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESFlowMax(projectId, streamId, flowId, "dataGeneratedTs")._2
+                        else Await.result(monitorInfoDal.queryESFlowLastestTs(projectId, streamId, flowId), maxTimeOut).getOrElse("")
                         val hdfsFlow = flowDal.getByNsOnly(flowStream.sourceNs, flowStream.sourceNs)
                         val hdfsLatestWatermark =
                           if (hdfsFlow.isEmpty) ""
@@ -81,7 +80,8 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                             val streamDuration =
                               if (hdfsStream.nonEmpty) StreamUtils.getDuration(hdfsStream.head.launchConfig)
                               else 10
-                            val esFlowTs = ElasticSearch.queryESFlowMax(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id, "dataGeneratedTs")._2
+                            val esFlowTs = if (RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESFlowMax(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id, "dataGeneratedTs")._2
+                            else Await.result(monitorInfoDal.queryESFlowLastestTs(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id), maxTimeOut).getOrElse("")
                             yyyyMMddHHmmss(dt2long(esFlowTs) - streamDuration * 1000 * 1000)
                           }
                         riderLogger.error(s"user ${session.userId} request for flow $flowId health where project id is $projectId success")
@@ -123,25 +123,22 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                       onComplete(projectDal.findById(projectId).mapTo[Option[Project]]) {
                         case Success(projectOpt) =>
                           projectOpt match {
-                            case Some(project) =>
+                            case Some(_) =>
                               try {
                                 val streamInfo = Await.result(streamDal.findById(streamId), minTimeOut).head
                                 val sparkApplicationId = streamInfo.sparkAppid.get
-                                val sLatestWatermark = ElasticSearch.queryESStreamMax(projectId, streamId, "dataGeneratedTs")._2
+                                val sLatestWatermark = if (RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESStreamMax(projectId, streamId, "dataGeneratedTs")._2
+                                else Await.result(monitorInfoDal.queryESStreamLastestTs(projectId, streamId), minTimeOut).getOrElse("")
                                 val launchConfig = JsonUtils.json2caseClass[LaunchConfig](stream.launchConfig)
                                 val batchThreshold = launchConfig.maxRecords.toInt
                                 val batchDuration = launchConfig.durations.toInt
-                                onComplete(feedbackOffsetDal.getDistinctStreamTopicList(streamId)) {
-                                  case Success(topics) =>
-                                    val topicList: Seq[TopicOffset] = FeedbackOffsetUtil.getLatestTopicOffset(topics).map(
-                                      topic => TopicOffset(topic.topicName, topic.partitionOffsets)
-                                    )
-                                    riderLogger.info(s"user ${session.userId} request for stream $streamId health where project id is $projectId success")
-                                    complete(OK, ResponseJson[StreamHealth](getHeader(200, null), StreamHealth(streamInfo.status, sparkApplicationId, formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, topicList)))
-                                  case Failure(ex) =>
-                                    riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed", ex)
-                                    complete(OK, ResponseJson[StreamHealth](getHeader(200, null), StreamHealth(streamInfo.status, sparkApplicationId, formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, Seq(TopicOffset("", "")))))
-                                }
+                                val topics = streamDal.getStreamTopicsMap(streamId, streamInfo.name)
+                                val topicOffset = (topics.autoRegisteredTopics ++: topics.userDefinedTopics).map(
+                                  topic =>
+                                    TopicOffset(topic.name, topic.consumedLatestOffset, topic.kafkaEarliestOffset, topic.kafkaLatestOffset))
+                                complete(OK, ResponseJson[StreamHealth](getHeader(200, null),
+                                  StreamHealth(streamInfo.status, sparkApplicationId,
+                                    formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, topicOffset)))
                               } catch {
                                 case ex: Exception =>
                                   riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed", ex)
@@ -201,7 +198,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
       }
   }
 
-  def formatWaterMark(waterMark: String) = {
+  def formatWaterMark(waterMark: String): String = {
     if (waterMark == "") "" else yyyyMMddHHmmss(waterMark)
   }
 }

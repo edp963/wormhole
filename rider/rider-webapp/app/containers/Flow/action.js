@@ -73,7 +73,31 @@ import {
   LOAD_SOURCEINPUT_SUCCESS,
   LOAD_SOURCEINPUT_ERROR,
   QUERY_FLOW,
-  QUERY_FLOW_SUCCESS
+  QUERY_FLOW_SUCCESS,
+  STARTFLINK_FLOWS,
+  STARTFLINK_FLOWS_SUCCESS,
+  OPERATE_FLOWS_ERROR,
+  LOAD_LASTEST_OFFSET,
+  LOAD_LASTEST_OFFSET_SUCCESS,
+  POST_USER_TOPIC,
+  POST_USER_TOPIC_SUCCESS,
+  DELETE_USER_TOPIC,
+  DELETE_USER_TOPIC_SUCCESS,
+  LOAD_UDFS,
+  STOPFLINK_FLOWS,
+  LOAD_ADMIN_LOGS_INFO,
+  LOAD_ADMIN_LOGS_INFO_SUCCESS,
+  LOAD_LOGS_INFO,
+  LOAD_LOGS_INFO_SUCCESS,
+  LOAD_DRIFT_LIST,
+  POST_DRIFT,
+  VERIFY_DRIFT,
+  LOAD_FLOW_PERFORMANCE,
+  LOAD_RECHARGE_HISTORY,
+  LOAD_RECHARGE_HISTORY_SUCCESS,
+  COMFIRM_RECHARGE,
+  COMFIRM_RECHARGE_SUCCESS,
+  LOAD_FLOW_ERROR_LIST
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -132,12 +156,13 @@ export function adminSingleFlowLoaded (flow) {
   }
 }
 
-export function loadSelectStreamKafkaTopic (projectId, value, resolve) {
+export function loadSelectStreamKafkaTopic (projectId, streamType, functionType, resolve) {
   return {
     type: LOAD_SELECT_STREAM_KAFKA_TOPIC,
     payload: {
       projectId,
-      value,
+      streamType,
+      functionType,
       resolve
     }
   }
@@ -612,3 +637,262 @@ export function chuckAwayFlow () {
   }
 }
 
+export function startFlinkFlow (projectId, id, topicResult, action, resolve, reject) {
+  return {
+    type: STARTFLINK_FLOWS,
+    payload: {
+      projectId,
+      id,
+      topicResult,
+      action,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function flinkFlowStartSucc (result) {
+  return {
+    type: STARTFLINK_FLOWS_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function stopFlinkFlow (projectId, id, resolve, reject) {
+  return {
+    type: STOPFLINK_FLOWS,
+    payload: {
+      projectId,
+      id,
+      resolve,
+      reject
+    }
+  }
+}
+export function flowOperatedError (message) {
+  return {
+    type: OPERATE_FLOWS_ERROR,
+    payload: {
+      message
+    }
+  }
+}
+
+export function loadLastestOffset (projectId, streamId, resolve, type = 'get', topics = []) {
+  return {
+    type: LOAD_LASTEST_OFFSET,
+    payload: {
+      projectId,
+      streamId,
+      type,
+      topics,
+      resolve
+    }
+  }
+}
+
+export function lastestOffsetLoaded (result) {
+  return {
+    type: LOAD_LASTEST_OFFSET_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function postUserTopic (projectId, streamId, topic, resolve, reject) {
+  return {
+    type: POST_USER_TOPIC,
+    payload: {
+      projectId,
+      streamId,
+      topic,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function postUserTopicLoaded (result) {
+  return {
+    type: POST_USER_TOPIC_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function deleteUserTopic (projectId, streamId, topicId, resolve, reject) {
+  return {
+    type: DELETE_USER_TOPIC,
+    payload: {
+      projectId,
+      streamId,
+      topicId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function deleteUserTopicLoaded (result) {
+  return {
+    type: DELETE_USER_TOPIC_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadUdfs (projectId, streamId, roleType, resolve) {
+  return {
+    type: LOAD_UDFS,
+    payload: {
+      projectId,
+      streamId,
+      roleType,
+      resolve
+    }
+  }
+}
+
+export function loadLogsInfo (projectId, flowId, resolve) {
+  return {
+    type: LOAD_LOGS_INFO,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}
+
+export function logsInfoLoaded (result) {
+  return {
+    type: LOAD_LOGS_INFO_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadAdminLogsInfo (projectId, flowId, resolve) {
+  return {
+    type: LOAD_ADMIN_LOGS_INFO,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}
+
+export function adminLogsInfoLoaded (result) {
+  return {
+    type: LOAD_ADMIN_LOGS_INFO_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadDriftList (projectId, flowId, resolve) {
+  return {
+    type: LOAD_DRIFT_LIST,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}
+
+export function verifyDrift (projectId, flowId, streamId, resolve) {
+  return {
+    type: VERIFY_DRIFT,
+    payload: {
+      projectId,
+      flowId,
+      streamId,
+      resolve
+    }
+  }
+}
+
+export function postDriftList (projectId, flowId, streamId, resolve) {
+  return {
+    type: POST_DRIFT,
+    payload: {
+      projectId,
+      flowId,
+      streamId,
+      resolve
+    }
+  }
+}
+export function postFlowPerformance (projectId, flowId, startTime, endTime, resolve) {
+  return {
+    type: LOAD_FLOW_PERFORMANCE,
+    payload: {
+      projectId,
+      flowId,
+      startTime,
+      endTime,
+      resolve
+    }
+  }
+}
+
+export function loadRechargeHistory (projectId, id, resolve) {
+  return {
+    type: LOAD_RECHARGE_HISTORY,
+    payload: {
+      projectId,
+      id,
+      resolve
+    }
+  }
+}
+
+export function rechargeHistoryLoaded (list) {
+  return {
+    type: LOAD_RECHARGE_HISTORY_SUCCESS,
+    payload: {
+      list
+    }
+  }
+}
+
+export function confirmReChange (projectId, id, protocolType, resolve, reject) {
+  return {
+    type: COMFIRM_RECHARGE,
+    payload: {
+      projectId,
+      id,
+      protocolType,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function confirmReChangeLoaded (result) {
+  return {
+    type: COMFIRM_RECHARGE_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+export function getErrorList (projectId, flowId, resolve) {
+  return {
+    type: LOAD_FLOW_ERROR_LIST,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}

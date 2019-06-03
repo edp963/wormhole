@@ -28,20 +28,14 @@ import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
 class FeedbackStreamErrorDal(streamErrorTable: TableQuery[FeedbackStreamErrTable], streamDal: StreamDal) extends BaseDalImpl[FeedbackStreamErrTable, FeedbackStreamErr](streamErrorTable) {
 
 
   def deleteHistory(pastNdays: String) = {
-    val ignoreIds = new ListBuffer[Long]
-    val streamErrorIds = Await.result(super.findAll, maxTimeOut).map(_.streamId).distinct
-    val streamIds = Await.result(streamDal.findAll, maxTimeOut).map(_.id)
-    streamErrorIds.filter(errorStream => streamIds.contains(errorStream)).map(errorStream => {
-      val maxStreamError = Await.result(db.run(streamErrorTable.filter(_.streamId === errorStream).sortBy(_.feedbackTime).take(1).result), minTimeOut)
-      if (maxStreamError.nonEmpty) ignoreIds += maxStreamError.head.id
-    })
-    Await.result(super.deleteByFilter(streamError => streamError.feedbackTime <= pastNdays && !streamError.id.inSet(ignoreIds)), maxTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(streamErrorTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }

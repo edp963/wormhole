@@ -21,6 +21,10 @@
 import {
   LOAD_USER_STREAMS,
   LOAD_USER_STREAMS_SUCCESS,
+  LOAD_FLOW_LIST,
+  LOAD_FLOW_LIST_SUCCESS,
+  SET_FLOW_PRIORITY,
+  SET_FLOW_PRIORITY_SUCCESS,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
@@ -52,7 +56,15 @@ import {
   STARTORRENEW_STREAMS_SUCCESS,
   OPERATE_STREAMS_ERROR,
   LOAD_LASTEST_OFFSET,
-  LOAD_LASTEST_OFFSET_SUCCESS
+  LOAD_LASTEST_OFFSET_SUCCESS,
+  POST_USER_TOPIC,
+  POST_USER_TOPIC_SUCCESS,
+  DELETE_USER_TOPIC,
+  DELETE_USER_TOPIC_SUCCESS,
+  LOAD_UDFS,
+  LOAD_STREAM_CONFIGS,
+  JUMP_STREAM_TO_FLOW_FILTER,
+  LOAD_YARN_UI
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -70,6 +82,49 @@ export function userStreamsLoaded (streams) {
     type: LOAD_USER_STREAMS_SUCCESS,
     payload: {
       streams
+    }
+  }
+}
+
+export function loadFlowList (projectId, streamId, resolve) {
+  return {
+    type: LOAD_FLOW_LIST,
+    payload: {
+      projectId,
+      streamId,
+      resolve
+    }
+  }
+}
+
+export function flowListLoaded (flows) {
+  return {
+    type: LOAD_FLOW_LIST_SUCCESS,
+    payload: {
+      flows
+    }
+  }
+}
+
+export function submitFlowListOfPriority (projectId, streamId, action, flows, resolve, reject) {
+  return {
+    type: SET_FLOW_PRIORITY,
+    payload: {
+      projectId,
+      streamId,
+      action,
+      flows,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function flowListOfPrioritySubmited (result) {
+  return {
+    type: SET_FLOW_PRIORITY_SUCCESS,
+    payload: {
+      result
     }
   }
 }
@@ -218,6 +273,15 @@ export function streamConfigSparkLoaded (result) {
   }
 }
 
+export function loadStreamConfigs (type, resolve) {
+  return {
+    type: LOAD_STREAM_CONFIGS,
+    payload: {
+      type,
+      resolve
+    }
+  }
+}
 export function loadLogsInfo (projectId, streamId, resolve) {
   return {
     type: LOAD_LOGS_INFO,
@@ -373,12 +437,14 @@ export function streamOperatedError (message) {
   }
 }
 
-export function loadLastestOffset (projectId, streamId, resolve) {
+export function loadLastestOffset (projectId, streamId, resolve, type = 'get', topics = []) {
   return {
     type: LOAD_LASTEST_OFFSET,
     payload: {
       projectId,
       streamId,
+      type,
+      topics,
       resolve
     }
   }
@@ -389,6 +455,80 @@ export function lastestOffsetLoaded (result) {
     type: LOAD_LASTEST_OFFSET_SUCCESS,
     payload: {
       result
+    }
+  }
+}
+
+export function postUserTopic (projectId, streamId, topic, resolve, reject) {
+  return {
+    type: POST_USER_TOPIC,
+    payload: {
+      projectId,
+      streamId,
+      topic,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function postUserTopicLoaded (result) {
+  return {
+    type: POST_USER_TOPIC_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function deleteUserTopic (projectId, streamId, topicId, resolve, reject) {
+  return {
+    type: DELETE_USER_TOPIC,
+    payload: {
+      projectId,
+      streamId,
+      topicId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function deleteUserTopicLoaded (result) {
+  return {
+    type: DELETE_USER_TOPIC_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadUdfs (projectId, streamId, roleType, resolve) {
+  return {
+    type: LOAD_UDFS,
+    payload: {
+      projectId,
+      streamId,
+      roleType,
+      resolve
+    }
+  }
+}
+export function jumpStreamToFlowFilter (streamFilterId) {
+  return {
+    type: JUMP_STREAM_TO_FLOW_FILTER,
+    payload: {
+      streamFilterId
+    }
+  }
+}
+export function loadYarnUi (projectId, streamId, resolve) {
+  return {
+    type: LOAD_YARN_UI,
+    payload: {
+      projectId,
+      streamId,
+      resolve
     }
   }
 }
