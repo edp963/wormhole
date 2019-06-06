@@ -75,7 +75,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
           toUms(umsStr: String)
         })
       })
-      logInfo("!!!!!!!umsRDD.getNumPartitions:" + rowRdd.getNumPartitions)
+//      logInfo("!!!!!!!umsRDD.getNumPartitions:" + rowRdd.getNumPartitions)
 
       val fields = ums.schema.fields_get
       val allData: DataFrame = SparkSchemaUtils.createDf(session, fields, rowRdd)
