@@ -43,6 +43,7 @@ import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import edp.wormhole.util.{DateUtils, FileUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.security.UserGroupInformation
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -319,6 +320,10 @@ object JobUtils extends RiderLogger {
   }
 
   def getHdfsFileList(config: Configuration, hdfsPath: String): Seq[String] = {
+    if(RiderConfig.kerberos.enabled) {
+      UserGroupInformation.setConfiguration(config)
+      UserGroupInformation.loginUserFromKeytab(RiderConfig.kerberos.sparkPrincipal, RiderConfig.kerberos.keyTab)
+    }
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
@@ -341,6 +346,8 @@ object JobUtils extends RiderLogger {
 
     val defaultFS = configuration.get("fs.defaultFS")
     riderLogger.info(s"hadoopHome is $hadoopHome, defaultFS is $defaultFS")
+
+    if (RiderConfig.kerberos.enabled) configuration.set("hadoop.security.authentication", "kerberos")
 
     val hdfsPathGrp = hdfsPath.split("//")
     val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
