@@ -98,7 +98,7 @@ mysql = {
     driver = "com.mysql.jdbc.Driver"
     user = "root"
     password = "root"
-    url = "jdbc:mysql://localhost:3306/wormhole?useUnicode=true&characterEncoding=UTF-8&useSSL=false"
+    url = "jdbc:mysql://localhost:3306?useUnicode=true&characterEncoding=UTF-8&useSSL=false"    # The database wormhole will be created automatically
     numThreads = 4
     minConnections = 4
     maxConnections = 10

@@ -46,7 +46,8 @@ object DbModule extends ConfigurationModuleImpl with RiderLogger {
     sqlSeq.filter(sql =>
       sql.trim.toLowerCase().startsWith("create")
         || sql.trim.toLowerCase().startsWith("alter")
-        || sql.trim.toLowerCase().startsWith("drop"))
+        || sql.trim.toLowerCase().startsWith("drop")
+        || sql.trim.toLowerCase.startsWith("use"))
       .map { sql =>
         try {
           session.withPreparedStatement(sql)(_.execute)
@@ -154,7 +155,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val feedbackHeartbeatDal = new FeedbackHeartbeatDal(feedbackHeartBeatQuery, streamDal)
   override lazy val feedbackOffsetDal = new FeedbackOffsetDal(feedbackOffsetQuery)
   override lazy val feedbackDirectiveDal = new BaseDalImpl[FeedbackDirectiveTable, FeedbackDirective](feedbackDirectiveQuery)
-  override lazy val feedbackErrDal= new FeedbackErrDal(feedbackErrQuery)
+  override lazy val feedbackErrDal = new FeedbackErrDal(feedbackErrQuery)
   override lazy val monitorInfoDal = new MonitorInfoDal(monitorInfoQuery, streamDal, flowDal)
-  override lazy val rechargeResultLogDal= new BaseDalImpl[RechargeResultLogTable,RechargeResultLog](rechargeResultLogQuery)
+  override lazy val rechargeResultLogDal = new BaseDalImpl[RechargeResultLogTable, RechargeResultLog](rechargeResultLogQuery)
 }
