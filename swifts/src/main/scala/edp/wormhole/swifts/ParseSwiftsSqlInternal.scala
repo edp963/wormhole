@@ -55,13 +55,13 @@ object ParseSwiftsSqlInternal {
       .toLowerCase.split(",").map(field => {
       (field.trim, true)
     }).toMap
-    if (dataType == "ums" || (dataType != "ums" && mutation != "i") && !selectSqlFields.contains(UmsSysField.TS.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectSqlFields.contains(UmsSysField.TS.toString)) {
       sqlSecondPart = UmsSysField.TS.toString + "," + sqlSecondPart
     }
-    if (dataType == "ums" || (dataType != "ums" && mutation != "i") && !selectSqlFields.contains(UmsSysField.ID.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectSqlFields.contains(UmsSysField.ID.toString)) {
       sqlSecondPart = UmsSysField.ID.toString + "," + sqlSecondPart
     }
-    if (dataType == "ums" || (dataType != "ums" && mutation != "i") && validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
       sqlSecondPart = UmsSysField.UID.toString + "," + sqlSecondPart
     }
 
