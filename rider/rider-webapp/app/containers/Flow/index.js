@@ -177,6 +177,7 @@ const performanceRefreshTime = [
     value: 86400000
   }
 ];
+/* eslint-disable */
 export class Flow extends React.Component {
   constructor(props) {
     super(props);
