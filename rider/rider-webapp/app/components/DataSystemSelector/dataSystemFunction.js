@@ -36,7 +36,8 @@ export function loadDataSystemData () {
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
     { value: 'parquet', text: 'Parquet' },
     { value: 'kudu', text: 'Kudu' },
-    { value: 'greenplum', text: 'Greenplum' }
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'clickHouse', text: 'clickHouse' }
   ]
   return dataSystemData
 }
@@ -57,7 +58,8 @@ export function filterDataSystemData () {
     {text: 'parquet', value: 'parquet'},
     {text: 'kudu', value: 'kudu'},
     {text: 'log', value: 'log'},
-    { value: 'greenplum', text: 'Greenplum' }
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'clickHouse', text: 'clickHouse' }
   ]
   return dataSystemValue
 }
@@ -89,7 +91,8 @@ export function sinkDataSystemData () {
     { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
     { value: 'kudu', text: 'Kudu' },
-    { value: 'greenplum', text: 'Greenplum' }
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'clickHouse', text: 'clickHouse' }
   ]
   return sinkDataSystemData
 }
@@ -108,7 +111,8 @@ export function jobSinkDataSystemData () {
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
     { value: 'parquet', text: 'Parquet' },
     { value: 'kudu', text: 'Kudu' },
-    { value: 'greenplum', text: 'Greenplum' }
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'clickHouse', text: 'clickHouse' }
   ]
   return sinkDataSystemData
 }
@@ -123,7 +127,8 @@ export function flowTransformationDadaHide () {
     { value: 'phoenix', text: 'Phoenix' },
     { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'kudu', text: 'Kudu' }
+    { value: 'kudu', text: 'Kudu' },
+    { value: 'clickHouse', text: 'clickHouse' }
   ]
   return transformData
 }
@@ -140,7 +145,8 @@ export function flowTransformationDadaShow () {
     { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
     { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
     {value: 'kudu', text: 'Kudu'},
-    { value: 'greenplum', text: 'Greenplum' }
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'clickHouse', text: 'clickHouse' }
   ]
   return transformData
 }

@@ -44,5 +44,18 @@ object SinkProcessConfig {
     else false
 
   }
+
+  def getMutaionType(specailConfig: Option[String]): String = {
+    if (specailConfig.isEmpty) {
+      "iud"
+    } else {
+      val json = JSON.parseObject(specailConfig.get)
+      if (json.containsKey("mutation_type")) {
+        json.getString("mutation_type")
+      } else {
+        "iud"
+      }
+    }
+  }
 }
 

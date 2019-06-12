@@ -21,7 +21,7 @@
 
 package edp.wormhole.sparkx.batchflow
 
-import com.alibaba.fastjson.{JSON, JSONObject}
+import com.alibaba.fastjson.JSON
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
@@ -48,6 +48,57 @@ object BatchflowDirective extends Directive {
     consumptionDataMap(InputDataProtocolBaseType.INITIAL.toString) = initial
     consumptionDataMap(InputDataProtocolBaseType.INCREMENT.toString) = increment
     consumptionDataMap(InputDataProtocolBaseType.BATCH.toString) = batch
+
+    val sinks = JSON.parseObject(flowDirectiveConfig.sinksStr)
+    val sink_connection_url = sinks.getString("sink_connection_url").trim.toLowerCase
+    val sink_connection_username = if (sinks.containsKey("sink_connection_username")) Some(sinks.getString("sink_connection_username").trim) else None
+    val sink_connection_password = if (sinks.containsKey("sink_connection_password")) Some(sinks.getString("sink_connection_password").trim) else None
+    val parameters = if (sinks.containsKey("sink_connection_config") && sinks.getString("sink_connection_config").trim.nonEmpty) Some(JsonUtils.json2caseClass[Seq[KVConfig]](sinks.getString("sink_connection_config"))) else None
+    val sink_table_keys = if (sinks.containsKey("sink_table_keys") && sinks.getString("sink_table_keys").trim.nonEmpty) Some(sinks.getString("sink_table_keys").trim.toLowerCase) else None
+    val sink_specific_config = if (sinks.containsKey("sink_specific_config") && sinks.getString("sink_specific_config").trim.nonEmpty) Some(sinks.getString("sink_specific_config")) else None
+    val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
+    val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
+    val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
+
+    val sinkUid: Boolean = SinkProcessConfig.checkSinkUid(sink_specific_config)
+    val mutationType = SinkProcessConfig.getMutaionType(sink_specific_config)
+
+    val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
+      var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
+      if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
+        if (tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
+        }
+        if (tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
+        }
+        if (tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+        }
+        if (sinkUid && tmpOutput.indexOf(UmsSysField.UID.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.UID.toString
+        }
+      }
+      tmpOutput
+    } else ""
+
+    val sink_schema = if (sinks.containsKey("sink_schema") && sinks.getString("sink_schema").trim.nonEmpty) {
+      val sinkSchemaEncoded = sinks.getString("sink_schema").trim
+      Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
+    } else None
+
+    if (flowDirectiveConfig.dataType != "ums") {
+      val parseResult: RegularJsonSchema = JsonSourceConf.parse(flowDirectiveConfig.dataParseStr)
+      if (initial)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+      if (increment)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+      if (batch)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+    }
+
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds, flowDirectiveConfig.kerberos)
+
     val swiftsProcessConfig: Option[SwiftsProcessConfig] = if (flowDirectiveConfig.swiftsStr != null) {
       val swifts = JSON.parseObject(flowDirectiveConfig.swiftsStr)
       if (swifts.size() > 0) {
@@ -101,63 +152,13 @@ object BatchflowDirective extends Directive {
 
         val SwiftsSqlArr = if (action != null) {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
-          ParseSwiftsSql.parse(sqlStr, flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, if (validity == null) false else true, flowDirectiveConfig.dataType)
+          ParseSwiftsSql.parse(sqlStr, flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, if (validity == null) false else true, flowDirectiveConfig.dataType, mutationType)
         } else None
         Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(swiftsSpecialConfig)))
       } else {
         None
       }
     } else None
-
-    val sinks = JSON.parseObject(flowDirectiveConfig.sinksStr)
-    val sink_connection_url = sinks.getString("sink_connection_url").trim.toLowerCase
-    val sink_connection_username = if (sinks.containsKey("sink_connection_username")) Some(sinks.getString("sink_connection_username").trim) else None
-    val sink_connection_password = if (sinks.containsKey("sink_connection_password")) Some(sinks.getString("sink_connection_password").trim) else None
-    val parameters = if (sinks.containsKey("sink_connection_config") && sinks.getString("sink_connection_config").trim.nonEmpty) Some(JsonUtils.json2caseClass[Seq[KVConfig]](sinks.getString("sink_connection_config"))) else None
-    val sink_table_keys = if (sinks.containsKey("sink_table_keys") && sinks.getString("sink_table_keys").trim.nonEmpty) Some(sinks.getString("sink_table_keys").trim.toLowerCase) else None
-    val sink_specific_config = if (sinks.containsKey("sink_specific_config") && sinks.getString("sink_specific_config").trim.nonEmpty) Some(sinks.getString("sink_specific_config")) else None
-    val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
-    val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
-    val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
-
-    val sinkUid:Boolean = SinkProcessConfig.checkSinkUid(sink_specific_config)
-
-    val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
-      var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
-      if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
-        if (tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
-          tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
-        }
-        if (tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
-          tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
-        }
-        if (tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
-          tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
-        }
-        if (sinkUid && tmpOutput.indexOf(UmsSysField.UID.toString) < 0) {
-          tmpOutput = tmpOutput + "," + UmsSysField.UID.toString
-        }
-      }
-      tmpOutput
-    } else ""
-
-    val sink_schema = if (sinks.containsKey("sink_schema") && sinks.getString("sink_schema").trim.nonEmpty) {
-      val sinkSchemaEncoded = sinks.getString("sink_schema").trim
-      Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
-    } else None
-
-    if (flowDirectiveConfig.dataType != "ums") {
-      val parseResult: RegularJsonSchema = JsonSourceConf.parse(flowDirectiveConfig.dataParseStr)
-      if (initial)
-        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
-      if (increment)
-        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
-      if (batch)
-        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
-
-    }
-
-    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds, flowDirectiveConfig.kerberos)
 
 
     val swiftsStrCache = if (flowDirectiveConfig.swiftsStr == null) "" else flowDirectiveConfig.swiftsStr
@@ -182,7 +183,7 @@ object BatchflowDirective extends Directive {
 
     val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
     val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-    val flowId=UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
+    val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
     try {
       val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
 
@@ -201,13 +202,13 @@ object BatchflowDirective extends Directive {
       val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
 
 
-      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
+      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId, sourceIncrementTopicList)
 
       registerFlowStartDirective(flowDirectiveConfig)
     } catch {
       case e: Throwable =>
         logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
-        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId,flowId, e.getMessage)
+        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, flowId, e.getMessage)
     }
   }
 }
