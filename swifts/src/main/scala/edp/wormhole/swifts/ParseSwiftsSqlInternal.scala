@@ -44,7 +44,8 @@ object ParseSwiftsSqlInternal {
                sourceNamespace: String,
                sinkNamespace: String,
                validity: Boolean,
-               dataType: String): SwiftsSql = {
+               dataType: String,
+               mutation: String): SwiftsSql = {
     val unionNamespace = sqlStrEle.substring(sqlStrEle.indexOf(" with ") + 5, sqlStrEle.indexOf("=")).trim
     val sqlStr = sqlStrEle.substring(sqlStrEle.indexOf("=") + 1).trim
     val (sql, lookupFields: Array[String], valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr, unionNamespace)
@@ -54,13 +55,13 @@ object ParseSwiftsSqlInternal {
       .toLowerCase.split(",").map(field => {
       (field.trim, true)
     }).toMap
-    if (dataType == "ums" && !selectSqlFields.contains(UmsSysField.TS.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectSqlFields.contains(UmsSysField.TS.toString)) {
       sqlSecondPart = UmsSysField.TS.toString + "," + sqlSecondPart
     }
-    if (dataType == "ums" && !selectSqlFields.contains(UmsSysField.ID.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectSqlFields.contains(UmsSysField.ID.toString)) {
       sqlSecondPart = UmsSysField.ID.toString + "," + sqlSecondPart
     }
-    if (dataType == "ums" && validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
       sqlSecondPart = UmsSysField.UID.toString + "," + sqlSecondPart
     }
 
@@ -71,8 +72,8 @@ object ParseSwiftsSqlInternal {
       case UmsDataSystem.CASSANDRA =>
         sqlSecondPart = getCassandraSql(sql, lookupNSArr(2))
         getRmdbSchema(sqlSecondPart, connectionConfig)
-      case  UmsDataSystem.KUDU =>
-        getKuduSchema(sqlSecondPart+ sql.trim.toLowerCase.substring(fromIndex), connectionConfig, unionNamespace)
+      case UmsDataSystem.KUDU =>
+        getKuduSchema(sqlSecondPart + sql.trim.toLowerCase.substring(fromIndex), connectionConfig, unionNamespace)
       case _ =>
         getRmdbSchema(sqlSecondPart, connectionConfig)
     }
@@ -116,7 +117,7 @@ object ParseSwiftsSqlInternal {
   }
 
 
-  def getSparkSql(sqlStrEle: String, sourceNamespace: String, validity: Boolean, dataType: String): SwiftsSql = {
+  def getSparkSql(sqlStrEle: String, sourceNamespace: String, validity: Boolean, dataType: String, mutation: String): SwiftsSql = {
     //sourcenamespace is rule
     val tableName = sourceNamespace.split("\\.")(3)
     val unionSqlArray = getSqlArray(sqlStrEle, " union ", 7)
@@ -129,16 +130,16 @@ object ParseSwiftsSqlInternal {
           (field.trim.split(" ").last, true)
         }).toMap
       if (!selectFields.contains("*")) {
-        if (dataType == "ums" && !selectFields.contains(UmsSysField.TS.toString)) {
+        if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectFields.contains(UmsSysField.TS.toString)) {
           sql = sql + UmsSysField.TS.toString + ", "
         }
-        if (dataType == "ums" && !selectFields.contains(UmsSysField.ID.toString)) {
+        if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectFields.contains(UmsSysField.ID.toString)) {
           sql = sql + UmsSysField.ID.toString + ", "
         }
-        if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString)) {
+        if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectFields.contains(UmsSysField.OP.toString)) {
           sql = sql + UmsSysField.OP.toString + ", "
         }
-        if (dataType == "ums" && validity && !selectFields.contains(UmsSysField.UID.toString)) {
+        if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && validity && !selectFields.contains(UmsSysField.UID.toString)) {
           sql = sql + UmsSysField.UID.toString + ", "
         }
       }
@@ -209,7 +210,7 @@ object ParseSwiftsSqlInternal {
       fieldsStr = getFieldsWithType(joinNamespace, sql)
     }
 
-//    syntaxCheck(sql, lookupFields)
+    //    syntaxCheck(sql, lookupFields)
     val lookupFieldsAlias = getAliasLookupFields(sql, lookupFields)
     SwiftsSql(optType.toString, fieldsStr, sql, None, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
@@ -451,7 +452,7 @@ object ParseSwiftsSqlInternal {
     val sqlStr: String = getJoinSql(userSqlStr)
     val namespaceArray = sourceNamespace.split("\\.")
     val fourDigitNamespace = (for (i <- 0 until 4) yield namespaceArray(i)).mkString(".")
-    val joinPosition = if(sqlStr.toLowerCase.indexOf(fourDigitNamespace) > -1) sqlStr.toLowerCase.indexOf(fourDigitNamespace) else sqlStr.toLowerCase.indexOf("${")
+    val joinPosition = if (sqlStr.toLowerCase.indexOf(fourDigitNamespace) > -1) sqlStr.toLowerCase.indexOf(fourDigitNamespace) else sqlStr.toLowerCase.indexOf("${")
     val temp_inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
     val inPosition = if (temp_inPosition < 0) sqlStr.toLowerCase.lastIndexOf(" in(", joinPosition) else temp_inPosition
     val valueLeftPosition = sqlStr.indexOf("(", inPosition)
@@ -459,9 +460,9 @@ object ParseSwiftsSqlInternal {
     val valueFieldsStr = sqlStr.substring(valueLeftPosition + 1, valueRightPosition).toLowerCase
     val valuesFields = if (valueFieldsStr.indexOf(sourceNamespace) > -1) {
       valueFieldsStr.trim.replace(sourceNamespace + ".", "").split(",").map(_.trim)
-    } else if(valueFieldsStr.indexOf("${")> -1){
-       valueFieldsStr.split(",").map(field  => field.replaceAll("\\$\\{","").replaceAll("\\}","")).map(_.trim)
-    }else {
+    } else if (valueFieldsStr.indexOf("${") > -1) {
+      valueFieldsStr.split(",").map(field => field.replaceAll("\\$\\{", "").replaceAll("\\}", "")).map(_.trim)
+    } else {
       valueFieldsStr.trim.replaceAll(fourDigitNamespace + "\\.", "").split(",").map(_.trim)
     }
     var joinLeftPosition: Int = 0

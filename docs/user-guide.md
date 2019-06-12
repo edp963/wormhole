@@ -247,7 +247,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 配置flow在Sink Config中配置customer sink class的完整的名字
 
-{"other_sinks_config":{"current_sink_class_fullname":"customer sink full class name"}}
+{"other_sinks_config":{"customer_sink_class_fullname":"customer sink full class name"}}
 
 ### Transformation
 

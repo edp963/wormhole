@@ -24,12 +24,9 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
-import edp.rider.yarn.ShellUtils.riderLogger
 import edp.wormhole.util.JsonUtils
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.sys.process.{Process, _}
 
@@ -48,20 +45,20 @@ object SubmitYarnJob extends App with RiderLogger {
   //  }
 
 
-//  def runShellCommand(command: String) = {
-//    assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
-//    val array = command.split(";")
-//    if (array.length == 2) {
-//      val process1 = Future(Process(array(0)).run())
-//      process1.map(p => {
-//        if (p.exitValue() != 0) {
-//          val msg = array(1).split("\\|")
-//          Future(msg(0).trim #| msg(1).trim !)
-//        }
-//      })
-//    }
-//    else Process(command).run()
-//  }
+  //  def runShellCommand(command: String) = {
+  //    assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
+  //    val array = command.split(";")
+  //    if (array.length == 2) {
+  //      val process1 = Future(Process(array(0)).run())
+  //      process1.map(p => {
+  //        if (p.exitValue() != 0) {
+  //          val msg = array(1).split("\\|")
+  //          Future(msg(0).trim #| msg(1).trim !)
+  //        }
+  //      })
+  //    }
+  //    else Process(command).run()
+  //  }
 
   def runShellCommandBlock(command: String) = {
     val commandRe = Process(command).!
@@ -100,7 +97,7 @@ object SubmitYarnJob extends App with RiderLogger {
       if (RiderConfig.kerberos.enabled) new StreamProcessLogger(process.getErrorStream).parseKillErrorStream()
       else true
     riderLogger.info(s"run shell command is: $command, result is $killSuccess")
-    if(!killSuccess) {
+    if (!killSuccess) {
       try {
         process.destroy()
       } catch {
@@ -142,28 +139,28 @@ object SubmitYarnJob extends App with RiderLogger {
         }
       }*/
 
-      val relativePath=RiderConfig.kerberos.jaasYarnConfig.contains("/") match {
-        case true=>RiderConfig.kerberos.jaasYarnConfig.substring(RiderConfig.kerberos.jaasYarnConfig.lastIndexOf('/')+1)
-        case _=>RiderConfig.kerberos.jaasYarnConfig
+      val relativePath = RiderConfig.kerberos.jaasYarnConfig.contains("/") match {
+        case true => RiderConfig.kerberos.jaasYarnConfig.substring(RiderConfig.kerberos.jaasYarnConfig.lastIndexOf('/') + 1)
+        case _ => RiderConfig.kerberos.jaasYarnConfig
       }
 
-      val krb5Param=s" -Djava.security.auth.login.config=./${relativePath}"
+      val krb5Param = s" -Djava.security.auth.login.config=./${relativePath}"
 
-      if(RiderConfig.kerberos.enabled){
-        if(jvmDriverConfig!="")
-          conf++=Array(jvmDriverConfig.concat(krb5Param))
+      if (RiderConfig.kerberos.enabled) {
+        if (jvmDriverConfig != "")
+          conf ++= Array(jvmDriverConfig.concat(krb5Param))
         else
-          conf ++=Array(s"spark.driver.extraJavaOptions=$krb5Param")
+          conf ++= Array(s"spark.driver.extraJavaOptions=$krb5Param")
 
-        if(jvmExecutorConfig!="")
-          conf++=Array(jvmExecutorConfig+krb5Param)
+        if (jvmExecutorConfig != "")
+          conf ++= Array(jvmExecutorConfig + krb5Param)
         else
-          conf ++=Array(s"spark.executor.extraJavaOptions=$krb5Param")
+          conf ++= Array(s"spark.executor.extraJavaOptions=$krb5Param")
 
-        conf++=Array("spark.hadoop.fs.hdfs.impl.disable.cache=true")
-      }else{
-        if(jvmDriverConfig!="")conf ++= Array(jvmDriverConfig)
-        if (jvmExecutorConfig != "")conf ++= Array(jvmExecutorConfig)
+        conf ++= Array("spark.hadoop.fs.hdfs.impl.disable.cache=true")
+      } else {
+        if (jvmDriverConfig != "") conf ++= Array(jvmDriverConfig)
+        if (jvmExecutorConfig != "") conf ++= Array(jvmExecutorConfig)
       }
 
       if (othersConfig != "") conf ++= othersConfig.split(",")
@@ -180,7 +177,7 @@ object SubmitYarnJob extends App with RiderLogger {
         s"${RiderConfig.spark.sparkLog4jPath},${RiderConfig.spark.metricsConfPath}"
       else RiderConfig.spark.sparkLog4jPath
 
-//    runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
+    //    runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
     val startShell =
       if (local)
         RiderConfig.spark.startShell.split("\\n").filterNot(line => line.contains("master") || line.contains("deploy-mode"))
@@ -191,11 +188,11 @@ object SubmitYarnJob extends App with RiderLogger {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
       else if (l.startsWith("--files")) {
-        if(RiderConfig.kerberos.enabled)
-          s" --files " + files +","+ RiderConfig.kerberos.jaasYarnConfig+","+RiderConfig.kerberos.keyTab+s" "
+        if (RiderConfig.kerberos.enabled)
+          s" --files " + files + "," + RiderConfig.kerberos.jaasYarnConfig + "," + RiderConfig.kerberos.keyTab + s" "
         else
-            s" --files " + files + s" "
-      }else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
+          s" --files " + files + s" "
+      } else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
@@ -212,12 +209,12 @@ object SubmitYarnJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ") +
-    realJarPath + " " + args  + " > " + logPath + " 2>&1 "
+      realJarPath + " " + args + " > " + logPath + " 2>&1 "
 
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    if(RiderConfig.kerberos.enabled)
+    if (RiderConfig.kerberos.enabled)
       submitPre + s"/bin/spark-submit --principal ${RiderConfig.kerberos.sparkPrincipal} --keytab  ${RiderConfig.kerberos.sparkKeyTab} " + startCommand
     else
       submitPre + "/bin/spark-submit " + startCommand
