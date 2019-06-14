@@ -232,7 +232,11 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                     if (checkFormat._1) {
                       val startedTime = if (flow.startedTime.getOrElse("") == "") null else flow.startedTime
                       val stoppedTime = if (flow.stoppedTime.getOrElse("") == "") null else flow.stoppedTime
-                      val updateFlow = Flow(flow.id, flow.flowName, flow.projectId, flow.streamId, 0L, flow.sourceNs.trim, flow.sinkNs.trim, flow.parallelism, flow.consumedProtocol.trim, flow.sinkConfig,
+                      val flowPriorityId = Await.result(flowDal.findById(flow.id),minTimeOut) match{
+                        case Some(flow) => flow.priorityId
+                        case None => 0L
+                      }
+                      val updateFlow = Flow(flow.id, flow.flowName, flow.projectId, flow.streamId, flowPriorityId, flow.sourceNs.trim, flow.sinkNs.trim, flow.parallelism, flow.consumedProtocol.trim, flow.sinkConfig,
                         flow.tranConfig, flow.tableKeys, flow.desc, flow.status, startedTime, stoppedTime, flow.logPath, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
 
                       //                      val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
