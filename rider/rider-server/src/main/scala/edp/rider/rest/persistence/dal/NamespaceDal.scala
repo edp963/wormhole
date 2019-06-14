@@ -186,13 +186,15 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
       val dbusSearch = Await.result(dbusDal.findAll, minTimeOut)
 
-      syncDbusSeq.distinct.foreach(simple => {
-        val dbusExist = dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
+      syncDbusSeq.foreach(simple => {
+        val dbusExist =
+          dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
         if (dbusExist.isEmpty) {
-//          riderLogger.info("simple: " + simple)
-          dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
-        }
-        else {
+          //          riderLogger.info("simple: " + simple)
+          if (!dbusSeq.exists(insert => insert.namespace == simple.namespace)) {
+            dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
+          }
+        } else {
           val dbusUpdate = dbusExist.filter(dbus => dbus.kafka == simple.kafka && dbus.topic == simple.topic && dbus.namespace == simple.namespace)
           if (dbusUpdate.isEmpty)
             dbusUpdateSeq += Dbus(dbusExist.head.id, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
@@ -200,7 +202,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       })
 
       riderLogger.info("dbus insert size: " + dbusSeq.size)
-       val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq.sortBy(_.dbusId)), maxTimeOut)
+      val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq.sortBy(_.dbusId)), maxTimeOut)
       riderLogger.info("dbus update size: " + dbusUpdateSeq.size)
       Await.result(dbusDal.update(dbusUpdateSeq), minTimeOut)
 
