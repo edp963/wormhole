@@ -185,10 +185,11 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       dbSeq.foreach(db => topicIdMap.put(db.nsDatabase, db.id))
 
       val dbusSearch = Await.result(dbusDal.findAll, minTimeOut)
-      syncDbusSeq.foreach(simple => {
+
+      syncDbusSeq.distinct.foreach(simple => {
         val dbusExist = dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
         if (dbusExist.isEmpty) {
-          riderLogger.info("simple: " + simple)
+//          riderLogger.info("simple: " + simple)
           dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
         }
         else {
@@ -199,9 +200,10 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       })
 
       riderLogger.info("dbus insert size: " + dbusSeq.size)
-      val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq), maxTimeOut)
+       val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq.sortBy(_.dbusId)), maxTimeOut)
       riderLogger.info("dbus update size: " + dbusUpdateSeq.size)
       Await.result(dbusDal.update(dbusUpdateSeq), minTimeOut)
+
       Future(dbusInsertSeq ++ dbusUpdateSeq)
     } catch {
       case ex: Exception =>
