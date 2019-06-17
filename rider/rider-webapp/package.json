@@ -131,10 +131,10 @@
       "jsx-a11y/mouse-events-have-key-events": 2,
       "jsx-a11y/role-has-required-aria-props": 2,
       "jsx-a11y/role-supports-aria-props": 2,
-      "jsx-quotes": 0,
-      "quotes": 0,
-      "semi": 0,
-      "space-before-function-paren": 0,
+      "jsx-quotes": [
+        "error",
+        "prefer-double"
+      ],
       "max-len": 0,
       "newline-per-chained-call": 0,
       "no-console": 0,
