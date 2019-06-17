@@ -1429,7 +1429,7 @@ export class Manager extends React.Component {
 
     const priorityTitle = <FormattedMessage {...messages.streamSetPriority} />
 
-    const SortableItem = SortableElement(({value}) => <div className="sort-item">{value.flowName}</div>)
+    const SortableItem = SortableElement(({value}) => <div className="sort-item">{value.id}：{value.flowName}</div>)
 
     const SortableList = SortableContainer(({items}) => (
       <div className="set-priority">
