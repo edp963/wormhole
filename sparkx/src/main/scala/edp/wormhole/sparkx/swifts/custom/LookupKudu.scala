@@ -64,6 +64,7 @@ object LookupKudu extends EdpLogging {
         keySchemaMap(lookupFieldNameArray.head) = (0, keyType, true)
 
 //        originalData.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
+        log.info(s"lookup kudu originalData:$originalData")
           val tupleList: mutable.Seq[List[String]] = originalData.map(row => {
             sqlConfig.sourceTableFields.get.toList.map(field => {
               val tmpKey = row.get(row.fieldIndex(field))
@@ -75,10 +76,11 @@ object LookupKudu extends EdpLogging {
             !keys.contains(null)
           })
 
+         log.info(s"lookupField:${lookupFieldNameArray.head},tupleList:$tupleList")
           val queryDataMap: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]] =
             KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
               lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray, batchSize.getOrElse(1))
-
+        log.info(s"queryDataMap:$queryDataMap")
         originalData.foreach((row: Row) => {
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
             val joinData = row.get(row.fieldIndex(sourceFieldName))
