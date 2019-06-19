@@ -274,9 +274,9 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics start directive
-        val topics = autoRegisteredTopics ++: userdefinedTopics
-        val addHeartbeatTopic = if (topics.isEmpty) true else false
-        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, addHeartbeatTopic)
+        //val topics = autoRegisteredTopics ++: userdefinedTopics
+        //val addHeartbeatTopic = if (topics.isEmpty) true else false
+        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, true)
       case None =>
         // delete all user defined topics by stream id
         Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
