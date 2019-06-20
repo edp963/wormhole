@@ -208,13 +208,14 @@ object StreamUtils extends RiderLogger {
         case Some(_) =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-            SparkConfig(stream.id, stream.name, "yarn-cluster", startConfig.executorNums * startConfig.perExecutorCores),
+            SparkConfig(stream.id, stream.name, "yarn", startConfig.executorNums * startConfig.perExecutorCores),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
-            RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
+            RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
+            RiderConfig.spark.remoteHdfsNamenodeIds, Option(RiderConfig.kerberos.hdfslogServerEnabled))
         case None =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+            SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.enabled)
       }
     caseClass2json[BatchFlowConfig](config)
@@ -671,7 +672,7 @@ object StreamUtils extends RiderLogger {
 
 
   def hidePid(stream: Stream): Stream = {
-    if(stream != null && stream.status == "starting") {
+    if (stream != null && stream.status == "starting") {
       Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
         stream.launchConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
         stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
@@ -679,7 +680,7 @@ object StreamUtils extends RiderLogger {
   }
 
   def hidePid(streams: Seq[Stream]): Seq[Stream] = {
-    if(streams != null && streams.nonEmpty) {
+    if (streams != null && streams.nonEmpty) {
       streams.map(stream => {
         hidePid(stream)
       })

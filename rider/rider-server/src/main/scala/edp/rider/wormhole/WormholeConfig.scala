@@ -61,9 +61,10 @@ case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
                            zookeeper_path: String,
                            kafka_persistence_config_isvalid: Boolean,
                            stream_hdfs_address: Option[String],
-                           kerberos: Boolean=false,
+                           kerberos: Boolean = false,
                            hdfs_namenode_hosts: Option[String] = None,
-                           hdfs_namenode_ids: Option[String] = None)
+                           hdfs_namenode_ids: Option[String] = None,
+                           hdfslog_server_kerberos: Option[Boolean] = None)
 
 //for parquet，data is main namespace or join namespace
 
@@ -108,11 +109,11 @@ case class WhFlinkConfig(flow_name: String,
                          udf_config: Seq[FlowUdfResponse],
                          feedback_enabled: Boolean,
                          feedback_state_count: Int,
-                         feedback_interval:Int,
-                         flink_config: FlinkConfig ,
+                         feedback_interval: Int,
+                         flink_config: FlinkConfig,
                          kerberos: Boolean = false)
 
 case class FlinkConfig(checkpoint: FlinkCheckpoint)
 
-case class FlinkCheckpoint(enable: Boolean=false, `checkpointInterval.ms`: Int=60000, stateBackend:String)
+case class FlinkCheckpoint(enable: Boolean = false, `checkpointInterval.ms`: Int = 60000, stateBackend: String)
 
