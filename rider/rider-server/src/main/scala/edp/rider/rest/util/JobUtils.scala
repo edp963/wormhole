@@ -43,6 +43,7 @@ import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import edp.wormhole.util.{DateUtils, FileUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.security.UserGroupInformation
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -322,8 +323,15 @@ object JobUtils extends RiderLogger {
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
-    if (isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
-    else null
+    if(RiderConfig.kerberos.enabled) {
+      UserGroupInformation.setConfiguration(config)
+      UserGroupInformation.loginUserFromKeytab(RiderConfig.kerberos.sparkPrincipal, RiderConfig.kerberos.sparkKeyTab)
+    }
+    val fileList =
+      if (isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+      else null
+    fileSystem.close()
+    fileList
   }
 
   def setConfiguration(hdfsPath: String, connectionConfig: Option[Seq[KVConfig]]): Configuration = {
@@ -345,6 +353,11 @@ object JobUtils extends RiderLogger {
     val hdfsPathGrp = hdfsPath.split("//")
     val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
     configuration.set("fs.defaultFS", hdfsRoot)
+
+    if(RiderConfig.kerberos.enabled) {
+      configuration.set("hadoop.security.authentication", "kerberos")
+    }
+
     configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
     //configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
     if (sourceNamenodeHosts != null) {
