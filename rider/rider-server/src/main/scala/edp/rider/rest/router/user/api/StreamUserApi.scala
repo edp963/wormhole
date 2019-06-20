@@ -611,9 +611,15 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
 
   private def getTopicsResponse(projectId: Long, streamId: Long, session: SessionClass): Route = {
-    val topics = streamDal.getTopicsAllOffsets(streamId)
-    riderLogger.info(s"user ${session.userId} get stream $streamId topics success.")
-    complete(OK, ResponseJson[GetTopicsResponse](getHeader(200, session), topics))
+    try {
+      val topics = streamDal.getTopicsAllOffsets(streamId)
+      riderLogger.info(s"user ${session.userId} get stream $streamId topics success.")
+      complete(OK, ResponseJson[GetTopicsResponse](getHeader(200, session), topics))
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user ${session.userId} get stream $streamId topics failed", ex)
+        complete(OK, setFailedResponse(session, ex.getMessage))
+    }
   }
 
   def getUdfsRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "udfs") {
