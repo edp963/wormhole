@@ -313,7 +313,7 @@ object JobUtils extends RiderLogger {
     }
     val configuration = setConfiguration(hdfsRoot, None)
     val names = namespace.split("\\.")
-    val hdfsPath = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
+    val hdfsPath = hdfsRoot + "/hdfslog/" + names(0).toLowerCase + "." + names(1).toLowerCase + "." + names(2).toLowerCase + "/" + names(3).toLowerCase
     val hdfsFileList = getHdfsFileList(configuration, hdfsPath)
     if (hdfsFileList != null) hdfsFileList.map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).mkString(",")
     else ""
@@ -323,6 +323,7 @@ object JobUtils extends RiderLogger {
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
+
     if(RiderConfig.kerberos.enabled) {
       UserGroupInformation.setConfiguration(config)
       UserGroupInformation.loginUserFromKeytab(RiderConfig.kerberos.sparkPrincipal, RiderConfig.kerberos.sparkKeyTab)
