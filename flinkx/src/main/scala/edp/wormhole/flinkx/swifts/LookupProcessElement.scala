@@ -64,7 +64,7 @@ class LookupProcessElement(swiftsSql: SwiftsSql,
       val joinFields = UmsDataSystem.dataSystem(lookupNamespace.split("\\.")(0).toLowerCase()) match {
         case UmsDataSystem.HBASE => LookupHbaseHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
         case UmsDataSystem.REDIS => LookupRedisHelper.joinFieldsInRow(value, swiftsSql, preSchemaMap)
-        case _ => LookupHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
+        case _ => LookupHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap, false).mkString("_")
       }
 
       if (lookupDataMap == null || !lookupDataMap.contains(joinFields)) {
