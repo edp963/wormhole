@@ -53,10 +53,30 @@ import { selectFlows, selectError, selectFlowStartModalLoading, selectStreamFilt
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import {
-  loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
-  saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
-  loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo,
-  loadDriftList, postDriftList, verifyDrift, postFlowPerformance, getErrorList
+  loadAdminAllFlows,
+  loadUserAllFlows,
+  loadAdminSingleFlow,
+  operateUserFlow,
+  editLogForm,
+  saveForm,
+  checkOutForm,
+  loadSourceLogDetail,
+  loadSourceSinkDetail,
+  loadSinkWriteRrrorDetail,
+  loadSourceInput,
+  loadFlowDetail,
+  chuckAwayFlow,
+  loadLastestOffset,
+  loadUdfs,
+  startFlinkFlow,
+  stopFlinkFlow,
+  loadAdminLogsInfo,
+  loadLogsInfo,
+  loadDriftList,
+  postDriftList,
+  verifyDrift,
+  postFlowPerformance,
+  getErrorList
 } from './action'
 import { jumpStreamToFlowFilter } from '../Manager/action'
 import { loadSingleUdf } from '../Udf/action'
@@ -152,6 +172,7 @@ const performanceRefreshTime = [
     value: 86400000
   }
 ]
+
 export class Flow extends React.Component {
   constructor (props) {
     super(props)
@@ -260,9 +281,7 @@ export class Flow extends React.Component {
       })
       this.setState({ originFlows: originFlows.slice() })
 
-      this.state.columnNameText === ''
-        ? this.setState({ currentFlows: originFlows.slice() })
-        : this.searchOperater()
+      this.state.columnNameText === '' ? this.setState({ currentFlows: originFlows.slice() }) : this.searchOperater()
       setTimeout(() => {
         this.props.jumpStreamToFlowFilter('')
       }, 20)
@@ -296,15 +315,26 @@ export class Flow extends React.Component {
 
   loadFlowData () {
     const {
-      projectIdGeted, flowClassHide, onLoadAdminSingleFlow, onLoadAdminAllFlows, onLoadUserAllFlows, roleType
+      projectIdGeted,
+      flowClassHide,
+      onLoadAdminSingleFlow,
+      onLoadAdminAllFlows,
+      onLoadUserAllFlows,
+      roleType
     } = this.props
 
     if (roleType === 'admin') {
       flowClassHide === 'hide'
-        ? onLoadAdminSingleFlow(projectIdGeted, () => { this.flowRefreshState() })
-        : onLoadAdminAllFlows(() => { this.flowRefreshState() })
+        ? onLoadAdminSingleFlow(projectIdGeted, () => {
+          this.flowRefreshState()
+        })
+        : onLoadAdminAllFlows(() => {
+          this.flowRefreshState()
+        })
     } else if (roleType === 'user') {
-      onLoadUserAllFlows(projectIdGeted, () => { this.flowRefreshState() })
+      onLoadUserAllFlows(projectIdGeted, () => {
+        this.flowRefreshState()
+      })
     }
   }
 
@@ -315,7 +345,14 @@ export class Flow extends React.Component {
     })
 
     const {
-      columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState
+      columnNameText,
+      valueText,
+      visibleBool,
+      paginationInfo,
+      filteredInfo,
+      sortedInfo,
+      startTimeTextState,
+      endTimeTextState
     } = this.state
 
     if (columnNameText !== '') {
@@ -328,10 +365,10 @@ export class Flow extends React.Component {
     }
   }
 
-  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
+  onSelectChange = selectedRowKeys => this.setState({ selectedRowKeys })
 
   // 批量操作
-  handleMenuClick = (selectedRowKeys) => (e) => {
+  handleMenuClick = selectedRowKeys => e => {
     const { locale } = this.props
     if (selectedRowKeys.length > 0) {
       let menuAction = ''
@@ -361,31 +398,36 @@ export class Flow extends React.Component {
         action: menuAction
       }
 
-      this.props.onOperateUserFlow(requestValue, (result) => {
-        this.setState({ selectedRowKeys: [] })
-        const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
-        if (!Array.isArray(result)) {
-          result = [result]
-        }
-        if (typeof (result) === 'object') {
-          const resultFailed = result.filter(i => i.msg.includes('failed'))
-          if (resultFailed.length > 0) {
-            const resultFailedIdArr = resultFailed.map(i => i.id)
-            const resultFailedIdStr = resultFailedIdArr.join('、')
+      this.props.onOperateUserFlow(
+        requestValue,
+        result => {
+          this.setState({ selectedRowKeys: [] })
+          const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
+          if (!Array.isArray(result)) {
+            result = [result]
+          }
+          if (typeof result === 'object') {
+            const resultFailed = result.filter(i => i.msg.includes('failed'))
+            if (resultFailed.length > 0) {
+              const resultFailedIdArr = resultFailed.map(i => i.id)
+              const resultFailedIdStr = resultFailedIdArr.join('、')
 
-            const languagetextFailFlowId = locale === 'en'
-              ? `It fails to ${menuMsg} Flow ID ${resultFailedIdStr}!`
-              : `Flow ID ${resultFailedIdStr} ${menuMsg}失败！`
-            message.error(languagetextFailFlowId, 5)
+              const languagetextFailFlowId =
+                locale === 'en'
+                  ? `It fails to ${menuMsg} Flow ID ${resultFailedIdStr}!`
+                  : `Flow ID ${resultFailedIdStr} ${menuMsg}失败！`
+              message.error(languagetextFailFlowId, 5)
+            } else {
+              message.success(`${menuMsg}${languagetextSuccess}`, 3)
+            }
           } else {
             message.success(`${menuMsg}${languagetextSuccess}`, 3)
           }
-        } else {
-          message.success(`${menuMsg}${languagetextSuccess}`, 3)
+        },
+        result => {
+          message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
         }
-      }, (result) => {
-        message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
-      })
+      )
     } else {
       message.warning(`${locale === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
     }
@@ -399,7 +441,7 @@ export class Flow extends React.Component {
   }
 
   // 单行操作
-  singleOpreateFlow = (record, action) => (e) => {
+  singleOpreateFlow = (record, action) => e => {
     const { locale } = this.props
     const requestValue = {
       projectId: record.projectId,
@@ -420,29 +462,34 @@ export class Flow extends React.Component {
         break
     }
 
-    this.props.onOperateUserFlow(requestValue, (result) => {
-      const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
-      if (action === 'delete') {
-        message.success(`${singleMsg}${languagetextSuccess}`, 3)
-      } else {
-        if (result.msg.includes('failed')) {
-          const languagetextFail = locale === 'en'
-            ? `It fails to ${singleMsg} Flow ID ${result.id}!`
-            : `Flow ID ${result.id} ${singleMsg}失败！`
-
-          message.error(languagetextFail, 3)
+    this.props.onOperateUserFlow(
+      requestValue,
+      result => {
+        const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
+        if (action === 'delete') {
+          message.success(`${singleMsg}${languagetextSuccess}`, 3)
         } else {
-          action === 'renew'
-            ? message.success(locale === 'en' ? 'Renew successfully！' : '生效！', 3)
-            : message.success(`${singleMsg}${languagetextSuccess}`, 3)
+          if (result.msg.includes('failed')) {
+            const languagetextFail =
+              locale === 'en'
+                ? `It fails to ${singleMsg} Flow ID ${result.id}!`
+                : `Flow ID ${result.id} ${singleMsg}失败！`
+
+            message.error(languagetextFail, 3)
+          } else {
+            action === 'renew'
+              ? message.success(locale === 'en' ? 'Renew successfully！' : '生效！', 3)
+              : message.success(`${singleMsg}${languagetextSuccess}`, 3)
+          }
         }
+      },
+      result => {
+        message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
       }
-    }, (result) => {
-      message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
-    })
+    )
   }
 
-  onShowEditStart = (record) => (e) => {
+  onShowEditStart = record => e => {
     const { projectIdGeted, locale } = this.props
 
     this.setState({
@@ -452,7 +499,7 @@ export class Flow extends React.Component {
     })
 
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
-    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', (result) => {
+    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', result => {
       // 回显选中的 topic，必须有 id
       const currentUdfTemp = result
       let topicsSelectValue = []
@@ -463,25 +510,30 @@ export class Flow extends React.Component {
     })
 
     // 与user UDF table相同的接口获得全部的UDFs
-    this.props.onLoadSingleUdf(projectIdGeted, 'user', (result) => {
-      const allOptionVal = {
-        createBy: 1,
-        createTime: '',
-        desc: '',
-        fullClassName: '',
-        functionName: locale === 'en' ? 'Select all' : '全选',
-        id: -1,
-        jarName: '',
-        pubic: false,
-        updateBy: 1,
-        updateTime: ''
-      }
-      result.unshift(allOptionVal)
-      this.setState({ startUdfVals: result })
-    }, 'flink')
+    this.props.onLoadSingleUdf(
+      projectIdGeted,
+      'user',
+      result => {
+        const allOptionVal = {
+          createBy: 1,
+          createTime: '',
+          desc: '',
+          fullClassName: '',
+          functionName: locale === 'en' ? 'Select all' : '全选',
+          id: -1,
+          jarName: '',
+          pubic: false,
+          updateBy: 1,
+          updateTime: ''
+        }
+        result.unshift(allOptionVal)
+        this.setState({ startUdfVals: result })
+      },
+      'flink'
+    )
 
     // 显示 Latest offset
-    this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
+    this.props.onLoadLastestOffset(projectIdGeted, record.id, result => {
       if (result) {
         let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
           v.name = transformStringWithDot(v.name)
@@ -506,7 +558,7 @@ export class Flow extends React.Component {
       }
     })
   }
-  throughputResolve = (flowData) => {
+  throughputResolve = flowData => {
     let series = []
     let seriesData = []
     let xAxisData = []
@@ -546,15 +598,31 @@ export class Flow extends React.Component {
           }
         }
       },
-      color: ['#fbc02d', '#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
-      dataZoom: [{
-        type: 'inside',
-        start: 0,
-        disabled: zoomDisabled
-      }, {
-        type: 'slider',
-        show: !zoomDisabled
-      }],
+      color: [
+        '#fbc02d',
+        '#c23531',
+        '#2f4554',
+        '#61a0a8',
+        '#d48265',
+        '#91c7ae',
+        '#749f83',
+        '#ca8622',
+        '#bda29a',
+        '#6e7074',
+        '#546570',
+        '#c4ccd3'
+      ],
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          disabled: zoomDisabled
+        },
+        {
+          type: 'slider',
+          show: !zoomDisabled
+        }
+      ],
       xAxis: [
         {
           type: 'category',
@@ -574,7 +642,7 @@ export class Flow extends React.Component {
     }
     return obj
   }
-  recordsResolve = (flowData) => {
+  recordsResolve = flowData => {
     let series = []
     let seriesData = []
     let xAxisData = []
@@ -614,15 +682,31 @@ export class Flow extends React.Component {
           }
         }
       },
-      color: ['#fbc02d', '#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
-      dataZoom: [{
-        type: 'inside',
-        start: 0,
-        disabled: zoomDisabled
-      }, {
-        type: 'slider',
-        show: !zoomDisabled
-      }],
+      color: [
+        '#fbc02d',
+        '#c23531',
+        '#2f4554',
+        '#61a0a8',
+        '#d48265',
+        '#91c7ae',
+        '#749f83',
+        '#ca8622',
+        '#bda29a',
+        '#6e7074',
+        '#546570',
+        '#c4ccd3'
+      ],
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          disabled: zoomDisabled
+        },
+        {
+          type: 'slider',
+          show: !zoomDisabled
+        }
+      ],
       xAxis: [
         {
           type: 'category',
@@ -685,19 +769,35 @@ export class Flow extends React.Component {
           }
         }
       },
-      color: ['#fbc02d', '#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
+      color: [
+        '#fbc02d',
+        '#c23531',
+        '#2f4554',
+        '#61a0a8',
+        '#d48265',
+        '#91c7ae',
+        '#749f83',
+        '#ca8622',
+        '#bda29a',
+        '#6e7074',
+        '#546570',
+        '#c4ccd3'
+      ],
       legend: {
         data: quota,
         top: '5%'
       },
-      dataZoom: [{
-        type: 'inside',
-        start: 0,
-        disabled: zoomDisabled
-      }, {
-        type: 'slider',
-        show: !zoomDisabled
-      }],
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          disabled: zoomDisabled
+        },
+        {
+          type: 'slider',
+          show: !zoomDisabled
+        }
+      ],
       xAxis: [
         {
           type: 'category',
@@ -729,7 +829,7 @@ export class Flow extends React.Component {
   }
   performanceResolve = (projectIdGeted, flowId, startTime, endTime) => {
     const { onSearchFlowPerformance } = this.props
-    onSearchFlowPerformance(projectIdGeted, flowId, startTime, endTime, (data) => {
+    onSearchFlowPerformance(projectIdGeted, flowId, startTime, endTime, data => {
       let flowData = data.flowMetrics[0]
       let keyStr = flowData.cols
       let keys = keyStr && keyStr.split(',')
@@ -742,24 +842,32 @@ export class Flow extends React.Component {
       const throughputChartOpt = this.throughputResolve(flowData)
       const recordsChartOpt = this.recordsResolve(flowData)
       const latencyChartOpt = this.latencyResolve(flowData, quota)
-      this.setState({throughputChartOpt, recordsChartOpt, latencyChartOpt, performanceModelTitle: flowData.flowName || 'performance'})
+      this.setState({
+        throughputChartOpt,
+        recordsChartOpt,
+        latencyChartOpt,
+        performanceModelTitle: flowData.flowName || 'performance'
+      })
     })
   }
-  onShowPerformance = (record) => (e) => {
+  onShowPerformance = record => e => {
     const { projectIdGeted } = this.props
     const flowId = record.id
     const now = new Date().getTime()
     const endTime = now
     const startTime = now - this.state.performanceMenuChosen.value
     this.performanceResolve(projectIdGeted, flowId, startTime, endTime)
-    this.setState({
-      performanceModalVisible: true,
-      chosenFlowId: flowId
-    }, () => {
-      this.refreshPerformance()
-    })
+    this.setState(
+      {
+        performanceModalVisible: true,
+        chosenFlowId: flowId
+      },
+      () => {
+        this.refreshPerformance()
+      }
+    )
   }
-  onShowErrorList = (record) => (e) => {
+  onShowErrorList = record => e => {
     this.getFlowErrorList(record.id)
     this.setState({
       errorListVisible: true
@@ -773,7 +881,7 @@ export class Flow extends React.Component {
   closePerformanceDialog = () => {
     if (this.state.refreshTimer) {
       clearInterval(this.state.refreshTimer)
-      this.setState({refreshTimer: null})
+      this.setState({ refreshTimer: null })
     }
     this.setState({
       performanceModalVisible: false,
@@ -782,22 +890,25 @@ export class Flow extends React.Component {
       performanceMenuChosen: performanceRanges[3]
     })
   }
-  choosePerformanceRange = ({item, key}) => {
+  choosePerformanceRange = ({ item, key }) => {
     const { projectIdGeted } = this.props
     const { chosenFlowId } = this.state
     let performanceMenuChosen = {
       label: item.props.children,
       value: key
     }
-    this.setState({
-      performanceMenuChosen
-    }, () => {
-      const now = new Date().getTime()
-      const endTime = now
-      const startTime = now - this.state.performanceMenuChosen.value
-      this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
-      this.refreshPerformance()
-    })
+    this.setState(
+      {
+        performanceMenuChosen
+      },
+      () => {
+        const now = new Date().getTime()
+        const endTime = now
+        const startTime = now - this.state.performanceMenuChosen.value
+        this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
+        this.refreshPerformance()
+      }
+    )
   }
   refreshPerformance = (performanceMenuRefreshChosen = this.state.performanceMenuRefreshChosen) => {
     const { projectIdGeted } = this.props
@@ -805,7 +916,7 @@ export class Flow extends React.Component {
     if (performanceMenuRefreshChosen.value === 'off') {
       if (this.state.refreshTimer) {
         clearInterval(this.state.refreshTimer)
-        this.setState({refreshTimer: null})
+        this.setState({ refreshTimer: null })
       }
     } else {
       if (this.state.refreshTimer) {
@@ -817,27 +928,30 @@ export class Flow extends React.Component {
         const startTime = now - this.state.performanceMenuChosen.value
         this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
       }, performanceMenuRefreshChosen.value)
-      this.setState({refreshTimer: timer})
+      this.setState({ refreshTimer: timer })
     }
   }
-  choosePerformanceRefreshTime = ({item, key}) => {
+  choosePerformanceRefreshTime = ({ item, key }) => {
     let performanceMenuRefreshChosen = {
       label: item.props.children,
       value: key
     }
-    this.setState({
-      performanceMenuRefreshChosen
-    }, () => {
-      this.refreshPerformance(performanceMenuRefreshChosen)
-    })
+    this.setState(
+      {
+        performanceMenuRefreshChosen
+      },
+      () => {
+        this.refreshPerformance(performanceMenuRefreshChosen)
+      }
+    )
   }
-  onShowDrift = (record) => (e) => {
+  onShowDrift = record => e => {
     const { projectIdGeted } = this.props
     const flowId = record.id
     this.setState({
       driftModalVisible: true
     })
-    this.props.onLoadDriftList(projectIdGeted, flowId, (payload) => {
+    this.props.onLoadDriftList(projectIdGeted, flowId, payload => {
       if (Array.isArray(payload)) {
         this.setState({
           driftList: payload,
@@ -848,17 +962,20 @@ export class Flow extends React.Component {
       }
     })
   }
-  closeDriftDialog = (cb) => {
-    this.setState({
-      driftModalVisible: false,
-      driftList: [],
-      driftChosenStreamId: '',
-      driftDialogConfirmLoading: false,
-      driftVerifyTxt: '',
-      driftVerifyStatus: ''
-    }, () => {
-      if (cb) cb()
-    })
+  closeDriftDialog = cb => {
+    this.setState(
+      {
+        driftModalVisible: false,
+        driftList: [],
+        driftChosenStreamId: '',
+        driftDialogConfirmLoading: false,
+        driftVerifyTxt: '',
+        driftVerifyStatus: ''
+      },
+      () => {
+        if (cb) cb()
+      }
+    )
   }
   submitDrift = () => {
     const { projectIdGeted, locale } = this.props
@@ -867,36 +984,47 @@ export class Flow extends React.Component {
       message.warn(`${locale === 'en' ? 'Please select others:' : '请选择其他'}`, 3)
       return
     }
-    this.setState({driftDialogConfirmLoading: true})
-    this.props.onSubmitDrift(projectIdGeted, flowId, id, (payload) => {
+    this.setState({ driftDialogConfirmLoading: true })
+    this.props.onSubmitDrift(projectIdGeted, flowId, id, payload => {
       if (typeof payload === 'string') {
         this.closeDriftDialog(() => {
-          this.setState({driftSubmitStatusObj: {
-            status: 'error',
-            content: payload
-          }})
+          this.setState({
+            driftSubmitStatusObj: {
+              status: 'error',
+              content: payload
+            }
+          })
         })
       } else {
         this.closeDriftDialog(() => {
-          this.setState({driftSubmitStatusObj: {
-            status: 'success',
-            content: payload.msg
-          }})
+          this.setState({
+            driftSubmitStatusObj: {
+              status: 'success',
+              content: payload.msg
+            }
+          })
         })
       }
-      this.setState({driftDialogConfirmLoading: false})
+      this.setState({ driftDialogConfirmLoading: false })
     })
   }
-  onChangeDriftSel = (valName) => {
+  onChangeDriftSel = valName => {
     const { projectIdGeted } = this.props
     const flowId = this.state.streamIdGeted
     const selName = this.state.driftList.find(s => s.name === valName)
     const { id } = selName
-    this.props.onVerifyDrift(projectIdGeted, flowId, id, (result) => {
+    this.props.onVerifyDrift(projectIdGeted, flowId, id, result => {
       if (result.header && result.header.code === 200) {
-        this.setState({driftChosenStreamId: id, driftVerifyTxt: result.payload, driftVerifyStatus: 'success'})
+        this.setState({
+          driftChosenStreamId: id,
+          driftVerifyTxt: result.payload,
+          driftVerifyStatus: 'success'
+        })
       } else {
-        this.setState({driftVerifyTxt: result.payload, driftVerifyStatus: 'error'})
+        this.setState({
+          driftVerifyTxt: result.payload,
+          driftVerifyStatus: 'error'
+        })
       }
     })
   }
@@ -913,79 +1041,87 @@ export class Flow extends React.Component {
         content: statusObj.content
       })
     }
-    this.setState({driftSubmitStatusObj: {}})
+    this.setState({ driftSubmitStatusObj: {} })
   }
-  stopFlinkFlowBtn = (record) => () => {
+  stopFlinkFlowBtn = record => () => {
     const { locale } = this.props
     const successText = locale === 'en' ? 'Stop successfully!' : '停止成功！'
     const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
-    this.props.onStopFlinkFlow(this.props.projectIdGeted, record.id, () => {
-      message.success(successText, 3)
-    }, (result) => {
-      message.error(`${failText} ${result}`, 3)
-    })
+    this.props.onStopFlinkFlow(
+      this.props.projectIdGeted,
+      record.id,
+      () => {
+        message.success(successText, 3)
+      },
+      result => {
+        message.error(`${failText} ${result}`, 3)
+      }
+    )
   }
 
-  handleEditStartOk = (e) => {
+  handleEditStartOk = e => {
     const { streamIdGeted, flowStartFormData, userDefinedTopics, startUdfVals } = this.state
     const { projectIdGeted, locale } = this.props
     const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
-    this.setState(
-      {unValidate: true},
-      () => {
-        this.flowStartForm.validateFieldsAndScroll((err, values) => {
-          if (!err || err.newTopicName) {
-            let requestVal = {}
+    this.setState({ unValidate: true }, () => {
+      this.flowStartForm.validateFieldsAndScroll((err, values) => {
+        if (!err || err.newTopicName) {
+          let requestVal = {}
 
-            if (!flowStartFormData) {
-              if (!values.udfs) {
-                requestVal = {}
-              } else {
-                if (values.udfs.find(i => i === '-1')) {
-                  // 全选
-                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                  requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
-                } else {
-                  requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
-                }
-              }
+          if (!flowStartFormData) {
+            if (!values.udfs) {
+              requestVal = {}
             } else {
-              const mergedData = {}
-              const autoRegisteredData = this.formatTopicInfo(flowStartFormData, 'auto', values, offsetText)
-              const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
-              mergedData.autoRegisteredTopics = autoRegisteredData || []
-              mergedData.userDefinedTopics = userDefinedData || []
-              mergedData.autoRegisteredTopics.forEach(v => {
-                v.name = transformStringWithDot(v.name, false)
-              })
-              mergedData.userDefinedTopics.forEach(v => {
-                v.name = transformStringWithDot(v.name, false)
-              })
-              if (!values.udfs) {
-                requestVal = { topicInfo: mergedData }
+              if (values.udfs.find(i => i === '-1')) {
+                // 全选
+                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
               } else {
-                if (values.udfs.find(i => i === '-1')) {
-                  // 全选
-                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                  requestVal = {
-                    udfInfo: startUdfValsOrigin.map(p => p.id),
-                    topicInfo: mergedData
-                  }
-                } else {
-                  requestVal = {
-                    udfInfo: values.udfs.map(q => Number(q)),
-                    topicInfo: mergedData
-                  }
+                requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
+              }
+            }
+          } else {
+            const mergedData = {}
+            const autoRegisteredData = this.formatTopicInfo(flowStartFormData, 'auto', values, offsetText)
+            const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+            mergedData.autoRegisteredTopics = autoRegisteredData || []
+            mergedData.userDefinedTopics = userDefinedData || []
+            mergedData.autoRegisteredTopics.forEach(v => {
+              v.name = transformStringWithDot(v.name, false)
+            })
+            mergedData.userDefinedTopics.forEach(v => {
+              v.name = transformStringWithDot(v.name, false)
+            })
+            if (!values.udfs) {
+              requestVal = { topicInfo: mergedData }
+            } else {
+              if (values.udfs.find(i => i === '-1')) {
+                // 全选
+                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                requestVal = {
+                  udfInfo: startUdfValsOrigin.map(p => p.id),
+                  topicInfo: mergedData
+                }
+              } else {
+                requestVal = {
+                  udfInfo: values.udfs.map(q => Number(q)),
+                  topicInfo: mergedData
                 }
               }
             }
+          }
 
-            let actionTypeRequest = ''
-            let actionTypeMsg = ''
-            actionTypeRequest = 'start'
-            actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
+          let actionTypeRequest = ''
+          let actionTypeMsg = ''
+          actionTypeRequest = 'start'
+          actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
 
-            this.props.onStartFlinkFlow(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, (result) => {
+          this.props.onStartFlinkFlow(
+            projectIdGeted,
+            streamIdGeted,
+            requestVal,
+            actionTypeRequest,
+            result => {
               this.setState({
                 startModalVisible: false,
                 flowStartFormData: [],
@@ -994,29 +1130,28 @@ export class Flow extends React.Component {
                 unValidate: false
               })
               message.success(actionTypeMsg, 3)
-            }, (result) => {
+            },
+            result => {
               const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
               message.error(`${failText} ${result}`, 3)
-              this.setState({unValidate: false})
-            })
-          }
-        })
-      }
-    )
+              this.setState({ unValidate: false })
+            }
+          )
+        }
+      })
+    })
   }
 
   formatTopicInfo (data = [], type = 'auto', values, offsetText) {
     if (data.length === 0) return
-    return data.map((i) => {
+    return data.map(i => {
       const parOffTemp = i.consumedLatestOffset
       const partitionTemp = parOffTemp.split(',')
 
       const offsetArr = []
       for (let r = 0; r < partitionTemp.length; r++) {
         const offsetArrTemp = values[`${i.name}_${r}_${type}`]
-        offsetArrTemp === ''
-          ? message.warning(offsetText, 3)
-          : offsetArr.push(`${r}:${offsetArrTemp}`)
+        offsetArrTemp === '' ? message.warning(offsetText, 3) : offsetArr.push(`${r}:${offsetArrTemp}`)
       }
       const offsetVal = offsetArr.join(',')
 
@@ -1077,18 +1212,21 @@ export class Flow extends React.Component {
     return topicInfoTemp
   }
 
-  handleEditStartCancel = (e) => {
-    this.setState({
-      startModalVisible: false
-    }, () => {
-      this.setState({
-        flowStartFormData: []
-      })
-    })
+  handleEditStartCancel = e => {
+    this.setState(
+      {
+        startModalVisible: false
+      },
+      () => {
+        this.setState({
+          flowStartFormData: []
+        })
+      }
+    )
     this.flowStartForm.resetFields()
   }
 
-  queryLastestoffset = (e) => {
+  queryLastestoffset = e => {
     const { projectIdGeted } = this.props
     const { streamIdGeted, userDefinedTopics, autoRegisteredTopics } = this.state
     userDefinedTopics
@@ -1098,24 +1236,30 @@ export class Flow extends React.Component {
     this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted, 'post', topics)
   }
   loadLastestOffsetFunc (projectId, streamId, type, topics) {
-    this.props.onLoadLastestOffset(projectId, streamId, (result) => {
-      let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
-        v.name = transformStringWithDot(v.name)
-        return v
-      })
-      let userDefinedTopics = result.userDefinedTopics.map(v => {
-        v.name = transformStringWithDot(v.name)
-        return v
-      })
-      this.setState({
-        autoRegisteredTopics: autoRegisteredTopics,
-        userDefinedTopics: userDefinedTopics,
-        tempUserTopics: userDefinedTopics
-        // consumedOffsetValue: result.consumedLatestOffset,
-        // kafkaOffsetValue: result.kafkaLatestOffset,
-        // kafkaEarliestOffset: result.kafkaEarliestOffset
-      })
-    }, type, topics)
+    this.props.onLoadLastestOffset(
+      projectId,
+      streamId,
+      result => {
+        let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+          v.name = transformStringWithDot(v.name)
+          return v
+        })
+        let userDefinedTopics = result.userDefinedTopics.map(v => {
+          v.name = transformStringWithDot(v.name)
+          return v
+        })
+        this.setState({
+          autoRegisteredTopics: autoRegisteredTopics,
+          userDefinedTopics: userDefinedTopics,
+          tempUserTopics: userDefinedTopics
+          // consumedOffsetValue: result.consumedLatestOffset,
+          // kafkaOffsetValue: result.kafkaLatestOffset,
+          // kafkaEarliestOffset: result.kafkaEarliestOffset
+        })
+      },
+      type,
+      topics
+    )
   }
   onChangeEditSelect = () => {
     const { flowStartFormData, userDefinedTopics } = this.state
@@ -1125,7 +1269,9 @@ export class Flow extends React.Component {
 
       for (let j = 0; j < partitionAndOffset.length; j++) {
         this.flowStartForm.setFieldsValue({
-          [`${flowStartFormData[i].name}_${j}_auto`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${flowStartFormData[i].name}_${j}_auto`]: partitionAndOffset[j].substring(
+            partitionAndOffset[j].indexOf(':') + 1
+          ),
           [`${flowStartFormData[i].name}_${flowStartFormData[i].rate}_rate`]: flowStartFormData[i].rate
         })
       }
@@ -1134,16 +1280,18 @@ export class Flow extends React.Component {
       const partitionAndOffset = userDefinedTopics[i].consumedLatestOffset.split(',')
       for (let j = 0; j < partitionAndOffset.length; j++) {
         this.flowStartForm.setFieldsValue({
-          [`${userDefinedTopics[i].name}_${j}_user`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${userDefinedTopics[i].name}_${j}_user`]: partitionAndOffset[j].substring(
+            partitionAndOffset[j].indexOf(':') + 1
+          ),
           [`${userDefinedTopics[i].name}_${userDefinedTopics[i].rate}_rate`]: userDefinedTopics[i].rate
         })
       }
     }
   }
-  getStartFormDataFromSub = (userDefinedTopics) => {
+  getStartFormDataFromSub = userDefinedTopics => {
     this.setState({ userDefinedTopics })
   }
-  onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
+  onCopyFlow = record => e => this.props.onShowCopyFlow(record)
 
   handleFlowChange = (pagination, filters, sorter) => {
     const { filteredInfo } = this.state
@@ -1158,9 +1306,12 @@ export class Flow extends React.Component {
             this.onSearch('', '', false)()
             if (filteredInfo.status && filteredInfo.streamStatus) {
               if (filteredInfo.status.length !== 0 && filters.streamStatus.length !== 0) {
-                filterValue = {status: [], streamStatus: filters.streamStatus}
+                filterValue = {
+                  status: [],
+                  streamStatus: filters.streamStatus
+                }
               } else if (filteredInfo.streamStatus.length !== 0 && filters.status.length !== 0) {
-                filterValue = {status: filters.status, streamStatus: []}
+                filterValue = { status: filters.status, streamStatus: [] }
               } else {
                 filterValue = filters
               }
@@ -1185,41 +1336,46 @@ export class Flow extends React.Component {
     })
   }
 
-  onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
+  onInputChange = value => e => this.setState({ [value]: e.target.value })
 
   onSearch = (columnName, value, visible) => () => {
     const reg = new RegExp(this.state[value], 'gi')
 
-    this.setState({
-      filteredInfo: { status: [], streamStatus: [] }
-    }, () => {
-      this.setState({
-        [visible]: false,
-        columnNameText: columnName,
-        valueText: value,
-        visibleBool: visible,
-        currentFlows: this.state.originFlows.map((record) => {
-          const match = String(record[columnName]).match(reg)
-          if (!match) {
-            return null
-          }
-          return {
-            ...record,
-            [`${columnName}Origin`]: record[columnName],
-            [columnName]: (
-              <span>
-                {String(record[columnName]).split(reg).map((text, i) => (
-                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-                ))}
-              </span>
-            )
-          }
-        }).filter(record => !!record)
-      })
-    })
+    this.setState(
+      {
+        filteredInfo: { status: [], streamStatus: [] }
+      },
+      () => {
+        this.setState({
+          [visible]: false,
+          columnNameText: columnName,
+          valueText: value,
+          visibleBool: visible,
+          currentFlows: this.state.originFlows
+            .map(record => {
+              const match = String(record[columnName]).match(reg)
+              if (!match) {
+                return null
+              }
+              return {
+                ...record,
+                [`${columnName}Origin`]: record[columnName],
+                [columnName]: (
+                  <span>
+                    {String(record[columnName])
+                      .split(reg)
+                      .map((text, i) => (i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text))}
+                  </span>
+                )
+              }
+            })
+            .filter(record => !!record)
+        })
+      }
+    )
   }
 
-  handleCancel = (e) => {
+  handleCancel = e => {
     this.setState({
       modalVisible: false,
       current: 'detail'
@@ -1227,7 +1383,7 @@ export class Flow extends React.Component {
     this.flowsDetail.onCancelCleanData()
   }
 
-  handleTimeCancel = (e) => this.setState({ timeModalVisible: false })
+  handleTimeCancel = e => this.setState({ timeModalVisible: false })
 
   handleTimeOk = () => {
     if (!this.flowsTime.state.startValue) {
@@ -1247,7 +1403,7 @@ export class Flow extends React.Component {
     }
   }
 
-  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
+  handleEndOpenChange = status => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -1257,8 +1413,8 @@ export class Flow extends React.Component {
   }
 
   onRangeTimeSearch = (columnName, startTimeText, endTimeText, visible) => () => {
-    const startSearchTime = (new Date(this.state.startTimeText)).getTime()
-    const endSearchTime = (new Date(this.state.endTimeText)).getTime()
+    const startSearchTime = new Date(this.state.startTimeText).getTime()
+    const endSearchTime = new Date(this.state.endTimeText).getTime()
 
     let startOrEnd = ''
     if (columnName === 'startedTime') {
@@ -1267,51 +1423,60 @@ export class Flow extends React.Component {
       startOrEnd = startSearchTime || endSearchTime ? { stoppedTime: [0] } : { stoppedTime: [] }
     }
 
-    this.setState({
-      filteredInfo: { status: [], streamStatus: [] }
-    }, () => {
-      this.setState({
-        [visible]: false,
-        columnNameText: columnName,
-        startTimeTextState: startTimeText,
-        endTimeTextState: endTimeText,
-        visibleBool: visible,
-        currentFlows: this.state.originFlows.map((record) => {
-          const match = (new Date(record[columnName])).getTime()
-          if ((match < startSearchTime) || (match > endSearchTime)) {
-            return null
-          }
-          return {
-            ...record,
-            [columnName]: (
-              this.state.startTimeText === ''
-                ? <span>{record[columnName]}</span>
-                : <span className="highlight">{record[columnName]}</span>
-            )
-          }
-        }).filter(record => !!record),
-        filteredInfo: startOrEnd
-      })
-    })
+    this.setState(
+      {
+        filteredInfo: { status: [], streamStatus: [] }
+      },
+      () => {
+        this.setState({
+          [visible]: false,
+          columnNameText: columnName,
+          startTimeTextState: startTimeText,
+          endTimeTextState: endTimeText,
+          visibleBool: visible,
+          currentFlows: this.state.originFlows
+            .map(record => {
+              const match = new Date(record[columnName]).getTime()
+              if (match < startSearchTime || match > endSearchTime) {
+                return null
+              }
+              return {
+                ...record,
+                [columnName]:
+                  this.state.startTimeText === '' ? (
+                    <span>{record[columnName]}</span>
+                  ) : (
+                    <span className="highlight">{record[columnName]}</span>
+                  )
+              }
+            })
+            .filter(record => !!record),
+          filteredInfo: startOrEnd
+        })
+      }
+    )
   }
 
-  handleVisibleChangeFlow = (record) => (visible) => {
+  handleVisibleChangeFlow = record => visible => {
     if (visible) {
-      this.setState({
-        visible
-      }, () => {
-        const requestValue = {
-          projectId: record.projectId,
-          streamId: typeof (record.streamId) === 'object' ? record.streamIdOrigin : record.streamId,
-          flowId: record.id,
-          roleType: this.props.roleType
-        }
+      this.setState(
+        {
+          visible
+        },
+        () => {
+          const requestValue = {
+            projectId: record.projectId,
+            streamId: typeof record.streamId === 'object' ? record.streamIdOrigin : record.streamId,
+            flowId: record.id,
+            roleType: this.props.roleType
+          }
 
-        this.props.onLoadFlowDetail(requestValue, (result) => this.setState({ showFlowDetails: result }))
-      })
+          this.props.onLoadFlowDetail(requestValue, result => this.setState({ showFlowDetails: result }))
+        }
+      )
     }
   }
-  onShowLogs = (record) => (e) => {
+  onShowLogs = record => e => {
     this.setState({
       logsModalVisible: true,
       logsProjectId: record.projectId,
@@ -1329,12 +1494,12 @@ export class Flow extends React.Component {
   loadLogsData = (projectId, flowId) => {
     const { roleType } = this.props
     if (roleType === 'admin') {
-      this.props.onLoadAdminLogsInfo(projectId, flowId, (result) => {
+      this.props.onLoadAdminLogsInfo(projectId, flowId, result => {
         this.setState({ logsContent: result })
         this.flowLogRefreshState()
       })
     } else if (roleType === 'user') {
-      this.props.onLoadLogsInfo(projectId, flowId, (result) => {
+      this.props.onLoadLogsInfo(projectId, flowId, result => {
         this.setState({ logsContent: result })
         this.flowLogRefreshState()
       })
@@ -1347,21 +1512,21 @@ export class Flow extends React.Component {
     })
   }
 
-  handleLogsCancel = (e) => {
+  handleLogsCancel = e => {
     this.setState({ logsModalVisible: false })
   }
-  filterStreamId = (streamId) => () => {
+  filterStreamId = streamId => () => {
     // const { searchTextStreamId } = this.state
     let value = streamId
     // let value = searchTextStreamId === '' ? streamId : searchTextStreamId
-    this.setState({searchTextStreamId: value}, () => {
+    this.setState({ searchTextStreamId: value }, () => {
       this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')()
     })
   }
 
-  getFlowErrorList = (flowId) => {
+  getFlowErrorList = flowId => {
     const { projectIdGeted } = this.props
-    this.props.onLoadErrorList(projectIdGeted, flowId, (result) => {
+    this.props.onLoadErrorList(projectIdGeted, flowId, result => {
       this.setState({
         flowErrorList: result
       })
@@ -1369,628 +1534,846 @@ export class Flow extends React.Component {
   }
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
-    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
-      logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys,
-      driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus,
-      performanceModalVisible, errorListVisible, flowErrorList } = this.state
-    let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
+    const {
+      flowId,
+      refreshFlowText,
+      refreshFlowLoading,
+      currentFlows,
+      modalVisible,
+      timeModalVisible,
+      showFlowDetails,
+      logsModalVisible,
+      logsProjectId,
+      logsFlowId,
+      refreshLogLoading,
+      refreshLogText,
+      logsContent,
+      selectedRowKeys,
+      driftModalVisible,
+      driftList,
+      driftDialogConfirmLoading,
+      driftVerifyTxt,
+      driftVerifyStatus,
+      performanceModalVisible,
+      errorListVisible,
+      flowErrorList
+    } = this.state
+    let {
+      sortedInfo,
+      filteredInfo,
+      startModalVisible,
+      flowStartFormData,
+      autoRegisteredTopics,
+      userDefinedTopics,
+      startUdfVals,
+      renewUdfVals,
+      currentUdfVal,
+      actionType
+    } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
 
     const { projectIdGeted } = this.props
 
-    const columns = [{
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      sorter: (a, b) => a.id - b.id,
-      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
-    }, {
-      title: 'Flow Name',
-      dataIndex: 'flowName',
-      key: 'flowName',
-      // className: 'text-align-center',
-      sorter: (a, b) => a.flowName < b.flowName ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'flowName' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Flow Name"
-            value={this.state.searchTextFlowName}
-            onChange={this.onInputChange('searchTextFlowName')}
-            onPressEnter={this.onSearch('flowName', 'searchTextFlowName', 'filterDropdownVisibleFlowName')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('flowName', 'searchTextFlowName', 'filterDropdownVisibleFlowName')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleFlowName,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleFlowName: visible
-      }, () => this.searchInput.focus())
-    }, {
-      title: 'Project',
-      dataIndex: 'projectName',
-      key: 'projectName',
-      className: `${flowClassHide}`,
-      sorter: (a, b) => {
-        if (typeof a.projectName === 'object') {
-          return a.projectNameOrigin < b.projectNameOrigin ? -1 : 1
-        } else {
-          return a.projectName < b.projectName ? -1 : 1
-        }
+    const columns = [
+      {
+        title: 'ID',
+        dataIndex: 'id',
+        key: 'id',
+        sorter: (a, b) => a.id - b.id,
+        sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
       },
-      sortOrder: sortedInfo.columnKey === 'projectName' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Project Name"
-            value={this.state.searchTextFlowProject}
-            onChange={this.onInputChange('searchTextFlowProject')}
-            onPressEnter={this.onSearch('projectName', 'searchTextFlowProject', 'filterDropdownVisibleFlowProject')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('projectName', 'searchTextFlowProject', 'filterDropdownVisibleFlowProject')}>Search</Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleFlowProject,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleFlowProject: visible
-      }, () => this.searchInput.focus())
-    }, {
-      title: 'Source Namespace',
-      dataIndex: 'sourceNs',
-      key: 'sourceNs',
-      sorter: (a, b) => {
-        if (typeof a.sourceNs === 'object') {
-          return a.sourceNsOrigin < b.sourceNsOrigin ? -1 : 1
-        } else {
-          return a.sourceNs < b.sourceNs ? -1 : 1
-        }
-      },
-      sortOrder: sortedInfo.columnKey === 'sourceNs' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Source Namespace"
-            value={this.state.searchTextSourceNs}
-            onChange={this.onInputChange('searchTextSourceNs')}
-            onPressEnter={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleSourceNs,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleSourceNs: visible
-      }, () => this.searchInput.focus())
-    }, {
-      title: 'Sink Namespace',
-      dataIndex: 'sinkNs',
-      key: 'sinkNs',
-      sorter: (a, b) => {
-        if (typeof a.sinkNs === 'object') {
-          return a.sinkNsOrigin < b.sinkNsOrigin ? -1 : 1
-        } else {
-          return a.sinkNs < b.sinkNs ? -1 : 1
-        }
-      },
-      sortOrder: sortedInfo.columnKey === 'sinkNs' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Sink Namespace"
-            value={this.state.searchTextSinkNs}
-            onChange={this.onInputChange('searchTextSinkNs')}
-            onPressEnter={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleSinkNs,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleSinkNs: visible
-      }, () => this.searchInput.focus())
-    }, {
-      title: 'Flow State',
-      dataIndex: 'status',
-      key: 'status',
-      className: 'text-align-center',
-      sorter: (a, b) => a.status < b.status ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'status' && sortedInfo.order,
-      filters: [
-        {text: 'new', value: 'new'},
-        {text: 'starting', value: 'starting'},
-        {text: 'running', value: 'running'},
-        {text: 'updating', value: 'updating'},
-        {text: 'stopping', value: 'stopping'},
-        {text: 'stopped', value: 'stopped'},
-        {text: 'suspending', value: 'suspending'},
-        {text: 'failed', value: 'failed'},
-        {text: 'deleting', value: 'deleting'}
-      ],
-      filteredValue: filteredInfo.status,
-      onFilter: (value, record) => record.status.includes(value),
-      render: (text, record) => {
-        let flowStatusColor = ''
-        switch (record.status) {
-          case 'new':
-            flowStatusColor = 'orange'
-            break
-          case 'starting':
-            flowStatusColor = 'green'
-            break
-          case 'running':
-            flowStatusColor = 'green-inverse'
-            break
-          case 'updating':
-            flowStatusColor = 'cyan'
-            break
-          case 'stopping':
-            flowStatusColor = 'gray'
-            break
-          case 'stopped':
-            flowStatusColor = '#545252'
-            break
-          case 'suspending':
-            flowStatusColor = 'red'
-            break
-          case 'failed':
-            flowStatusColor = 'red-inverse'
-            break
-          case 'deleting':
-            flowStatusColor = 'purple'
-            break
-        }
-        return (
-          <div>
-            <Tag color={flowStatusColor} className="stream-style">{record.status}</Tag>
+      {
+        title: 'Flow Name',
+        dataIndex: 'flowName',
+        key: 'flowName',
+        // className: 'text-align-center',
+        sorter: (a, b) => (a.flowName < b.flowName ? -1 : 1),
+        sortOrder: sortedInfo.columnKey === 'flowName' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Flow Name"
+              value={this.state.searchTextFlowName}
+              onChange={this.onInputChange('searchTextFlowName')}
+              onPressEnter={this.onSearch('flowName', 'searchTextFlowName', 'filterDropdownVisibleFlowName')}
+            />
+            <Button
+              type="primary"
+              onClick={this.onSearch('flowName', 'searchTextFlowName', 'filterDropdownVisibleFlowName')}
+            >
+              Search
+            </Button>
           </div>
-        )
-      }
-    }, {
-      title: 'Stream State',
-      dataIndex: 'streamStatus',
-      key: 'streamStatus',
-      className: 'text-align-center',
-      sorter: (a, b) => a.streamStatus < b.streamStatus ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'streamStatus' && sortedInfo.order,
-      filters: [
-        {text: 'new', value: 'new'},
-        {text: 'starting', value: 'starting'},
-        {text: 'waiting', value: 'waiting'},
-        {text: 'running', value: 'running'},
-        {text: 'stopping', value: 'stopping'},
-        {text: 'stopped', value: 'stopped'},
-        {text: 'failed', value: 'failed'}
-      ],
-      filteredValue: filteredInfo.streamStatus,
-      onFilter: (value, record) => record.streamStatus.includes(value),
-      render: (text, record) => {
-        let streamStatusColor = ''
-        switch (record.streamStatus) {
-          case 'new':
-            streamStatusColor = 'orange'
-            break
-          case 'starting':
-            streamStatusColor = 'green'
-            break
-          case 'running':
-            streamStatusColor = 'green-inverse'
-            break
-          case 'stopping':
-            streamStatusColor = 'gray'
-            break
-          case 'stopped':
-            streamStatusColor = '#545252'
-            break
-          case 'failed':
-            streamStatusColor = 'red-inverse'
-            break
-        }
-        return (
-          <div>
-            <Tag color={streamStatusColor} className="stream-style">{record.streamStatus}</Tag>
-          </div>
-        )
-      }
-    }, {
-      title: 'Stream ID',
-      dataIndex: 'streamId',
-      key: 'streamId',
-      sorter: (a, b) => a.streamId - b.streamId,
-      sortOrder: sortedInfo.columnKey === 'streamId' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Stream Id"
-            value={this.state.searchTextStreamId}
-            onChange={this.onInputChange('searchTextStreamId')}
-            onPressEnter={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleStreamId: visible
-      }, () => this.searchInput.focus()),
-      render: (text, record) => {
-        const streamId = record.streamIdOrigin || record.streamId
-        return (
-          <span className="hover-pointer" onClick={this.filterStreamId(streamId)}>{record.streamId}</span>
-        )
-      }
-    }, {
-      title: 'Stream Type',
-      dataIndex: 'streamType',
-      key: 'streamType',
-      // className: 'text-align-center',
-      sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Stream Type"
-            value={this.state.searchTextStreamType}
-            onChange={this.onInputChange('searchTextStreamType')}
-            onPressEnter={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleStreamType: visible
-      }, () => this.searchInput.focus())
-    },
-    {
-      title: 'Function Type',
-      dataIndex: 'functionType',
-      key: 'functionType',
-      // className: 'text-align-center',
-      sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'functionType' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown">
-          <Input
-            ref={ele => { this.searchInput = ele }}
-            placeholder="Function Type"
-            value={this.state.searchTextFunctionType}
-            onChange={this.onInputChange('searchTextFunctionType')}
-            onPressEnter={this.onSearch('functionType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
-          />
-          <Button
-            type="primary"
-            onClick={this.onSearch('functionType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleFunctionType,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleFunctionType: visible
-      }, () => this.searchInput.focus())
-    }, {
-      title: 'Start Time',
-      dataIndex: 'startedTime',
-      key: 'startedTime',
-      sorter: (a, b) => {
-        if (typeof a.startedTime === 'object') {
-          return a.startedTimeOrigin < b.startedTimeOrigin ? -1 : 1
-        } else {
-          return a.startedTime < b.startedTime ? -1 : 1
-        }
-      },
-      sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown-style">
-          <RangePicker
-            showTime
-            format="YYYY-MM-DD HH:mm:ss"
-            placeholder={['Start', 'End']}
-            onOpenChange={this.handleEndOpenChange}
-            onChange={this.onRangeTimeChange}
-            onPressEnter={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}
-          />
-          <Button
-            type="primary"
-            className="rangeFilter"
-            onClick={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}
-          >Search
-          </Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleStartedTime,
-      onFilterDropdownVisibleChange: visible => {
-        if (!this.state.filterDatepickerShown) {
-          this.setState({ filterDropdownVisibleStartedTime: visible })
-        }
-      }
-    }, {
-      title: 'End Time',
-      dataIndex: 'stoppedTime',
-      key: 'stoppedTime',
-      sorter: (a, b) => {
-        if (typeof a.stoppedTime === 'object') {
-          return a.stoppedTimeOrigin < b.stoppedTimeOrigin ? -1 : 1
-        } else {
-          return a.stoppedTime < b.stoppedTime ? -1 : 1
-        }
-      },
-      sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
-      filterDropdown: (
-        <div className="custom-filter-dropdown-style">
-          <RangePicker
-            showTime
-            format="YYYY-MM-DD HH:mm:ss"
-            placeholder={['Start', 'End']}
-            onOpenChange={this.handleEndOpenChange}
-            onChange={this.onRangeTimeChange}
-            onPressEnter={this.onRangeTimeSearch('stoppedTime', 'stoppedStartTimeText', 'stoppedEndTimeText', 'filterDropdownVisibleStoppedTime')}
-          />
-          <Button type="primary" className="rangeFilter" onClick={this.onRangeTimeSearch('stoppedTime', 'stoppedStartTimeText', 'stoppedEndTimeText', 'filterDropdownVisibleStoppedTime')}>Search</Button>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleStoppedTime,
-      onFilterDropdownVisibleChange: visible => {
-        if (!this.state.filterDatepickerShown) {
-          this.setState({ filterDropdownVisibleStoppedTime: visible })
-        }
-      }
-    }, {
-      title: 'Action',
-      key: 'action',
-      className: 'text-align-center',
-      render: (text, record) => {
-        let FlowActionSelect = ''
-        if (roleType === 'admin') {
-          FlowActionSelect = ''
-        } else if (roleType === 'user') {
-          const modifyFormat = <FormattedMessage {...messages.flowTableModify} />
-          const startFormat = <FormattedMessage {...messages.flowTableStart} />
-          const sureStartFormat = <FormattedMessage {...messages.flowSureStart} />
-          const stopFormat = <FormattedMessage {...messages.flowTableStop} />
-          const sureStopFormat = <FormattedMessage {...messages.flowSureStop} />
-          const renewFormat = <FormattedMessage {...messages.flowTableRenew} />
-          const copyFormat = <FormattedMessage {...messages.flowTableCopy} />
-          const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
-          const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
-          const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
-          const driftFormat = <FormattedMessage {...messages.flowTableDrift} />
-          const chartFormat = <FormattedMessage {...messages.flowTableChart} />
-          const errorListFormat = <FormattedMessage {...messages.flowErrorList} />
-
-          let strLog = ''
-          if (record.streamType === 'flink') {
-            strLog = (
-              <Tooltip title="logs">
-                <Button shape="circle" type="ghost" onClick={this.onShowLogs(record)}>
-                  <i className="iconfont icon-log"></i>
-                </Button>
-              </Tooltip>
-            )
-          }
-          const strEdit = record.disableActions.includes('modify')
-            ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-            : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
-          let strStart = ''
-          let strChart = (
-            <Tooltip title={chartFormat}>
-              <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowPerformance(record)}></Button>
-            </Tooltip>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleFlowName,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleFlowName: visible
+            },
+            () => this.searchInput.focus()
           )
-          if (record.streamType === 'spark' || record.streamTypeOrigin === 'spark') {
-            strStart = record.disableActions.includes('start')
-              ? (
-                <Tooltip title={startFormat}>
-                  <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+      },
+      {
+        title: 'Project',
+        dataIndex: 'projectName',
+        key: 'projectName',
+        className: `${flowClassHide}`,
+        sorter: (a, b) => {
+          if (typeof a.projectName === 'object') {
+            return a.projectNameOrigin < b.projectNameOrigin ? -1 : 1
+          } else {
+            return a.projectName < b.projectName ? -1 : 1
+          }
+        },
+        sortOrder: sortedInfo.columnKey === 'projectName' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Project Name"
+              value={this.state.searchTextFlowProject}
+              onChange={this.onInputChange('searchTextFlowProject')}
+              onPressEnter={this.onSearch('projectName', 'searchTextFlowProject', 'filterDropdownVisibleFlowProject')}
+            />
+            <Button
+              type="primary"
+              onClick={this.onSearch('projectName', 'searchTextFlowProject', 'filterDropdownVisibleFlowProject')}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleFlowProject,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleFlowProject: visible
+            },
+            () => this.searchInput.focus()
+          )
+      },
+      {
+        title: 'Source Namespace',
+        dataIndex: 'sourceNs',
+        key: 'sourceNs',
+        sorter: (a, b) => {
+          if (typeof a.sourceNs === 'object') {
+            return a.sourceNsOrigin < b.sourceNsOrigin ? -1 : 1
+          } else {
+            return a.sourceNs < b.sourceNs ? -1 : 1
+          }
+        },
+        sortOrder: sortedInfo.columnKey === 'sourceNs' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Source Namespace"
+              value={this.state.searchTextSourceNs}
+              onChange={this.onInputChange('searchTextSourceNs')}
+              onPressEnter={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}
+            />
+            <Button
+              type="primary"
+              onClick={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleSourceNs,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleSourceNs: visible
+            },
+            () => this.searchInput.focus()
+          )
+      },
+      {
+        title: 'Sink Namespace',
+        dataIndex: 'sinkNs',
+        key: 'sinkNs',
+        sorter: (a, b) => {
+          if (typeof a.sinkNs === 'object') {
+            return a.sinkNsOrigin < b.sinkNsOrigin ? -1 : 1
+          } else {
+            return a.sinkNs < b.sinkNs ? -1 : 1
+          }
+        },
+        sortOrder: sortedInfo.columnKey === 'sinkNs' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Sink Namespace"
+              value={this.state.searchTextSinkNs}
+              onChange={this.onInputChange('searchTextSinkNs')}
+              onPressEnter={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}
+            />
+            <Button type="primary" onClick={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}>
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleSinkNs,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleSinkNs: visible
+            },
+            () => this.searchInput.focus()
+          )
+      },
+      {
+        title: 'Flow State',
+        dataIndex: 'status',
+        key: 'status',
+        className: 'text-align-center',
+        sorter: (a, b) => (a.status < b.status ? -1 : 1),
+        sortOrder: sortedInfo.columnKey === 'status' && sortedInfo.order,
+        filters: [
+          { text: 'new', value: 'new' },
+          { text: 'starting', value: 'starting' },
+          { text: 'running', value: 'running' },
+          { text: 'updating', value: 'updating' },
+          { text: 'stopping', value: 'stopping' },
+          { text: 'stopped', value: 'stopped' },
+          { text: 'suspending', value: 'suspending' },
+          { text: 'failed', value: 'failed' },
+          { text: 'deleting', value: 'deleting' }
+        ],
+        filteredValue: filteredInfo.status,
+        onFilter: (value, record) => record.status.includes(value),
+        render: (text, record) => {
+          let flowStatusColor = ''
+          switch (record.status) {
+            case 'new':
+              flowStatusColor = 'orange'
+              break
+            case 'starting':
+              flowStatusColor = 'green'
+              break
+            case 'running':
+              flowStatusColor = 'green-inverse'
+              break
+            case 'updating':
+              flowStatusColor = 'cyan'
+              break
+            case 'stopping':
+              flowStatusColor = 'gray'
+              break
+            case 'stopped':
+              flowStatusColor = '#545252'
+              break
+            case 'suspending':
+              flowStatusColor = 'red'
+              break
+            case 'failed':
+              flowStatusColor = 'red-inverse'
+              break
+            case 'deleting':
+              flowStatusColor = 'purple'
+              break
+          }
+          return (
+            <div>
+              <Tag color={flowStatusColor} className="stream-style">
+                {record.status}
+              </Tag>
+            </div>
+          )
+        }
+      },
+      {
+        title: 'Stream State',
+        dataIndex: 'streamStatus',
+        key: 'streamStatus',
+        className: 'text-align-center',
+        sorter: (a, b) => (a.streamStatus < b.streamStatus ? -1 : 1),
+        sortOrder: sortedInfo.columnKey === 'streamStatus' && sortedInfo.order,
+        filters: [
+          { text: 'new', value: 'new' },
+          { text: 'starting', value: 'starting' },
+          { text: 'waiting', value: 'waiting' },
+          { text: 'running', value: 'running' },
+          { text: 'stopping', value: 'stopping' },
+          { text: 'stopped', value: 'stopped' },
+          { text: 'failed', value: 'failed' }
+        ],
+        filteredValue: filteredInfo.streamStatus,
+        onFilter: (value, record) => record.streamStatus.includes(value),
+        render: (text, record) => {
+          let streamStatusColor = ''
+          switch (record.streamStatus) {
+            case 'new':
+              streamStatusColor = 'orange'
+              break
+            case 'starting':
+              streamStatusColor = 'green'
+              break
+            case 'running':
+              streamStatusColor = 'green-inverse'
+              break
+            case 'stopping':
+              streamStatusColor = 'gray'
+              break
+            case 'stopped':
+              streamStatusColor = '#545252'
+              break
+            case 'failed':
+              streamStatusColor = 'red-inverse'
+              break
+          }
+          return (
+            <div>
+              <Tag color={streamStatusColor} className="stream-style">
+                {record.streamStatus}
+              </Tag>
+            </div>
+          )
+        }
+      },
+      {
+        title: 'Stream ID',
+        dataIndex: 'streamId',
+        key: 'streamId',
+        sorter: (a, b) => a.streamId - b.streamId,
+        sortOrder: sortedInfo.columnKey === 'streamId' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Stream Id"
+              value={this.state.searchTextStreamId}
+              onChange={this.onInputChange('searchTextStreamId')}
+              onPressEnter={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
+            />
+            <Button
+              type="primary"
+              onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleStreamId: visible
+            },
+            () => this.searchInput.focus()
+          ),
+        render: (text, record) => {
+          const streamId = record.streamIdOrigin || record.streamId
+          return (
+            <span className="hover-pointer" onClick={this.filterStreamId(streamId)}>
+              {record.streamId}
+            </span>
+          )
+        }
+      },
+      {
+        title: 'Stream Type',
+        dataIndex: 'streamType',
+        key: 'streamType',
+        // className: 'text-align-center',
+        sorter: (a, b) => (a.streamType < b.streamType ? -1 : 1),
+        sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Stream Type"
+              value={this.state.searchTextStreamType}
+              onChange={this.onInputChange('searchTextStreamType')}
+              onPressEnter={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+            />
+            <Button
+              type="primary"
+              onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleStreamType: visible
+            },
+            () => this.searchInput.focus()
+          )
+      },
+      {
+        title: 'Function Type',
+        dataIndex: 'functionType',
+        key: 'functionType',
+        // className: 'text-align-center',
+        sorter: (a, b) => (a.streamType < b.streamType ? -1 : 1),
+        sortOrder: sortedInfo.columnKey === 'functionType' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown">
+            <Input
+              ref={ele => {
+                this.searchInput = ele
+              }}
+              placeholder="Function Type"
+              value={this.state.searchTextFunctionType}
+              onChange={this.onInputChange('searchTextFunctionType')}
+              onPressEnter={this.onSearch(
+                'functionType',
+                'searchTextFunctionType',
+                'filterDropdownVisibleFunctionType'
+              )}
+            />
+            <Button
+              type="primary"
+              onClick={this.onSearch('functionType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleFunctionType,
+        onFilterDropdownVisibleChange: visible =>
+          this.setState(
+            {
+              filterDropdownVisibleFunctionType: visible
+            },
+            () => this.searchInput.focus()
+          )
+      },
+      {
+        title: 'Start Time',
+        dataIndex: 'startedTime',
+        key: 'startedTime',
+        sorter: (a, b) => {
+          if (typeof a.startedTime === 'object') {
+            return a.startedTimeOrigin < b.startedTimeOrigin ? -1 : 1
+          } else {
+            return a.startedTime < b.startedTime ? -1 : 1
+          }
+        },
+        sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown-style">
+            <RangePicker
+              showTime
+              format="YYYY-MM-DD HH:mm:ss"
+              placeholder={['Start', 'End']}
+              onOpenChange={this.handleEndOpenChange}
+              onChange={this.onRangeTimeChange}
+              onPressEnter={this.onRangeTimeSearch(
+                'startedTime',
+                'startedStartTimeText',
+                'startedEndTimeText',
+                'filterDropdownVisibleStartedTime'
+              )}
+            />
+            <Button
+              type="primary"
+              className="rangeFilter"
+              onClick={this.onRangeTimeSearch(
+                'startedTime',
+                'startedStartTimeText',
+                'startedEndTimeText',
+                'filterDropdownVisibleStartedTime'
+              )}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleStartedTime,
+        onFilterDropdownVisibleChange: visible => {
+          if (!this.state.filterDatepickerShown) {
+            this.setState({ filterDropdownVisibleStartedTime: visible })
+          }
+        }
+      },
+      {
+        title: 'End Time',
+        dataIndex: 'stoppedTime',
+        key: 'stoppedTime',
+        sorter: (a, b) => {
+          if (typeof a.stoppedTime === 'object') {
+            return a.stoppedTimeOrigin < b.stoppedTimeOrigin ? -1 : 1
+          } else {
+            return a.stoppedTime < b.stoppedTime ? -1 : 1
+          }
+        },
+        sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
+        filterDropdown: (
+          <div className="custom-filter-dropdown-style">
+            <RangePicker
+              showTime
+              format="YYYY-MM-DD HH:mm:ss"
+              placeholder={['Start', 'End']}
+              onOpenChange={this.handleEndOpenChange}
+              onChange={this.onRangeTimeChange}
+              onPressEnter={this.onRangeTimeSearch(
+                'stoppedTime',
+                'stoppedStartTimeText',
+                'stoppedEndTimeText',
+                'filterDropdownVisibleStoppedTime'
+              )}
+            />
+            <Button
+              type="primary"
+              className="rangeFilter"
+              onClick={this.onRangeTimeSearch(
+                'stoppedTime',
+                'stoppedStartTimeText',
+                'stoppedEndTimeText',
+                'filterDropdownVisibleStoppedTime'
+              )}
+            >
+              Search
+            </Button>
+          </div>
+        ),
+        filterDropdownVisible: this.state.filterDropdownVisibleStoppedTime,
+        onFilterDropdownVisibleChange: visible => {
+          if (!this.state.filterDatepickerShown) {
+            this.setState({ filterDropdownVisibleStoppedTime: visible })
+          }
+        }
+      },
+      {
+        title: 'Action',
+        key: 'action',
+        className: 'text-align-center',
+        render: (text, record) => {
+          let FlowActionSelect = ''
+          if (roleType === 'admin') {
+            FlowActionSelect = ''
+          } else if (roleType === 'user') {
+            const modifyFormat = <FormattedMessage {...messages.flowTableModify} />
+            const startFormat = <FormattedMessage {...messages.flowTableStart} />
+            const sureStartFormat = <FormattedMessage {...messages.flowSureStart} />
+            const stopFormat = <FormattedMessage {...messages.flowTableStop} />
+            const sureStopFormat = <FormattedMessage {...messages.flowSureStop} />
+            const renewFormat = <FormattedMessage {...messages.flowTableRenew} />
+            const copyFormat = <FormattedMessage {...messages.flowTableCopy} />
+            const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
+            const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
+            const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
+            const driftFormat = <FormattedMessage {...messages.flowTableDrift} />
+            const chartFormat = <FormattedMessage {...messages.flowTableChart} />
+            const errorListFormat = <FormattedMessage {...messages.flowErrorList} />
+
+            let strLog = ''
+            if (record.streamType === 'flink') {
+              strLog = (
+                <Tooltip title="logs">
+                  <Button shape="circle" type="ghost" onClick={this.onShowLogs(record)}>
+                    <i className="iconfont icon-log" />
+                  </Button>
                 </Tooltip>
               )
-              : (
-                <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'start')}>
+            }
+            const strEdit = record.disableActions.includes('modify') ? (
+              <Button icon="edit" shape="circle" type="ghost" disabled />
+            ) : (
+              <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)} />
+            )
+            let strStart = ''
+            let strChart = (
+              <Tooltip title={chartFormat}>
+                <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowPerformance(record)} />
+              </Tooltip>
+            )
+            if (record.streamType === 'spark' || record.streamTypeOrigin === 'spark') {
+              strStart = record.disableActions.includes('start') ? (
+                <Tooltip title={startFormat}>
+                  <Button icon="caret-right" shape="circle" type="ghost" disabled />
+                </Tooltip>
+              ) : (
+                <Popconfirm
+                  placement="bottom"
+                  title={sureStartFormat}
+                  okText="Yes"
+                  cancelText="No"
+                  onConfirm={this.singleOpreateFlow(record, 'start')}
+                >
                   <Tooltip title={startFormat}>
-                    <Button icon="caret-right" shape="circle" type="ghost"></Button>
+                    <Button icon="caret-right" shape="circle" type="ghost" />
                   </Tooltip>
                 </Popconfirm>
               )
-          } else if (record.streamType === 'flink' || record.streamTypeOrigin === 'flink') {
-            strStart = record.disableActions.includes('start')
-              ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-              : <Tooltip title={startFormat}>
-                <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
-              </Tooltip>
-          }
-          let strDrift = ''
-          if ((record.streamType === 'spark' || record.streamTypeOrigin === 'spark') && (record.functionType === 'default' || record.functionTypeOrigin === 'default')) {
-            strDrift = record.disableActions.includes('drift')
-              ? <Button shape="circle" type="ghost" disabled>
-                <i className="iconfont icon-sstransfer"></i>
-              </Button>
-              : <Tooltip title={driftFormat}>
-                <Button shape="circle" type="ghost" onClick={this.onShowDrift(record)}>
-                  <i className="iconfont icon-sstransfer"></i>
-                </Button>
-              </Tooltip>
-          }
-          let strErrorList = (
-            <Tooltip title={errorListFormat}>
-              <Button icon="exception" shape="circle" type="ghost" onClick={this.onShowErrorList(record)}></Button>
-            </Tooltip>
-          )
-          let strStop = record.disableActions.includes('stop')
-            ? (
-              <Tooltip title={stopFormat}>
+            } else if (record.streamType === 'flink' || record.streamTypeOrigin === 'flink') {
+              strStart = record.disableActions.includes('start') ? (
+                <Button icon="caret-right" shape="circle" type="ghost" disabled />
+              ) : (
+                <Tooltip title={startFormat}>
+                  <Button
+                    icon="caret-right"
+                    shape="circle"
+                    type="ghost"
+                    onClick={this.onShowEditStart(record, 'start')}
+                  />
+                </Tooltip>
+              )
+            }
+            let strDrift = ''
+            if (
+              (record.streamType === 'spark' || record.streamTypeOrigin === 'spark') &&
+              (record.functionType === 'default' || record.functionTypeOrigin === 'default')
+            ) {
+              strDrift = record.disableActions.includes('drift') ? (
                 <Button shape="circle" type="ghost" disabled>
-                  <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                  <i className="iconfont icon-sstransfer" />
                 </Button>
+              ) : (
+                <Tooltip title={driftFormat}>
+                  <Button shape="circle" type="ghost" onClick={this.onShowDrift(record)}>
+                    <i className="iconfont icon-sstransfer" />
+                  </Button>
+                </Tooltip>
+              )
+            }
+            let strErrorList = (
+              <Tooltip title={errorListFormat}>
+                <Button icon="exception" shape="circle" type="ghost" onClick={this.onShowErrorList(record)} />
               </Tooltip>
             )
-            : (
-              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={record.streamType === 'spark' ? this.singleOpreateFlow(record, 'stop') : record.streamType === 'flink' ? this.stopFlinkFlowBtn(record) : null}>
+            let strStop = record.disableActions.includes('stop') ? (
+              <Tooltip title={stopFormat}>
+                <Button shape="circle" type="ghost" disabled>
+                  <i className="iconfont icon-8080pxtubiaokuozhan100" />
+                </Button>
+              </Tooltip>
+            ) : (
+              <Popconfirm
+                placement="bottom"
+                title={sureStopFormat}
+                okText="Yes"
+                cancelText="No"
+                onConfirm={
+                  record.streamType === 'spark'
+                    ? this.singleOpreateFlow(record, 'stop')
+                    : record.streamType === 'flink'
+                    ? this.stopFlinkFlowBtn(record)
+                    : null
+                }
+              >
                 <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
-                    <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                    <i className="iconfont icon-8080pxtubiaokuozhan100" />
                   </Button>
                 </Tooltip>
               </Popconfirm>
             )
 
-          let strRenew = record.disableActions.includes('renew')
-            ? (
+            let strRenew = record.disableActions.includes('renew') ? (
               <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" disabled></Button>
+                <Button icon="check" shape="circle" type="ghost" disabled />
               </Tooltip>
-            )
-            : (
-              <Popconfirm placement="bottom" title={sureRenewFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'renew')}>
+            ) : (
+              <Popconfirm
+                placement="bottom"
+                title={sureRenewFormat}
+                okText="Yes"
+                cancelText="No"
+                onConfirm={this.singleOpreateFlow(record, 'renew')}
+              >
                 <Tooltip title={renewFormat}>
-                  <Button icon="check" shape="circle" type="ghost"></Button>
+                  <Button icon="check" shape="circle" type="ghost" />
                 </Tooltip>
               </Popconfirm>
             )
-          let strDel = record.disableActions.includes('delete')
-            ? (
+            let strDel = record.disableActions.includes('delete') ? (
               <Tooltip title={deleteFormat}>
-                <Button icon="delete" shape="circle" type="ghost" disabled></Button>
+                <Button icon="delete" shape="circle" type="ghost" disabled />
               </Tooltip>
-            )
-            : (
-              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'delete')}>
+            ) : (
+              <Popconfirm
+                placement="bottom"
+                title={sureDeleteFormat}
+                okText="Yes"
+                cancelText="No"
+                onConfirm={this.singleOpreateFlow(record, 'delete')}
+              >
                 <Tooltip title={deleteFormat}>
-                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                  <Button icon="delete" shape="circle" type="ghost" />
                 </Tooltip>
               </Popconfirm>
             )
 
-          if (record.hideActions) {
-            if (record.hideActions.includes('start')) strStart = ''
-            if (record.hideActions.includes('stop')) strStop = ''
-            if (record.hideActions.includes('renew')) strRenew = ''
-            if (record.hideActions.includes('delete')) strDel = ''
-            if (record.hideActions.includes('drift')) strDrift = ''
+            if (record.hideActions) {
+              if (record.hideActions.includes('start')) strStart = ''
+              if (record.hideActions.includes('stop')) strStop = ''
+              if (record.hideActions.includes('renew')) strRenew = ''
+              if (record.hideActions.includes('delete')) strDel = ''
+              if (record.hideActions.includes('drift')) strDrift = ''
+            }
+            FlowActionSelect = (
+              <span>
+                <Tooltip title={modifyFormat}>{strEdit}</Tooltip>
+                <Tooltip title={copyFormat}>
+                  <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)} />
+                </Tooltip>
+                {strStart}
+                {strStop}
+                {strRenew}
+                {strDel}
+                {strDrift}
+                {strLog}
+                {strChart}
+                {strErrorList}
+              </span>
+            )
           }
-          FlowActionSelect = (
-            <span>
-              <Tooltip title={modifyFormat}>
-                {strEdit}
+
+          let sinkConfigFinal = ''
+          let flowDetailContent = ''
+          if (!showFlowDetails.sinkConfig) {
+            sinkConfigFinal = ''
+          } else {
+            const sinkJson = JSON.parse(showFlowDetails.sinkConfig)
+            sinkConfigFinal = JSON.stringify(sinkJson['sink_specific_config'])
+          }
+          if (showFlowDetails) {
+            const topicTemp = showFlowDetails.topicInfo && showFlowDetails.topicInfo.autoRegisteredTopics
+            const topicUserTemp = showFlowDetails.topicInfo && showFlowDetails.topicInfo.userDefinedTopics
+            let topicFinal = ''
+            let topicUserFinal = ''
+            if (topicTemp) {
+              topicFinal = topicTemp.map(s => (
+                <li key={s.name}>
+                  <strong>Topic Name：</strong>
+                  {s.name}
+                  <strong>；Consumed Latest Offset：</strong>
+                  {s.consumedLatestOffset}
+                  <strong>；Earliest Kafka Offset：</strong>
+                  {s.kafkaEarliestOffset}
+                  <strong>；Latest Kafka Offset：</strong>
+                  {s.kafkaLatestOffset}
+                  {/* <strong>；Rate：</strong>{s.rate} */}
+                </li>
+              ))
+            }
+            if (topicUserTemp) {
+              topicUserFinal = topicUserTemp.map(s => (
+                <li key={s.name}>
+                  <strong>Topic Name：</strong>
+                  {s.name}
+                  <strong>；Partition Offsets：</strong>
+                  {s.consumedLatestOffset}
+                  <strong>；Earliest Kafka Offset：</strong>
+                  {s.kafkaEarliestOffset}
+                  <strong>；Latest Kafka Offset：</strong>
+                  {s.kafkaLatestOffset}
+                  {/* <strong>；Rate：</strong>{s.rate} */}
+                </li>
+              ))
+            }
+            flowDetailContent = (
+              <div className="flow-table-detail">
+                <p className={flowClassHide}>
+                  <strong> Project Id：</strong>
+                  {showFlowDetails.projectId}
+                </p>
+                <p>
+                  <strong> Auto Registered Topics：</strong>
+                  {topicFinal}
+                </p>
+                <p>
+                  <strong> User Defined Topics：</strong>
+                  {topicUserFinal}
+                </p>
+                <p>
+                  <strong> Protocol：</strong>
+                  {showFlowDetails.consumedProtocol}
+                </p>
+                <p>
+                  <strong> Stream Name：</strong>
+                  {showFlowDetails.streamName}
+                </p>
+                <p>
+                  <strong> Sink Config：</strong>
+                  {sinkConfigFinal}
+                </p>
+                <p>
+                  <strong> Table Keys：</strong>
+                  {showFlowDetails.tableKeys}
+                </p>
+                <p>
+                  <strong> Transformation Config：</strong>
+                  {showFlowDetails.tranConfig}
+                </p>
+                <p>
+                  <strong> Create Time：</strong>
+                  {showFlowDetails.createTime}
+                </p>
+                <p>
+                  <strong> Update Time：</strong>
+                  {showFlowDetails.updateTime}
+                </p>
+                <p>
+                  <strong> Create By：</strong>
+                  {showFlowDetails.createBy}
+                </p>
+                <p>
+                  <strong> Update By：</strong>
+                  {showFlowDetails.updateBy}
+                </p>
+                <p>
+                  <strong> Disable Actions：</strong>
+                  {showFlowDetails.disableActions}
+                </p>
+                <p>
+                  <strong> Message：</strong>
+                  {showFlowDetails.msg}
+                </p>
+              </div>
+            )
+          }
+          return (
+            <span className="ant-table-action-column">
+              <Tooltip title={<FormattedMessage {...messages.flowViewDetails} />}>
+                <Popover
+                  placement="left"
+                  content={flowDetailContent}
+                  title={
+                    <h3>
+                      <FormattedMessage {...messages.flowDetails} />
+                    </h3>
+                  }
+                  trigger="click"
+                  onVisibleChange={this.handleVisibleChangeFlow(record)}
+                >
+                  <Button icon="file-text" shape="circle" type="ghost" />
+                </Popover>
               </Tooltip>
-              <Tooltip title={copyFormat}>
-                <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)}></Button>
-              </Tooltip>
-              {strStart}
-              {strStop}
-              {strRenew}
-              {strDel}
-              {strDrift}
-              {strLog}
-              {strChart}
-              {strErrorList}
+              {FlowActionSelect}
             </span>
           )
         }
-
-        let sinkConfigFinal = ''
-        let flowDetailContent = ''
-        if (!showFlowDetails.sinkConfig) {
-          sinkConfigFinal = ''
-        } else {
-          const sinkJson = JSON.parse(showFlowDetails.sinkConfig)
-          sinkConfigFinal = JSON.stringify(sinkJson['sink_specific_config'])
-        }
-        if (showFlowDetails) {
-          const topicTemp = showFlowDetails.topicInfo && showFlowDetails.topicInfo.autoRegisteredTopics
-          const topicUserTemp = showFlowDetails.topicInfo && showFlowDetails.topicInfo.userDefinedTopics
-          let topicFinal = ''
-          let topicUserFinal = ''
-          if (topicTemp) {
-            topicFinal = topicTemp.map(s => (
-              <li key={s.name}>
-                <strong>Topic Name：</strong>{s.name}
-                <strong>；Consumed Latest Offset：</strong>{s.consumedLatestOffset}
-                <strong>；Earliest Kafka Offset：</strong>{s.kafkaEarliestOffset}
-                <strong>；Latest Kafka Offset：</strong>{s.kafkaLatestOffset}
-                {/* <strong>；Rate：</strong>{s.rate} */}
-              </li>
-            ))
-          }
-          if (topicUserTemp) {
-            topicUserFinal = topicUserTemp.map(s => (
-              <li key={s.name}>
-                <strong>Topic Name：</strong>{s.name}
-                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
-                <strong>；Earliest Kafka Offset：</strong>{s.kafkaEarliestOffset}
-                <strong>；Latest Kafka Offset：</strong>{s.kafkaLatestOffset}
-                {/* <strong>；Rate：</strong>{s.rate} */}
-              </li>
-            ))
-          }
-          flowDetailContent = (
-            <div className="flow-table-detail">
-              <p className={flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
-              <p><strong>   Auto Registered Topics：</strong>{topicFinal}</p>
-              <p><strong>   User Defined Topics：</strong>{topicUserFinal}</p>
-              <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
-              <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
-              <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
-              <p><strong>   Table Keys：</strong>{showFlowDetails.tableKeys}</p>
-              <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
-              <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
-              <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
-              <p><strong>   Create By：</strong>{showFlowDetails.createBy}</p>
-              <p><strong>   Update By：</strong>{showFlowDetails.updateBy}</p>
-              <p><strong>   Disable Actions：</strong>{showFlowDetails.disableActions}</p>
-              <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
-            </div>
-          )
-        }
-        return (
-          <span className="ant-table-action-column">
-            <Tooltip title={<FormattedMessage {...messages.flowViewDetails} />}>
-              <Popover
-                placement="left"
-                content={flowDetailContent}
-                title={<h3><FormattedMessage {...messages.flowDetails} /></h3>}
-                trigger="click"
-                onVisibleChange={this.handleVisibleChangeFlow(record)}>
-                <Button icon="file-text" shape="circle" type="ghost"></Button>
-              </Popover>
-            </Tooltip>
-            {FlowActionSelect}
-          </span>
-        )
       }
-    }]
+    ]
 
     const pagination = {
       showSizeChanger: true,
-      onChange: (current) => this.setState({ pageIndex: current })
+      onChange: current => this.setState({ pageIndex: current })
     }
 
     let rowSelection = null
@@ -2008,17 +2391,21 @@ export class Flow extends React.Component {
 
     const menuItems = (
       <Menu onClick={this.handleMenuClick(selectedRowKeys)} className="ri-workbench-select-dropdown">
-        <Menu.Item key="menuStart"><Icon type="caret-right" /> <FormattedMessage {...messages.flowTableStart} />
+        <Menu.Item key="menuStart">
+          <Icon type="caret-right" /> <FormattedMessage {...messages.flowTableStart} />
         </Menu.Item>
         <Menu.Item key="menuStop">
-          <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i> <FormattedMessage {...messages.flowTableStop} />
+          <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }} />{' '}
+          <FormattedMessage {...messages.flowTableStop} />
         </Menu.Item>
-        <Menu.Item key="menuRenew"><Icon type="check" /> <FormattedMessage {...messages.flowTableRenew} />
+        <Menu.Item key="menuRenew">
+          <Icon type="check" /> <FormattedMessage {...messages.flowTableRenew} />
         </Menu.Item>
-        <Menu.Item key="menuDelete"><Icon type="delete" /> <FormattedMessage {...messages.flowTableDelete} />
+        <Menu.Item key="menuDelete">
+          <Icon type="delete" /> <FormattedMessage {...messages.flowTableDelete} />
         </Menu.Item>
       </Menu>
-      )
+    )
 
     let FlowAddOrNot = ''
     if (roleType === 'admin') {
@@ -2038,91 +2425,107 @@ export class Flow extends React.Component {
       )
     }
 
-    const helmetHide = flowClassHide !== 'hide'
-      ? (<Helmet title="Flow" />)
-      : (<Helmet title="Workbench" />)
+    const helmetHide = flowClassHide !== 'hide' ? <Helmet title="Flow" /> : <Helmet title="Workbench" />
 
-    const modalTitle = actionType === 'start'
-    ? <FormattedMessage {...messages.flowSureStart} />
-    : <FormattedMessage {...messages.flowSureRenew} />
-
-    const modalOkBtn = actionType === 'start'
-    ? <FormattedMessage {...messages.flowTableStart} />
-    : <FormattedMessage {...messages.flowTableRenew} />
-
-    const flowStartForm = startModalVisible
-      ? (
-        <FlowStartForm
-          data={flowStartFormData}
-          autoRegisteredTopics={autoRegisteredTopics}
-          userDefinedTopics={userDefinedTopics}
-          emitStartFormDataFromSub={this.getStartFormDataFromSub}
-          // consumedOffsetValue={consumedOffsetValue}
-          // kafkaOffsetValue={kafkaOffsetValue}
-          // kafkaEarliestOffset={kafkaEarliestOffset}
-          streamActionType={actionType}
-          startUdfValsOption={startUdfVals}
-          renewUdfValsOption={renewUdfVals}
-          currentUdfVal={currentUdfVal}
-          projectIdGeted={this.props.projectIdGeted}
-          streamIdGeted={this.state.streamIdGeted}
-          unValidate={this.state.unValidate}
-          ref={(f) => { this.flowStartForm = f }}
-        />
+    const modalTitle =
+      actionType === 'start' ? (
+        <FormattedMessage {...messages.flowSureStart} />
+      ) : (
+        <FormattedMessage {...messages.flowSureRenew} />
       )
-      : ''
 
-    const flowDrift = driftModalVisible
-      ? (
-        <Select
-          dropdownClassName="ri-workbench-select-dropdown"
-          onChange={(e) => this.onChangeDriftSel(e)}
-          placeholder="Select a Drift Stream"
-        >
-          {
-            driftList.length === 0 ? null : driftList.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
-          }
-        </Select>
-      ) : ''
+    const modalOkBtn =
+      actionType === 'start' ? (
+        <FormattedMessage {...messages.flowTableStart} />
+      ) : (
+        <FormattedMessage {...messages.flowTableRenew} />
+      )
+
+    const flowStartForm = startModalVisible ? (
+      <FlowStartForm
+        data={flowStartFormData}
+        autoRegisteredTopics={autoRegisteredTopics}
+        userDefinedTopics={userDefinedTopics}
+        emitStartFormDataFromSub={this.getStartFormDataFromSub}
+        // consumedOffsetValue={consumedOffsetValue}
+        // kafkaOffsetValue={kafkaOffsetValue}
+        // kafkaEarliestOffset={kafkaEarliestOffset}
+        streamActionType={actionType}
+        startUdfValsOption={startUdfVals}
+        renewUdfValsOption={renewUdfVals}
+        currentUdfVal={currentUdfVal}
+        projectIdGeted={this.props.projectIdGeted}
+        streamIdGeted={this.state.streamIdGeted}
+        unValidate={this.state.unValidate}
+        ref={f => {
+          this.flowStartForm = f
+        }}
+      />
+    ) : (
+      ''
+    )
+
+    const flowDrift = driftModalVisible ? (
+      <Select
+        dropdownClassName="ri-workbench-select-dropdown"
+        onChange={e => this.onChangeDriftSel(e)}
+        placeholder="Select a Drift Stream"
+      >
+        {driftList.length === 0
+          ? null
+          : driftList.map(s => (
+            <Option key={s.id} value={`${s.name}`}>
+              {s.name}
+            </Option>
+            ))}
+      </Select>
+    ) : (
+      ''
+    )
     const menuRange = (
       <Menu onClick={this.choosePerformanceRange}>
         {performanceRanges.map(v => (
           <Menu.Item key={v.value}>{v.label}</Menu.Item>
-          ))}
+        ))}
       </Menu>
     )
     const menuRefresh = (
       <Menu onClick={this.choosePerformanceRefreshTime}>
         {performanceRefreshTime.map(v => (
           <Menu.Item key={v.value}>{v.label}</Menu.Item>
-          ))}
+        ))}
       </Menu>
     )
-    const performanceChart = performanceModalVisible
-      ? (
-        <div>
-          <div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center'}}>
-            <span>Ranges</span>
-            <Dropdown overlay={menuRange}>
-              <Button style={{ marginLeft: 8 }}>
-                {this.state.performanceMenuChosen.label} <Icon type="down" />
-              </Button>
-            </Dropdown>
-            <span style={{marginLeft: '20px'}}>Refreshing</span>
-            <Dropdown overlay={menuRefresh}>
-              <Button style={{ marginLeft: 8 }}>
-                {this.state.performanceMenuRefreshChosen.label} <Icon type="down" />
-              </Button>
-            </Dropdown>
-          </div>
-          <Line style={{marginBottom: '5px'}} id="throughput" options={this.state.throughputChartOpt} />
-          <Line style={{marginBottom: '5px'}} id="records" options={this.state.recordsChartOpt} />
-          <Line style={{height: '250px'}} id="latency" options={this.state.latencyChartOpt} />
+    const performanceChart = performanceModalVisible ? (
+      <div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center'
+          }}
+        >
+          <span>Ranges</span>
+          <Dropdown overlay={menuRange}>
+            <Button style={{ marginLeft: 8 }}>
+              {this.state.performanceMenuChosen.label} <Icon type="down" />
+            </Button>
+          </Dropdown>
+          <span style={{ marginLeft: '20px' }}>Refreshing</span>
+          <Dropdown overlay={menuRefresh}>
+            <Button style={{ marginLeft: 8 }}>
+              {this.state.performanceMenuRefreshChosen.label} <Icon type="down" />
+            </Button>
+          </Dropdown>
         </div>
-      ) : ''
-    const errorListComp = errorListVisible ? (
-      <FlowErrorList data={flowErrorList} projectIdGeted={projectIdGeted} />
-    ) : ''
+        <Line style={{ marginBottom: '5px' }} id="throughput" options={this.state.throughputChartOpt} />
+        <Line style={{ marginBottom: '5px' }} id="records" options={this.state.recordsChartOpt} />
+        <Line style={{ height: '250px' }} id="latency" options={this.state.latencyChartOpt} />
+      </div>
+    ) : (
+      ''
+    )
+    const errorListComp = errorListVisible ? <FlowErrorList data={flowErrorList} projectIdGeted={projectIdGeted} /> : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -2132,7 +2535,15 @@ export class Flow extends React.Component {
         </h3>
         <div className="ri-common-block-tools">
           {FlowAddOrNot}
-          <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
+          <Button
+            icon="reload"
+            type="ghost"
+            className="refresh-button-style"
+            loading={refreshFlowLoading}
+            onClick={this.refreshFlow}
+          >
+            {refreshFlowText}
+          </Button>
         </div>
         <Table
           dataSource={currentFlows}
@@ -2141,17 +2552,19 @@ export class Flow extends React.Component {
           pagination={pagination}
           rowSelection={rowSelection}
           className="ri-workbench-table-container"
-          bordered>
-        </Table>
+          bordered
+        />
         <Modal
           visible={modalVisible}
           onCancel={this.handleCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
-          footer={<span></span>}
+          footer={<span />}
         >
           <FlowsDetail
             flowIdGeted={flowId}
-            ref={(f) => { this.flowsDetail = f }}
+            ref={f => {
+              this.flowsDetail = f
+            }}
             onEditLogForm={this.props.onEditLogForm}
             onSaveForm={this.props.onSaveForm}
             onCheckOutForm={this.props.onCheckOutForm}
@@ -2162,14 +2575,12 @@ export class Flow extends React.Component {
           />
         </Modal>
 
-        <Modal
-          title="设置时间"
-          visible={timeModalVisible}
-          onCancel={this.handleTimeCancel}
-          onOk={this.handleTimeOk}
-        >
+        <Modal title="设置时间" visible={timeModalVisible} onCancel={this.handleTimeCancel} onOk={this.handleTimeOk}>
           <FlowsTime
-            ref={(f) => { this.flowsTime = f }} />
+            ref={f => {
+              this.flowsTime = f
+            }}
+          />
         </Modal>
         <Modal
           title={modalTitle}
@@ -2177,12 +2588,7 @@ export class Flow extends React.Component {
           wrapClassName="ant-modal-large stream-start-renew-modal"
           onCancel={this.handleEditStartCancel}
           footer={[
-            <Button
-              className={`query-offset-btn`}
-              key="query"
-              size="large"
-              onClick={this.queryLastestoffset}
-            >
+            <Button className={`query-offset-btn`} key="query" size="large" onClick={this.queryLastestoffset}>
               <FormattedMessage {...messages.flowModalView} /> Latest Offset
             </Button>,
             <Button
@@ -2190,14 +2596,11 @@ export class Flow extends React.Component {
               type="default"
               onClick={this.onChangeEditSelect}
               key="renewEdit"
-              size="large">
+              size="large"
+            >
               <FormattedMessage {...messages.flowModalReset} />
             </Button>,
-            <Button
-              key="cancel"
-              size="large"
-              onClick={this.handleEditStartCancel}
-            >
+            <Button key="cancel" size="large" onClick={this.handleEditStartCancel}>
               <FormattedMessage {...messages.flowModalCancel} />
             </Button>,
             <Button
@@ -2226,8 +2629,8 @@ export class Flow extends React.Component {
           <Form className="ri-workbench-form workbench-flow-form">
             <FormItem
               label="Stream"
-              labelCol={{span: 3}}
-              wrapperCol={{span: 19}}
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 19 }}
               help={driftVerifyTxt}
               validateStatus={driftVerifyStatus}
               hasFeedback
@@ -2250,7 +2653,7 @@ export class Flow extends React.Component {
           visible={logsModalVisible}
           onCancel={this.handleLogsCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
-          footer={<span></span>}
+          footer={<span />}
         >
           <FlowLogs
             logsContent={logsContent}
@@ -2259,7 +2662,9 @@ export class Flow extends React.Component {
             onInitRefreshLogs={this.onInitRefreshLogs}
             logsProjectId={logsProjectId}
             logsFlowId={logsFlowId}
-            ref={(f) => { this.streamLogs = f }}
+            ref={f => {
+              this.streamLogs = f
+            }}
           />
         </Modal>
         <Modal
@@ -2268,7 +2673,7 @@ export class Flow extends React.Component {
           onCancel={this.closeErrorListModal}
           footer={null}
           width="98%"
-          style={{top: '30px'}}
+          style={{ top: '30px' }}
         >
           {errorListComp}
         </Modal>
@@ -2323,32 +2728,44 @@ Flow.propTypes = {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadAdminAllFlows: (resolve) => dispatch(loadAdminAllFlows(resolve)),
+    onLoadAdminAllFlows: resolve => dispatch(loadAdminAllFlows(resolve)),
     onLoadUserAllFlows: (projectId, resolve) => dispatch(loadUserAllFlows(projectId, resolve)),
     onLoadAdminSingleFlow: (projectId, resolve) => dispatch(loadAdminSingleFlow(projectId, resolve)),
     onOperateUserFlow: (values, resolve, reject) => dispatch(operateUserFlow(values, resolve, reject)),
 
     onEditLogForm: (flow, resolve) => dispatch(editLogForm(flow, resolve)),
     onSaveForm: (flowId, taskType, value, resolve) => dispatch(saveForm(flowId, taskType, value, resolve)),
-    onCheckOutForm: (flowId, taskType, startDate, endDate, value, resolve) => dispatch(checkOutForm(flowId, taskType, startDate, endDate, value, resolve)),
-    onLoadSourceLogDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSourceLogDetail(id, pageIndex, pageSize, resolve)),
-    onLoadSourceSinkDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSourceSinkDetail(id, pageIndex, pageSize, resolve)),
-    onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
+    onCheckOutForm: (flowId, taskType, startDate, endDate, value, resolve) =>
+      dispatch(checkOutForm(flowId, taskType, startDate, endDate, value, resolve)),
+    onLoadSourceLogDetail: (id, pageIndex, pageSize, resolve) =>
+      dispatch(loadSourceLogDetail(id, pageIndex, pageSize, resolve)),
+    onLoadSourceSinkDetail: (id, pageIndex, pageSize, resolve) =>
+      dispatch(loadSourceSinkDetail(id, pageIndex, pageSize, resolve)),
+    onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) =>
+      dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
     onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
     onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
-    onLoadSingleUdf: (projectId, roleType, resolve, type) => dispatch(loadSingleUdf(projectId, roleType, resolve, type)),
-    onLoadLastestOffset: (projectId, streamId, resolve, type, topics, tabType) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics, tabType)),
-    onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve)),
-    onStartFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(startFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
-    onStopFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(stopFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
+    onLoadSingleUdf: (projectId, roleType, resolve, type) =>
+      dispatch(loadSingleUdf(projectId, roleType, resolve, type)),
+    onLoadLastestOffset: (projectId, streamId, resolve, type, topics, tabType) =>
+      dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics, tabType)),
+    onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) =>
+      dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve)),
+    onStartFlinkFlow: (projectId, id, topicResult, action, resolve, reject) =>
+      dispatch(startFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
+    onStopFlinkFlow: (projectId, id, topicResult, action, resolve, reject) =>
+      dispatch(stopFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
     onLoadAdminLogsInfo: (projectId, flowId, resolve) => dispatch(loadAdminLogsInfo(projectId, flowId, resolve)),
     onLoadLogsInfo: (projectId, flowId, resolve) => dispatch(loadLogsInfo(projectId, flowId, resolve)),
     onLoadDriftList: (projectId, flowId, resolve) => dispatch(loadDriftList(projectId, flowId, resolve)),
-    onSubmitDrift: (projectId, flowId, streamId, resolve) => dispatch(postDriftList(projectId, flowId, streamId, resolve)),
-    onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve)),
-    onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) => dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve)),
-    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
+    onSubmitDrift: (projectId, flowId, streamId, resolve) =>
+      dispatch(postDriftList(projectId, flowId, streamId, resolve)),
+    onVerifyDrift: (projectId, flowId, streamId, resolve) =>
+      dispatch(verifyDrift(projectId, flowId, streamId, resolve)),
+    onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) =>
+      dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve)),
+    jumpStreamToFlowFilter: streamFilterId => dispatch(jumpStreamToFlowFilter(streamFilterId)),
     onLoadErrorList: (project, flowId, resolve) => dispatch(getErrorList(project, flowId, resolve))
   }
 }
@@ -2362,5 +2779,7 @@ const mapStateToProps = createStructuredSelector({
   streamFilterId: selectStreamFilterId()
 })
 
-export default connect(mapStateToProps, mapDispatchToProps)(Flow)
-
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Flow)
