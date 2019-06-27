@@ -65,7 +65,7 @@ object BatchflowDirective extends Directive {
 
     val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
       var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
-      if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
+      if ((flowDirectiveConfig.dataType == "ums" || (flowDirectiveConfig.dataType != "ums" && mutationType != "i")) && tmpOutput.nonEmpty) {
         if (tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
           tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
         }
