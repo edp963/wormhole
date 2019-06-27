@@ -212,7 +212,8 @@ object ParseSwiftsSqlInternal {
 
     //    syntaxCheck(sql, lookupFields)
     val lookupFieldsAlias = getAliasLookupFields(sql, lookupFields)
-    SwiftsSql(optType.toString, fieldsStr, sql, None, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
+    //logger.info(s"joinNamespace $joinNamespace, timeout $timeout")
+    SwiftsSql(optType.toString, fieldsStr, sql, timeout, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
 
   private def getFieldsAndSqlFromHbaseOrRedis(userSqlStr: String, joinNamespace: String): (String, Array[String], Array[String]) = {

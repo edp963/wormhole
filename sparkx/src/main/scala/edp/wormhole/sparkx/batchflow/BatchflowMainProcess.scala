@@ -417,12 +417,18 @@ object BatchflowMainProcess extends EdpLogging {
     val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Long)]
     umsRdd.map(_._4).collect().foreach(_.foreach {
       case ((protocol, ns), schema) =>
+        //log.info(s"schemaMap $schemaMap, protocol $protocol, ns $ns, begin")
         if (!schemaMap.contains((protocol, ns))) {
           val matchSourceNs = ConfMemoryStorage.getMatchSourceNamespaceRule(ns)
-          val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
-          schemaMap((protocol, ns)) = (schema, directiveId)
+          if(null != matchSourceNs) {
+            val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
+            schemaMap((protocol, ns)) = (schema, directiveId)
+          } else {
+            schemaMap((protocol, ns)) = (schema, 0L)
+          }
         }
-        logInfo(s"begin schema:$schema")
+        //log.info(s"schemaMap $schemaMap, protocol $protocol, ns $ns, end")
+        logInfo(s"begin schema: $schema")
     })
     mutable.LinkedHashMap(schemaMap.toSeq.sortBy(_._2._2): _*)
   }
