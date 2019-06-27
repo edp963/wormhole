@@ -42,6 +42,7 @@ object ParseSwiftsSql extends EdpLogging {
         else trimStr
       })
       val swiftsSqlArr = getSwiftsSql(sqlStrArray, sourceNamespace, sinkNamespace, validity, dataType, mutation) //sourcenamespace is rule
+      //log.info(s"sqlStrArray $sqlStrArray, swiftsSqlArr $swiftsSqlArr")
       swiftsSqlArr
     } else {
       None
@@ -57,7 +58,7 @@ object ParseSwiftsSql extends EdpLogging {
     val swiftsSqlList = Some(sqlStrArray.map(sqlStrEle => {
       val sqlStrEleTrim = sqlStrEle.trim + " " //to fix no where clause bug, e.g select a, b from table;
       logInfo("sqlStrEle:::" + sqlStrEleTrim)
-      if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.JOIN.toString) || sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.INNER_JOIN.toString)) {
+      val swiftsSql = if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.JOIN.toString) || sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.INNER_JOIN.toString)) {
         ParseSwiftsSqlInternal.getJoin(SqlOptType.JOIN, sqlStrEleTrim, sourceNamespace, sinkNamespace)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.LEFT_JOIN.toString)) {
         ParseSwiftsSqlInternal.getJoin(SqlOptType.LEFT_JOIN, sqlStrEleTrim, sourceNamespace, sinkNamespace)
@@ -73,6 +74,8 @@ object ParseSwiftsSql extends EdpLogging {
         logError("optType:" + sqlStrEleTrim + " is not supported")
         throw new Exception("wong operation data type:" + sqlStrEleTrim)
       }
+      //logInfo(s"swiftsSql ${swiftsSql.lookupNamespace}, ${swiftsSql.timeout}")
+      swiftsSql
     })
     )
     swiftsSqlList

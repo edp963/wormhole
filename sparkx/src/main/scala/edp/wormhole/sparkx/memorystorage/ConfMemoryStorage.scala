@@ -107,6 +107,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
         result = k._1
       }
     })
+    //log.info(s"flowConfigMap $flowConfigMap, namespace $namespace, result $result")
     result
   }
 
@@ -119,6 +120,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
   def existStreamLookup(matchSourceNamespace: String, sinkNamespace: String, lookupNamespace: String): Boolean = {
+    //log.info(s"lookup2SourceSinkNamespaceMap $lookup2SourceSinkNamespaceMap, matchSourceNamespace $matchSourceNamespace, sinkNamespace $sinkNamespace, lookupNamespace $lookupNamespace")
     lookup2SourceSinkNamespaceMap.contains(lookupNamespace) && lookup2SourceSinkNamespaceMap(lookupNamespace).exists(row => row._1 == matchSourceNamespace && row._2 == sinkNamespace)
   }
 
@@ -228,6 +230,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.priorityId): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
       //flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
+      //log.info(s"flowConfigMap $flowConfigMap, sourceNamespace $sourceNamespace, sinkNamespace $sinkNamespace, flowConfig $flowConfig")
     }
   }
 
@@ -268,9 +271,11 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //  }
 
   def registerStreamLookupNamespaceMap(sourceNamespace: String, sinkNamespace: String, swiftsProcessConfig: Option[SwiftsProcessConfig]) {
+    //log.info(s"sourceNamespace $sourceNamespace, sinkNamespace $sinkNamespace, swiftsProcessConfig ${swiftsProcessConfig.nonEmpty} ${swiftsProcessConfig.get.swiftsSql.nonEmpty}")
     if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
       val swiftsSql = swiftsProcessConfig.get.swiftsSql.get
       swiftsSql.foreach(sql => {
+        //log.info(s"sql.timeout.isDefined ${sql.timeout.isDefined}, sql.lookupNamespace.nonEmpty ${sql.lookupNamespace.nonEmpty}")
         if (sql.timeout.isDefined && sql.lookupNamespace.nonEmpty) {
           sql.lookupNamespace.get.split(",").foreach(lookupNamespace => {
             if (lookup2SourceSinkNamespaceMap.contains(lookupNamespace)) {
@@ -305,6 +310,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //  }
 
   def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, FlowConfig] = {
+    //log.info(s"flowConfigMap $flowConfigMap, sourceNamespace $sourceNamespace")
     flowConfigMap(sourceNamespace)
   }
 
