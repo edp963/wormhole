@@ -382,7 +382,9 @@ object BatchflowMainProcess extends EdpLogging {
     try {
       val swiftsDf: DataFrame = SwiftsTransform.transform(session, sourceNamespace, sinkNamespace, afterUnionDf, matchSourceNamespace, config)
       val resultSchema = swiftsDf.schema
-      val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType)).sortBy(_._2)
+      val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => {
+        (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType)
+      }).sortBy(_._2)
 
       import session.implicits._
 
