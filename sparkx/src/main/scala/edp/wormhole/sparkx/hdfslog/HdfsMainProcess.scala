@@ -150,7 +150,7 @@ object HdfsMainProcess extends EdpLogging {
         }.cache
 
         val writeResult: Array[(ListBuffer[PartitionResult], ListBuffer[FlowErrorInfo])] = partitionResultRdd.collect
-        logInfo(s"hdfs_main_process writeResult $writeResult")
+        /*logInfo(s"hdfs_main_process writeResult $writeResult")
 
         writeResult.foreach(writeone => {
           writeone._1.foreach(partitionResult => {
@@ -159,7 +159,7 @@ object HdfsMainProcess extends EdpLogging {
           writeone._2.foreach(flowErrorInfo => {
             logInfo(s"writeResult flowErrorInfo $flowErrorInfo")
           })
-        })
+        })*/
 
         writeResult.foreach(eachPartionResultError => {
           eachPartionResultError._1.foreach(eachResult => {
@@ -180,7 +180,7 @@ object HdfsMainProcess extends EdpLogging {
           })
         })
 
-        logInfo(s"namespace2FileStore $namespace2FileStore")
+        //logInfo(s"namespace2FileStore $namespace2FileStore")
 
         val flowIdSet = mutable.HashSet.empty[Long]
         writeResult.foreach(eachPartionResultError => {
@@ -201,7 +201,7 @@ object HdfsMainProcess extends EdpLogging {
           }
         })
 
-        logInfo(s"flowIdSet $flowIdSet")
+        //logInfo(s"flowIdSet $flowIdSet")
 
         val statsProtocolNamespace: Set[(String, String, Long)] = writeResult.flatMap(eachPartionResultError => {
           eachPartionResultError._1.map(r => {
@@ -209,7 +209,7 @@ object HdfsMainProcess extends EdpLogging {
           })
         }).toSet
 
-        logInfo(s"statsProtocolNamespace $statsProtocolNamespace")
+        //logInfo(s"statsProtocolNamespace $statsProtocolNamespace")
 
         statsProtocolNamespace.foreach { case (protocol, namespace, flowId) =>
           var count = 0
@@ -224,7 +224,7 @@ object HdfsMainProcess extends EdpLogging {
           })
           })
           val doneTs = System.currentTimeMillis
-          logInfo(s"count $count, cdcTs $cdcTs")
+          //logInfo(s"count $count, cdcTs $cdcTs")
           if (count > 0 && cdcTs > 0)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
               UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id,
@@ -360,7 +360,7 @@ object HdfsMainProcess extends EdpLogging {
     val sharding1 = namespaceSplit(5)
     val sharding2 = namespaceSplit(6)
     val filePrefixShardingSlash = config.stream_hdfs_address.get + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
-    logInfo(s"namespace2FileMap $namespace2FileMap, protocol $protocol, namespace $namespace")
+    //logInfo(s"namespace2FileMap $namespace2FileMap, protocol $protocol, namespace $namespace")
 
     val index2FileRightMap: mutable.Map[Int, (String, Int, String)] = if (namespace2FileMap.contains((protocol, namespace)) &&
       namespace2FileMap((protocol, namespace)).contains("right")) {
@@ -372,7 +372,7 @@ object HdfsMainProcess extends EdpLogging {
       namespace2FileMap(protocol, namespace)("wrong")
     } else null
 
-    logInfo(s"index2FileRightMap $index2FileRightMap, index $index")
+    //logInfo(s"index2FileRightMap $index2FileRightMap, index $index")
     var (correctFileName, correctCurrentSize, currentCorrectMetaContent) = if (index2FileRightMap != null && index2FileRightMap.contains(index))
       (index2FileRightMap(index)._1, index2FileRightMap(index)._2, index2FileRightMap(index)._3) else (null, 0, null)
 
@@ -551,7 +551,7 @@ object HdfsMainProcess extends EdpLogging {
     val vaildMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace, hdfslogMap)
     val flowId = if (vaildMap != null && vaildMap.nonEmpty) vaildMap.head._2.flowId else -1
 
-    logInfo(s"index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName, correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId: $index, $valid, $errorFileName, $errorCurrentSize, $currentErrorMetaContent, $correctFileName, $correctCurrentSize, $currentCorrectMetaContent, $protocol, $namespace, $finalMinTs, $finalMaxTs, $count, $flowId")
+    //logInfo(s"index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName, correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId: $index, $valid, $errorFileName, $errorCurrentSize, $currentErrorMetaContent, $correctFileName, $correctCurrentSize, $currentCorrectMetaContent, $protocol, $namespace, $finalMinTs, $finalMaxTs, $count, $flowId")
 
     PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
       correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId)
