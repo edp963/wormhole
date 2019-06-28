@@ -382,7 +382,9 @@ object BatchflowMainProcess extends EdpLogging {
     try {
       val swiftsDf: DataFrame = SwiftsTransform.transform(session, sourceNamespace, sinkNamespace, afterUnionDf, matchSourceNamespace, config)
       val resultSchema = swiftsDf.schema
-      val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType)).sortBy(_._2)
+      val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => {
+        (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType)
+      }).sortBy(_._2)
 
       import session.implicits._
 
@@ -417,18 +419,12 @@ object BatchflowMainProcess extends EdpLogging {
     val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Long)]
     umsRdd.map(_._4).collect().foreach(_.foreach {
       case ((protocol, ns), schema) =>
-        //log.info(s"schemaMap $schemaMap, protocol $protocol, ns $ns, begin")
         if (!schemaMap.contains((protocol, ns))) {
           val matchSourceNs = ConfMemoryStorage.getMatchSourceNamespaceRule(ns)
-          if(null != matchSourceNs) {
-            val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
-            schemaMap((protocol, ns)) = (schema, directiveId)
-          } else {
-            schemaMap((protocol, ns)) = (schema, 0L)
-          }
+          val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
+          schemaMap((protocol, ns)) = (schema, directiveId)
         }
-        //log.info(s"schemaMap $schemaMap, protocol $protocol, ns $ns, end")
-        logInfo(s"begin schema: $schema")
+        logInfo(s"begin schema:$schema")
     })
     mutable.LinkedHashMap(schemaMap.toSeq.sortBy(_._2._2): _*)
   }

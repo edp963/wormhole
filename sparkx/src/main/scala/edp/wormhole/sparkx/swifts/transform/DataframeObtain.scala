@@ -53,8 +53,6 @@ object DataframeObtain extends EdpLogging {
         val fileName = matchSourceNamespace + "_" + sinkNamespace + "_" + lookupNs //source_sink_lookup
         val path = pathPrefix + "/" + lookupNs.replaceAll("\\*", "-")
         val lookupDf = session.read.parquet(path)
-        logInfo("lookup start df show")
-        lookupDf.show(10)
         val md = MessageDigest.getInstance("MD5")
         md.update(fileName.getBytes())
         val tmpTableName = new BigInteger(1, md.digest()).toString(16)
@@ -72,10 +70,6 @@ object DataframeObtain extends EdpLogging {
   }
 
   private [transform] def getJoinDf(lastDf: DataFrame, session: SparkSession, operate: SwiftsSql, df1: DataFrame): DataFrame = {
-    logInfo("getJoinDf show")
-    lastDf.show(10)
-    df1.show(10)
-
     var tmpLastDf = lastDf
     val sourceTableFields = operate.sourceTableFields.get
     val joinType = SqlOptType.toSqlOptType(operate.optType) match {
