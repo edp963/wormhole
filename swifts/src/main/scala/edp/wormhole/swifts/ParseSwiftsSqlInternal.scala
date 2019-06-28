@@ -55,10 +55,10 @@ object ParseSwiftsSqlInternal {
       .toLowerCase.split(",").map(field => {
       (field.trim, true)
     }).toMap
-    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectSqlFields.contains(UmsSysField.TS.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && selectSqlFields.keys.count(_.indexOf(UmsSysField.TS.toString)>=0) <= 0){
       sqlSecondPart = UmsSysField.TS.toString + "," + sqlSecondPart
     }
-    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectSqlFields.contains(UmsSysField.ID.toString)) {
+    if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && selectSqlFields.keys.count(_.indexOf(UmsSysField.ID.toString)>=0) <= 0) {
       sqlSecondPart = UmsSysField.ID.toString + "," + sqlSecondPart
     }
     if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
@@ -212,7 +212,8 @@ object ParseSwiftsSqlInternal {
 
     //    syntaxCheck(sql, lookupFields)
     val lookupFieldsAlias = getAliasLookupFields(sql, lookupFields)
-    SwiftsSql(optType.toString, fieldsStr, sql, None, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
+    //logger.info(s"joinNamespace $joinNamespace, timeout $timeout")
+    SwiftsSql(optType.toString, fieldsStr, sql, timeout, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
 
   private def getFieldsAndSqlFromHbaseOrRedis(userSqlStr: String, joinNamespace: String): (String, Array[String], Array[String]) = {
