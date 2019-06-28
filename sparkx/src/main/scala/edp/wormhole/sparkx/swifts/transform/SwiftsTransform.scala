@@ -77,8 +77,6 @@ object SwiftsTransform extends EdpLogging {
                     val newSql = SqlBinding.getSlidingUnionSql(session, currentDf, sourceTableFields, lookupTableFields, sql)
                     logInfo(uuid + ",lookupStreamMap JOIN newSql@:" + newSql)
                     val df1 = session.sql(newSql)
-                    logInfo("lookup end df show")
-                    df1.show(10)
                     currentDf = DataframeObtain.getJoinDf(currentDf, session, operate, df1)
                   } catch {
                     case e: Throwable =>
