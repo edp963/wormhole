@@ -214,7 +214,7 @@ object FlowUtils extends RiderLogger {
       case None =>
         nsSys match {
           case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
-          case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+          case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" | "clickhouse" => "edp.wormhole.sinks.dbsink.Data2DbSink"
           case "es" =>
             if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
             else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
