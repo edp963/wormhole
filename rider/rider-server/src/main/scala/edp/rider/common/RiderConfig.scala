@@ -162,7 +162,8 @@ case class RiderKerberos(keyTab: String,
                          jaasYarnConfig: String,
                          sparkPrincipal: String,
                          sparkKeyTab: String,
-                         enabled: Boolean)
+                         enabled: Boolean,
+                         hdfslogServerEnabled: Boolean)
 
 case class Monitor(databaseType: String)
 
@@ -336,16 +337,18 @@ object RiderConfig {
       config.getStringList("dbus.namespace.rest.api.url")
     else null
 
+  lazy val defaultKerberosEnabled = false
   lazy val kerberos = RiderKerberos(getStringConfig("kerberos.keyTab", ""),
     getStringConfig("kerberos.server.config", ""),
     getStringConfig("kerberos.jaas.startShell.config", ""),
     getStringConfig("kerberos.jaas.yarn.config", ""),
     getStringConfig("kerberos.spark.principal", ""),
     getStringConfig("kerberos.spark.keyTab", ""),
-    getBooleanConfig("kerberos.server.enabled", false))
+    getBooleanConfig("kerberos.server.enabled", defaultKerberosEnabled),
+    getBooleanConfig("wormhole.hdfslog.hadoop.server.enabled", defaultKerberosEnabled))
 
   lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
-     spark.appTags, spark.rm1Url, spark.rm2Url)
+    spark.appTags, spark.rm1Url, spark.rm2Url)
 
   lazy val ldapEnabled = getBooleanConfig("ldap.enabled", false)
 

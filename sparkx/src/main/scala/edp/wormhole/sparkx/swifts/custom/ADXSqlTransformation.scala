@@ -3,6 +3,7 @@ package edp.wormhole.sparkx.swifts.custom
 import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 
@@ -19,13 +20,16 @@ class ADXSqlTransformation extends SwiftsInterface{
         case None => Seq.empty[String]
       }
       //Get Schema From Sprek Stream
-      val schemasFromStream:Seq[String] = df.columns.toSeq
+      val schemasNameFromStream:Seq[String] = df.columns.toSeq
+      val schemasFromStream = schemasNameFromStream.map(schemasName => schemasName.toLowerCase)
+
       //Scan schemasFromStream To add  Column (type:String , value:null)
-      schemasFromSwifts.foreach(schema => {
+      schemasFromSwifts.foreach(schemaName => {
+        val schema = schemaName.toLowerCase
         if(config.datasetShow.get) println(s"check Column $schema")
         if(!(schema.equals("ums_uid_")||schema.equals("ums_ts_")||schema.equals("ums_op_")||schema.equals("ums_id_"))&&schemasFromStream.indexOf(schema)<0) {
           if(config.datasetShow.get) println(s"add Column with name : $schema")
-          temp_df = df.withColumn(schema,lit(null))
+          temp_df = temp_df.withColumn(schema,lit(null).cast(StringType))
         }
       })
       temp_df

@@ -73,9 +73,9 @@ object HdfsMainProcess extends EdpLogging {
       val hdfslogMap: Map[String, HdfsLogFlowConfig] = ConfMemoryStorage.getHdfslogMap
 
       try {
-        val rddTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
+        val rddTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
-        val directiveTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
+        val directiveTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
         HdfsDirective.doDirectiveTopic(config, stream)
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
@@ -98,7 +98,7 @@ object HdfsMainProcess extends EdpLogging {
         //        val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
         //        logInfo("validNameSpaceMap:" + validNameSpaceMap)
 
-        val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
+        val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]
@@ -150,60 +150,86 @@ object HdfsMainProcess extends EdpLogging {
         }.cache
 
         val writeResult: Array[(ListBuffer[PartitionResult], ListBuffer[FlowErrorInfo])] = partitionResultRdd.collect
-        writeResult.head._1.foreach(eachResult => {
-          if (!namespace2FileStore.contains((eachResult.protocol, eachResult.namespace))) {
-            namespace2FileStore((eachResult.protocol, eachResult.namespace)) = mutable.HashMap.empty[String, mutable.HashMap[Int, (String, Int, String)]]
-          }
-          if (namespace2FileStore.contains((eachResult.protocol, eachResult.namespace))) {
-            if (!namespace2FileStore(eachResult.protocol, eachResult.namespace).contains("right"))
-              namespace2FileStore((eachResult.protocol, eachResult.namespace))("right") = mutable.HashMap.empty[Int, (String, Int, String)]
-            if (!namespace2FileStore(eachResult.protocol, eachResult.namespace).contains("wrong"))
-              namespace2FileStore((eachResult.protocol, eachResult.namespace))("wrong") = mutable.HashMap.empty[Int, (String, Int, String)]
-          }
+        /*logInfo(s"hdfs_main_process writeResult $writeResult")
 
-          if (eachResult.result && eachResult.allCount > 0 && eachResult.errorFileName != null)
-            namespace2FileStore((eachResult.protocol, eachResult.namespace))("wrong")(eachResult.index) = (eachResult.errorFileName, eachResult.errorCount, eachResult.errorMetaContent)
-          if (eachResult.result && eachResult.allCount > 0 && eachResult.correctFileName != null)
-            namespace2FileStore((eachResult.protocol, eachResult.namespace))("right")(eachResult.index) = (eachResult.correctFileName, eachResult.correctCount, eachResult.correctMetaContent)
+        writeResult.foreach(writeone => {
+          writeone._1.foreach(partitionResult => {
+            logInfo(s"writeResult partitionResult $partitionResult")
+          })
+          writeone._2.foreach(flowErrorInfo => {
+            logInfo(s"writeResult flowErrorInfo $flowErrorInfo")
+          })
+        })*/
+
+        writeResult.foreach(eachPartionResultError => {
+          eachPartionResultError._1.foreach(eachResult => {
+            if (!namespace2FileStore.contains((eachResult.protocol, eachResult.namespace))) {
+              namespace2FileStore((eachResult.protocol, eachResult.namespace)) = mutable.HashMap.empty[String, mutable.HashMap[Int, (String, Int, String)]]
+            }
+            if (namespace2FileStore.contains((eachResult.protocol, eachResult.namespace))) {
+              if (!namespace2FileStore(eachResult.protocol, eachResult.namespace).contains("right"))
+                namespace2FileStore((eachResult.protocol, eachResult.namespace))("right") = mutable.HashMap.empty[Int, (String, Int, String)]
+              if (!namespace2FileStore(eachResult.protocol, eachResult.namespace).contains("wrong"))
+                namespace2FileStore((eachResult.protocol, eachResult.namespace))("wrong") = mutable.HashMap.empty[Int, (String, Int, String)]
+            }
+
+            if (eachResult.result && eachResult.allCount > 0 && eachResult.errorFileName != null)
+              namespace2FileStore((eachResult.protocol, eachResult.namespace))("wrong")(eachResult.index) = (eachResult.errorFileName, eachResult.errorCount, eachResult.errorMetaContent)
+            if (eachResult.result && eachResult.allCount > 0 && eachResult.correctFileName != null)
+              namespace2FileStore((eachResult.protocol, eachResult.namespace))("right")(eachResult.index) = (eachResult.correctFileName, eachResult.correctCount, eachResult.correctMetaContent)
+          })
         })
 
-        if (writeResult.head._2.nonEmpty) {
-          val flowIdSet = mutable.HashSet.empty[Long]
-          writeResult.head._2.foreach(flowErrorInfo => {
-            if (!flowIdSet.contains(flowErrorInfo.flowId)) {
-              try {
-                flowIdSet.add(flowErrorInfo.flowId)
-                SparkxUtils.setFlowErrorMessage(flowErrorInfo.incrementTopicList,
-                  topicPartitionOffset, config, flowErrorInfo.matchSourceNamespace, flowErrorInfo.sinkNamespace, flowErrorInfo.count,
-                  flowErrorInfo.error, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
-              } catch {
-                case e: Throwable =>
-                  logError("setFlowErrorMessage", e)
-              }
-            }
-          })
-        }
+        //logInfo(s"namespace2FileStore $namespace2FileStore")
 
-        val statsProtocolNamespace: Set[(String, String, Long)] = writeResult.head._1.map(r => {
-          (r.protocol, r.namespace, r.flowId)
+        val flowIdSet = mutable.HashSet.empty[Long]
+        writeResult.foreach(eachPartionResultError => {
+          if (eachPartionResultError._2.nonEmpty) {
+            eachPartionResultError._2.foreach(flowErrorInfo => {
+              if (!flowIdSet.contains(flowErrorInfo.flowId)) {
+                try {
+                  flowIdSet.add(flowErrorInfo.flowId)
+                  SparkxUtils.setFlowErrorMessage(flowErrorInfo.incrementTopicList,
+                    topicPartitionOffset, config, flowErrorInfo.matchSourceNamespace, flowErrorInfo.sinkNamespace, flowErrorInfo.count,
+                    flowErrorInfo.error, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
+                } catch {
+                  case e: Throwable =>
+                    logError("setFlowErrorMessage", e)
+                }
+              }
+            })
+          }
+        })
+
+        //logInfo(s"flowIdSet $flowIdSet")
+
+        val statsProtocolNamespace: Set[(String, String, Long)] = writeResult.flatMap(eachPartionResultError => {
+          eachPartionResultError._1.map(r => {
+            (r.protocol, r.namespace, r.flowId)
+          })
         }).toSet
+
+        //logInfo(s"statsProtocolNamespace $statsProtocolNamespace")
 
         statsProtocolNamespace.foreach { case (protocol, namespace, flowId) =>
           var count = 0
           var cdcTs = 0L
-          writeResult.head._1.foreach(r => {
+          writeResult.foreach(eachPartionResultError => {
+            eachPartionResultError._1.foreach(r => {
             if (protocol == r.protocol && namespace == r.namespace) {
               count += r.allCount
               val tmpMaxTs = if (!r.maxTs.trim.equals("")) DateUtils.dt2date(r.maxTs).getTime else 0L
               if (cdcTs < tmpMaxTs) cdcTs = tmpMaxTs
             }
           })
+          })
           val doneTs = System.currentTimeMillis
+          //logInfo(s"count $count, cdcTs $cdcTs")
           if (count > 0 && cdcTs > 0)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
               UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id,
                 batchId, namespace, topicPartitionOffset.toJSONString,
-                count, DateUtils.dt2string(cdcTs,DtFormat.TS_DASH_MILLISEC), rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
+                count, DateUtils.dt2string(cdcTs, DtFormat.TS_DASH_MILLISEC), rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
               Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), config.kafka_output.brokers)
 
         }
@@ -256,10 +282,10 @@ object HdfsMainProcess extends EdpLogging {
   private def getMinMaxTs(message: String, namespace: String, hdfslogMap: Map[String, HdfsLogFlowConfig]) = {
     var currentUmsTsMin: String = ""
     var currentUmsTsMax: String = ""
-    val validMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace,hdfslogMap)
-//    if (hdfslogMap.contains(namespace)) {
-//      val mapValue = hdfslogMap(namespace)
-    if(validMap != null && validMap.nonEmpty && validMap.head._2.dataType==DataTypeEnum.UMS_EXTENSION.toString){
+    val validMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace, hdfslogMap)
+    //    if (hdfslogMap.contains(namespace)) {
+    //      val mapValue = hdfslogMap(namespace)
+    if (validMap != null && validMap.nonEmpty && validMap.head._2.dataType == DataTypeEnum.UMS_EXTENSION.toString) {
       val mapValue = validMap.head._2
       val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue.jsonSchema.fieldsInfo, mapValue.jsonSchema.twoFieldsArr)
       val schema = mapValue.jsonSchema.schemaField
@@ -334,6 +360,8 @@ object HdfsMainProcess extends EdpLogging {
     val sharding1 = namespaceSplit(5)
     val sharding2 = namespaceSplit(6)
     val filePrefixShardingSlash = config.stream_hdfs_address.get + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
+    //logInfo(s"namespace2FileMap $namespace2FileMap, protocol $protocol, namespace $namespace")
+
     val index2FileRightMap: mutable.Map[Int, (String, Int, String)] = if (namespace2FileMap.contains((protocol, namespace)) &&
       namespace2FileMap((protocol, namespace)).contains("right")) {
       namespace2FileMap(protocol, namespace)("right")
@@ -344,6 +372,7 @@ object HdfsMainProcess extends EdpLogging {
       namespace2FileMap(protocol, namespace)("wrong")
     } else null
 
+    //logInfo(s"index2FileRightMap $index2FileRightMap, index $index")
     var (correctFileName, correctCurrentSize, currentCorrectMetaContent) = if (index2FileRightMap != null && index2FileRightMap.contains(index))
       (index2FileRightMap(index)._1, index2FileRightMap(index)._2, index2FileRightMap(index)._3) else (null, 0, null)
 
@@ -359,7 +388,9 @@ object HdfsMainProcess extends EdpLogging {
       val configuration = new Configuration()
       val hdfsPath = config.stream_hdfs_address.get
       val hdfsPathGrp = hdfsPath.split("//")
-      val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
+      val hdfsRoot = if (hdfsPathGrp(1).contains("/"))
+        hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/"))
+      else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
       configuration.set("fs.defaultFS", hdfsRoot)
       configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
       if (config.hdfs_namenode_hosts.nonEmpty) {
@@ -372,6 +403,10 @@ object HdfsMainProcess extends EdpLogging {
           configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
         }
         configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+      }
+
+      if (config.kerberos && config.hdfslog_server_kerberos.nonEmpty && !config.hdfslog_server_kerberos.get) {
+        configuration.set("ipc.client.fallback-to-simple-auth-allowed", "true")
       }
 
       dataList.foreach(data => {
@@ -512,9 +547,11 @@ object HdfsMainProcess extends EdpLogging {
           logWarning("close", e)
       }
     }
-//    val flowId = if (hdfslogMap.contains(namespace)) hdfslogMap(namespace).flowId else -1
-    val vaildMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace,hdfslogMap)
-    val flowId = if(vaildMap != null&&vaildMap.nonEmpty) vaildMap.head._2.flowId else -1
+    //    val flowId = if (hdfslogMap.contains(namespace)) hdfslogMap(namespace).flowId else -1
+    val vaildMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace, hdfslogMap)
+    val flowId = if (vaildMap != null && vaildMap.nonEmpty) vaildMap.head._2.flowId else -1
+
+    //logInfo(s"index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName, correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId: $index, $valid, $errorFileName, $errorCurrentSize, $currentErrorMetaContent, $correctFileName, $correctCurrentSize, $currentCorrectMetaContent, $protocol, $namespace, $finalMinTs, $finalMaxTs, $count, $flowId")
 
     PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
       correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId)

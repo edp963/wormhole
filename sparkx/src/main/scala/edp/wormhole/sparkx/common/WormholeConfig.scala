@@ -33,9 +33,10 @@ case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           zookeeper_path: String,
                           kafka_persistence_config_isvalid: Boolean,
                           stream_hdfs_address: Option[String],
-                          hdfs_namenode_hosts:Option[String],
-                          hdfs_namenode_ids:Option[String],
-                          kerberos: Boolean)
+                          hdfs_namenode_hosts: Option[String],
+                          hdfs_namenode_ids: Option[String],
+                          kerberos: Boolean,
+                          hdfslog_server_kerberos: Option[Boolean])
 
 //for parquet，data is main namespace or join namespace
 
@@ -50,9 +51,9 @@ case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, confi
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig],
                             inWatch: Boolean,
-                            kerberos:Boolean=false) {
-  lazy val inputBrokers =   kerberos match {
-    case true  =>Map("bootstrap.servers" -> kafka_base_config.brokers,
+                            kerberos: Boolean = false) {
+  lazy val inputBrokers = kerberos match {
+    case true => Map("bootstrap.servers" -> kafka_base_config.brokers,
       "max.partition.fetch.bytes" -> kafka_base_config.`max.partition.fetch.bytes`.toString,
       "key.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
       "value.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
@@ -60,7 +61,7 @@ case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
       "session.timeout.ms" -> kafka_base_config.`session.timeout.ms`.toString,
       "group.id" -> kafka_base_config.group_id,
       "enable.auto.commit" -> "false")
-    case false =>Map("bootstrap.servers" -> kafka_base_config.brokers,
+    case false => Map("bootstrap.servers" -> kafka_base_config.brokers,
       "max.partition.fetch.bytes" -> kafka_base_config.`max.partition.fetch.bytes`.toString,
       "key.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
       "value.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
