@@ -421,10 +421,14 @@ object BatchflowMainProcess extends EdpLogging {
       case ((protocol, ns), schema) =>
         if (!schemaMap.contains((protocol, ns))) {
           val matchSourceNs = ConfMemoryStorage.getMatchSourceNamespaceRule(ns)
-          val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
-          schemaMap((protocol, ns)) = (schema, directiveId)
+          if(null != matchSourceNs) {
+            val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
+            schemaMap((protocol, ns)) = (schema, directiveId)
+          } else {
+            schemaMap((protocol, ns)) = (schema, 0L)
+          }
         }
-        logInfo(s"begin schema:$schema")
+        logInfo(s"begin schema: $schema")
     })
     mutable.LinkedHashMap(schemaMap.toSeq.sortBy(_._2._2): _*)
   }
