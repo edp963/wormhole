@@ -63,6 +63,13 @@ object SqlProcessor {
       (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
   }
 
+  def selectClickHouseSql(tupleCount:Int,tableKeyNames:Seq[String],tableName:String,sysIdName:String):String={
+    val keysString = tableKeyNames.map(tk =>s"""$tk""").mkString(",")
+    val keyQuestionMarks =(1 to tableKeyNames.size).map( _ => "?").mkString("(", ",", ")")
+    s"SELECT $keysString, $sysIdName FROM `$tableName` WHERE ($keysString) IN " +
+      (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+  }
+
   def selectOtherSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
     val keysString = tableKeyNames.mkString(",")
     val keyQuestionMarks: String = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
@@ -100,11 +107,12 @@ object SqlProcessor {
       var rs: ResultSet = null
       var conn: Connection = null
       try {
-
+        logger.info(s"datasys:$dataSys tableName:$tableName tableKeysNames:$tableKeyNames")
         val sql = dataSys match {
           case UmsDataSystem.MYSQL => selectMysqlSql(tupleList.size, tableKeyNames, tableName, sysIdName)
           case UmsDataSystem.ORACLE => selectOracleSql(tupleList.size, tableKeyNames, tableName, sysIdName)
           case UmsDataSystem.POSTGRESQL => selectPostgresSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+          case UmsDataSystem.CLICKHOUSE  => selectClickHouseSql(tupleList.size, tableKeyNames, tableName, sysIdName)
           case _ => selectOtherSql(tupleList.size, tableKeyNames, tableName, sysIdName)
         }
         logger.info("select sql:" + sql)
@@ -186,6 +194,7 @@ object SqlProcessor {
           s"""INSERT INTO ${tableName.toUpperCase} ($fieldName,$oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(" + sequenceName + " ,", ",", ")")
         } else
           s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+      case UmsDataSystem.CLICKHOUSE =>s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
       case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
     }
 

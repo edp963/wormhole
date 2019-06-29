@@ -88,6 +88,9 @@ object DbConnection extends Serializable {
 //    } else if (tmpJdbcUrl.indexOf("greenplum") > -1) {
 //      println("greenplum")
 //      config.setDriverClassName("com.pivotal.jdbc.GreenplumDriver")
+    } else if (tmpJdbcUrl.indexOf("clickhouse")> -1){
+      println("clickhouse")
+      config.setDriverClassName("ru.yandex.clickhouse.ClickHouseDriver")
     }
 
 
