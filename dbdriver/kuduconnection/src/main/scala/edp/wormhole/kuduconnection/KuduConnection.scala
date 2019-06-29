@@ -306,7 +306,7 @@ object KuduConnection extends Serializable {
   def doQueryMultiByKeyListInBatch(tableName: String, database: String, url: String, keyName: String, tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                                    queryFieldsName: Seq[String], batchSize: Int): mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = {
     logger.info("doQueryMultiByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
-    val queryResultMap = mutable.HashMap.empty[String, ListBuffer[Map[String, (Any, String)]]]
+    val queryResultMap = mutable.HashMap.empty[String, mutable.HashSet[Map[String, (Any, String)]]]
     val client: KuduClient = getKuduClient(url)
     try {
       val newTableName = getTableName(tableName, database)
@@ -328,10 +328,11 @@ object KuduConnection extends Serializable {
         }
       })
 
-      val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
-        .setProjectedColumnNames(queryFieldsName) //指定输出列
+//      val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
+//        .setProjectedColumnNames(queryFieldsName) //指定输出列
 
       dataList.grouped(batchSize).foreach(data => {
+        logger.info("doQueryMultiByKeyListInBatch: " + data)
 
         val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
           .setProjectedColumnNames(queryFieldsName) //指定输出列
@@ -362,11 +363,11 @@ object KuduConnection extends Serializable {
             }).toMap
             val keysStr = queryResult(keyName)._1.toString
             if (!queryResultMap.contains(keysStr)) {
-              val tmpList = ListBuffer.empty[Map[String, (Any, String)]]
-              tmpList.append(queryResult)
+              val tmpList = mutable.HashSet.empty[Map[String, (Any, String)]]
+              tmpList.add(queryResult)
               queryResultMap(keysStr) = tmpList
             } else {
-              queryResultMap(keysStr).append(queryResult)
+              queryResultMap(keysStr).add(queryResult)
             }
           }
         }
@@ -379,8 +380,18 @@ object KuduConnection extends Serializable {
     } finally {
       closeClient(client)
     }
+    val queryResultMapResult = mutable.HashMap.empty[String, ListBuffer[Map[String, (Any, String)]]]
+    queryResultMap.foreach(queryResult => {
+      if(!queryResultMapResult.contains(queryResult._1)) {
+        val tmpList = ListBuffer.empty[Map[String, (Any, String)]]
+        tmpList.appendAll(queryResult._2)
+        queryResultMapResult(queryResult._1) = tmpList
+      } else {
+        queryResultMapResult(queryResult._1).appendAll(queryResult._2)
+      }
+    })
     logger.info("doQueryMultiByKeyListInBatch Finish!!!")
-    queryResultMap
+    queryResultMapResult
   }
 
   def doQueryByKey(keysName: Seq[String], keysContent: Seq[String], keysTypeMap: mutable.Map[String, Type],

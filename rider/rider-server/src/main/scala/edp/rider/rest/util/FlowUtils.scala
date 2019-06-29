@@ -583,7 +583,9 @@ object FlowUtils extends RiderLogger {
       }
       else if (functionType == "hdfslog") {
         //        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
-        val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes), sourceIncrementTopic, if (flowOpt.nonEmpty) flowOpt.get.priorityId else 0L)
+        val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType,
+          base64byte2s(umsSchema.toString.trim.getBytes), sourceIncrementTopic,
+          if (flowOpt.nonEmpty) flowOpt.get.priorityId else 0L)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
