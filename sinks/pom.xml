@@ -157,6 +157,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>ru.yandex.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>${clickhouse.version}</version>
+        </dependency>
         <!--<dependency>-->
             <!--<groupId>org.apache.hbase</groupId>-->
             <!--<artifactId>hbase-client</artifactId>-->

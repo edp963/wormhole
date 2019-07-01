@@ -86,7 +86,9 @@ object UmsDataSystem extends Enumeration {
   val REDIS = Value("redis")
   val KUDU = Value("kudu")
   val GREENPLUM = Value("greenplum")
+  val CLICKHOUSE = Value("clickhouse")
   val UNKONWN = Value("")
+
 
   def dataSystem(s: String) = UmsDataSystem.withName(s.toLowerCase)
 }
@@ -99,6 +101,7 @@ object Rdbms extends Enumeration {
   val POSTGRESQL = Value("postgresql")
   val H2 = Value("h2")
   val PHOENIX = Value("phoenix")
+  val CLICKHOUSE = Value("clickhouse")
 
   def rdbms(s: String) = Rdbms.withName(s.toLowerCase)
 }
@@ -111,6 +114,7 @@ object RdbmsDriver extends Enumeration {
   val POSTGRESQL_DRIVER = Value("org.postgresql.Driver")
   val H2_DRIVER = Value("org.h2.Driver")
   val PHOENIX_DRIVER = Value("org.apache.phoenix.jdbc.PhoenixDriver")
+  val CLICKHOUSE = Value("ru.yandex.clickhouse.ClickHouseDriver")
 
   def driverString(url: String) =
     if (url.contains(Rdbms.MYSQL.toString)) MYSQL_DRIVER.toString

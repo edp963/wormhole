@@ -48,7 +48,7 @@ object NamespaceUtils extends RiderLogger {
 
   def getConnUrl(instance: Instance, db: NsDatabase, connType: String = "sink") = {
     instance.nsSys match {
-      case "mysql" | "postgresql" | "phoenix" | "vertica" =>
+      case "mysql" | "postgresql" | "phoenix" | "vertica" | "clickhouse"=>
         db.config match {
           case Some(conf) =>
             if (conf != "") {

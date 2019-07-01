@@ -69,6 +69,16 @@ object DbType {
     //postgresql
     case "INT4" => "int"
 
+    //ClickHouse
+    case "INT8"  => "int"
+    case "INT16" => "int"
+    case "INT32" => "long"
+    case "INT64" => "long"
+    case "UINT8" => "int"
+    case "UINT16"=> "long"
+    case "UINT32"=> "long"
+    //case "UINT64"=> "long"
+
     case unknown =>
       throw new Exception("unknown type:"+unknown)
   }

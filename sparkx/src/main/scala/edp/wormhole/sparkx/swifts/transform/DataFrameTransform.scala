@@ -179,7 +179,7 @@ object DataFrameTransform extends EdpLogging {
       sqlType match {
         case UmsDataSystem.ORACLE =>
           SqlBinding.getSlidingUnionSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
-        case UmsDataSystem.MYSQL | UmsDataSystem.ES | UmsDataSystem.MONGODB | UmsDataSystem.H2 | UmsDataSystem.PHOENIX | UmsDataSystem.VERTICA | UmsDataSystem.POSTGRESQL | UmsDataSystem.GREENPLUM =>
+        case UmsDataSystem.MYSQL | UmsDataSystem.ES | UmsDataSystem.MONGODB | UmsDataSystem.H2 | UmsDataSystem.PHOENIX | UmsDataSystem.VERTICA | UmsDataSystem.POSTGRESQL | UmsDataSystem.GREENPLUM | UmsDataSystem.CLICKHOUSE =>
           SqlBinding.getMysqlSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
         case UmsDataSystem.CASSANDRA =>
           if (sourceJoinFieldsContent.nonEmpty) {

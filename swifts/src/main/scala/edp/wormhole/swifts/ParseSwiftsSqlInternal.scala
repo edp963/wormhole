@@ -245,7 +245,7 @@ object ParseSwiftsSqlInternal {
       val index = sql.toLowerCase.indexOf(" where ")
       testSql = sql.substring(0, index) + " limit 1;"
     }
-    logger.info(connectionConfig.connectionUrl + "in getSchema")
+    logger.info(connectionConfig.connectionUrl + " in getSchema")
     val conn = DbConnection.getConnection(connectionConfig)
     val statement = conn.createStatement()
     logger.info(testSql)
