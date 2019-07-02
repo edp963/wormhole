@@ -205,7 +205,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq.sortBy(_.dbusId)), maxTimeOut)
       riderLogger.info("dbus update size: " + dbusUpdateSeq.size)
       Await.result(dbusDal.update(dbusUpdateSeq), minTimeOut)
-
+      riderLogger.info(s"user ${session.userId} insertOrUpdate dbus table success.")
       Future(dbusInsertSeq ++ dbusUpdateSeq)
     } catch {
       case ex: Exception =>
@@ -215,21 +215,12 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
 
-  def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): (Seq[Namespace], Seq[Namespace]) = {
-    val namespace = Await.result(super.findAll, minTimeOut)
-    val insertSeq = new ArrayBuffer[Namespace]()
-    val updateSeq = new ArrayBuffer[Namespace]()
+  def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): Seq[Namespace] = {
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
-      val nsSearch = namespace.filter(ns => ns.nsSys == nsSplit(0) && ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2) && ns.nsTable == nsSplit(3))
-      if (nsSearch.isEmpty)
-        insertSeq += Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
-      else
-        updateSeq += Namespace(nsSearch.head.id, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+      Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
+        None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
-    (insertSeq, updateSeq)
   }
 
   def getNamespaceByNs(ns: String): Option[Namespace] = {
