@@ -112,7 +112,6 @@ export class FlowEtpConfigForm extends React.Component {
               })(
                 <InputNumber
                   min={10}
-                  max={1800}
                   step={1}
                   placeholder={locale === 'en' ? 'Timeout' : '超时时间'}
                   style={{width: '50%'}}

@@ -210,13 +210,13 @@ object StreamUtils extends RiderLogger {
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn", startConfig.executorNums * startConfig.perExecutorCores),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
-            RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
-            RiderConfig.spark.remoteHdfsNamenodeIds, Option(RiderConfig.kerberos.hdfslogServerEnabled))
+            RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.kafkaEnabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
+            RiderConfig.spark.remoteHdfsNamenodeIds, Option(false))
         case None =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.enabled)
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled)
       }
     caseClass2json[BatchFlowConfig](config)
   }
@@ -277,7 +277,12 @@ object StreamUtils extends RiderLogger {
         // send topics start directive
         //val topics = autoRegisteredTopics ++: userdefinedTopics
         //val addHeartbeatTopic = if (topics.isEmpty) true else false
-        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, true)
+        val addDefaultTopicFlag =
+        if (autoRegisteredTopics.nonEmpty || userdefinedTopics.nonEmpty)
+          false
+        else
+          true
+        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, addDefaultTopicFlag)
       case None =>
         // delete all user defined topics by stream id
         Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
@@ -325,7 +330,7 @@ object StreamUtils extends RiderLogger {
       })
       if (addDefaultTopic) {
         val broker = getKafkaByStreamId(streamId)
-        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.enabled)
+        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.kafkaEnabled)
         val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset, "initial").mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }

@@ -156,14 +156,11 @@ case class DBusConfig(loginUrl: String,
                       namespaceUrl: String)
 
 
-case class RiderKerberos(keyTab: String,
-                         serverConfig: String,
-                         jaasStartShellConfig: String,
-                         jaasYarnConfig: String,
-                         sparkPrincipal: String,
-                         sparkKeyTab: String,
-                         enabled: Boolean,
-                         hdfslogServerEnabled: Boolean)
+case class RiderKerberos(kafkaEnabled: Boolean,
+                         keytab: String,
+                         riderJavaAuthConf: String,
+                         sparkJavaAuthConf: String,
+                         javaKrb5Conf: String)
 
 case class Monitor(databaseType: String)
 
@@ -338,14 +335,12 @@ object RiderConfig {
     else null
 
   lazy val defaultKerberosEnabled = false
-  lazy val kerberos = RiderKerberos(getStringConfig("kerberos.keyTab", ""),
-    getStringConfig("kerberos.server.config", ""),
-    getStringConfig("kerberos.jaas.startShell.config", ""),
-    getStringConfig("kerberos.jaas.yarn.config", ""),
-    getStringConfig("kerberos.spark.principal", ""),
-    getStringConfig("kerberos.spark.keyTab", ""),
-    getBooleanConfig("kerberos.server.enabled", defaultKerberosEnabled),
-    getBooleanConfig("wormhole.hdfslog.hadoop.server.enabled", defaultKerberosEnabled))
+  lazy val kerberos = RiderKerberos(
+    getBooleanConfig("kerberos.kafka.enabled", defaultKerberosEnabled),
+    getStringConfig("kerberos.keytab", ""),
+    getStringConfig("kerberos.rider.java.security.auth.login.config", ""),
+    getStringConfig("kerberos.spark.java.security.auth.login.config", ""),
+    getStringConfig("kerberos.java.security.krb5.conf", ""))
 
   lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.appTags, spark.rm1Url, spark.rm2Url)

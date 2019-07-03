@@ -9,25 +9,11 @@ if [ -z "${WORMHOLE_HOME}" ]; then
     exit 1
 fi
 
-WORMHOLE_KERBEROS_ENABLED=`grep "server.enabled" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-WORMHOLE_KERBEROS_PARAM=` `
-WORMHOLE_KERBEROS_SERVER=`grep "server.config" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-WORMHOLE_KERBEROS_JAAS=`grep "jaas.startShell.config" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-if [ -n "$WORMHOLE_KERBEROS_JAAS" ];then
-  WORMHOLE_PRINCIPAL=`grep  "principal" $WORMHOLE_KERBEROS_JAAS | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-  WORMHOLE_KEYTAB=`grep  "keyTab" $WORMHOLE_KERBEROS_JAAS | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-fi
 
 HOST=`grep host $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 echo "wormholeServer host: $HOST"
 PORT=`grep port $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | sed -e 's/[ \r\t]*//'`
 echo "wormholeServer port: $PORT"
 
-if [[ $WORMHOLE_KERBEROS_ENABLED = true ]];then
-   echo "try to verify via kdc server"
-   kinit -kt $WORMHOLE_KEYTAB $WORMHOLE_PRINCIPAL
-   WORMHOLE_KERBEROS_PARAM="-Djava.security.krb5.conf=$WORMHOLE_KERBEROS_SERVER -Djava.security.auth.login.config=$WORMHOLE_KERBEROS_JAAS"
-fi
-
 echo "[WormholeServer] is starting..."
-java -Xmx4G -DWORMHOLE_HOME=$WORMHOLE_HOME $WORMHOLE_KERBEROS_PARAM -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.6.1.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -Xmx4G -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.6.1.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
