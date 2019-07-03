@@ -37,6 +37,7 @@ object WormholeZkClient {
     if (zkClient == null) {
       synchronized {
         if (zkClient == null) {
+          System.setProperty("zookeeper.sasl.client", "false")
           val retryPolicy = new ExponentialBackoffRetry(1000, 3)
           zkClient = CuratorFrameworkFactory.newClient(getZkAddress(zkAddress), retryPolicy)
           zkClient.start()
@@ -86,9 +87,9 @@ object WormholeZkClient {
             case _ => println("event.getType=" + event.getType + " is not support")
           }
         }
-//        else {
-//          println("data is null : " + event.getType)
-//        }
+        //        else {
+        //          println("data is null : " + event.getType)
+        //        }
       }
     })
     pathChildrenCache.start()
@@ -122,20 +123,20 @@ object WormholeZkClient {
           event.getType match {
             case TreeCacheEvent.Type.NODE_ADDED =>
               add(data.getPath, new String(data.getData), data.getStat.getMtime)
-//              println("NODE_ADDED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
+            //              println("NODE_ADDED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
             case TreeCacheEvent.Type.NODE_REMOVED =>
               remove(data.getPath)
-//              println("NODE_REMOVED : " + data.getPath)
+            //              println("NODE_REMOVED : " + data.getPath)
             case TreeCacheEvent.Type.NODE_UPDATED =>
               update(data.getPath, new String(data.getData), data.getStat.getMtime)
-//              println("NODE_UPDATED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
+            //              println("NODE_UPDATED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
             case _ =>
-//              println("event.getType=" + event.getType + " is not support")
+            //              println("event.getType=" + event.getType + " is not support")
           }
         }
-//        else {
-//          println("data is null : " + event.getType)
-//        }
+        //        else {
+        //          println("data is null : " + event.getType)
+        //        }
       }
     })
     treeCache.start()
