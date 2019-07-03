@@ -40,6 +40,13 @@ class RiderConsumer extends Actor with RiderLogger {
 
   implicit val materializer = ActorMaterializer()
 
+  private def initKerberos(): Unit = {
+    if (RiderConfig.kerberos.kafkaEnabled) {
+      System.setProperty("java.security.auth.login.config", RiderConfig.kerberos.riderJavaAuthConf)
+      System.setProperty("java.security.krb5.conf", RiderConfig.kerberos.javaKrb5Conf)
+    }
+  }
+
   override def receive: Receive = {
     case Consume =>
       feedbackConsume()
@@ -49,6 +56,7 @@ class RiderConsumer extends Actor with RiderLogger {
 
   def feedbackConsume(): Unit = {
     try {
+      initKerberos()
       createConsumer(RiderConfig.consumer.group_id)
         .groupedWithin(RiderConfig.consumer.batchRecords, RiderConfig.consumer.batchDuration)
         .map(processMessage)
@@ -72,7 +80,7 @@ class RiderConsumer extends Actor with RiderLogger {
     propertyMap(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG) = "true"
     propertyMap(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG) = RiderConfig.consumer.autoCommitIntervalMs.toString
     propertyMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG) = RiderConfig.getStringConfig("kafka.consumer.auto.offset.reset", "latest")
-    if (RiderConfig.kerberos.enabled) {
+    if (RiderConfig.kerberos.kafkaEnabled) {
       propertyMap("security.protocol") = "SASL_PLAINTEXT"
       propertyMap("sasl.kerberos.service.name") = "kafka"
     }
@@ -96,10 +104,10 @@ class RiderConsumer extends Actor with RiderLogger {
 
   private def processMessage(records: Seq[ConsumerRecord[String, String]]): Unit = {
     try {
-//      val sparkxFlowErrorBuffer = new ListBuffer[Ums]
-//     // val sparkxStreamErrorBuffer = new ListBuffer[Ums]
+      //      val sparkxFlowErrorBuffer = new ListBuffer[Ums]
+      //     // val sparkxStreamErrorBuffer = new ListBuffer[Ums]
       val sparkxFlowStatsBuffer = new ListBuffer[Ums]
-//      val flinkxFlowErrorBuffer = new ListBuffer[Ums]
+      //      val flinkxFlowErrorBuffer = new ListBuffer[Ums]
       val feedbackErrorBuffer = new ListBuffer[Ums]
       val feedbackFlowStartBuffer = new ListBuffer[Ums]
 
@@ -108,11 +116,11 @@ class RiderConsumer extends Actor with RiderLogger {
           val ums = json2Ums(record.value())
           if (ums != null) {
             val key = ums.protocol.`type`.toString
-            if(key.startsWith(FEEDBACK_FLOW_ERROR.toString)){
+            if (key.startsWith(FEEDBACK_FLOW_ERROR.toString)) {
               feedbackErrorBuffer.append(ums)
-            }else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)) {
+            } else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)) {
               sparkxFlowStatsBuffer.append(ums)
-            }  else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
+            } else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
               feedbackFlowStartBuffer.append(ums)
             }
           }
