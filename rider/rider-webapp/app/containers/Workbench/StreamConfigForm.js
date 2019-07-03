@@ -29,7 +29,7 @@ import Col from 'antd/lib/col'
 import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
-import { forceCheckNum, forceCheckNumsPart } from '../../utils/util'
+import { forceCheckNum } from '../../utils/util'
 import { selectLocale } from '../LanguageProvider/selectors'
 
 export class StreamConfigForm extends React.Component {
@@ -191,8 +191,6 @@ export class StreamConfigForm extends React.Component {
                   rules: [{
                     required: true,
                     message: textMessage
-                  }, {
-                    validator: forceCheckNumsPart
                   }]
                 })(
                   <InputNumber step={1} />
