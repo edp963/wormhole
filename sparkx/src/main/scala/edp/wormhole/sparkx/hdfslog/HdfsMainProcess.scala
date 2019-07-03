@@ -40,6 +40,7 @@ import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
@@ -90,9 +91,14 @@ object HdfsMainProcess extends EdpLogging {
           }
         })
 
-        val dataParRdd = if (config.rdd_partition_number != -1) {
-          streamTransformedRdd.repartition(config.rdd_partition_number) //.partitionBy(new HashPartitioner(config.rdd_partition_number))
-        } else streamTransformedRdd
+        logInfo(s"config.rdd_partition_number ${config.rdd_partition_number}")
+        val dataParRdd = if (config.rdd_partition_number == -1) {
+          streamTransformedRdd
+        }else if(config.rdd_partition_number < -1){
+          streamTransformedRdd.partitionBy(new HashPartitioner( -config.rdd_partition_number ))
+        } else {
+          streamTransformedRdd.repartition(config.rdd_partition_number)
+        }
 
         val namespace2FileMap: Map[(String, String), mutable.HashMap[String, mutable.HashMap[Int, (String, Int, String)]]] = namespace2FileStore.toMap
         //        val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
@@ -161,7 +167,10 @@ object HdfsMainProcess extends EdpLogging {
           })
         })*/
 
+        logInfo("writeResult.size:"+writeResult.size)
+
         writeResult.foreach(eachPartionResultError => {
+          logInfo("eachPartionResult.size:"+eachPartionResultError._1.size)
           eachPartionResultError._1.foreach(eachResult => {
             if (!namespace2FileStore.contains((eachResult.protocol, eachResult.namespace))) {
               namespace2FileStore((eachResult.protocol, eachResult.namespace)) = mutable.HashMap.empty[String, mutable.HashMap[Int, (String, Int, String)]]
@@ -179,11 +188,13 @@ object HdfsMainProcess extends EdpLogging {
               namespace2FileStore((eachResult.protocol, eachResult.namespace))("right")(eachResult.index) = (eachResult.correctFileName, eachResult.correctCount, eachResult.correctMetaContent)
           })
         })
+        logInfo("end writeResult")
 
         //logInfo(s"namespace2FileStore $namespace2FileStore")
 
         val flowIdSet = mutable.HashSet.empty[Long]
         writeResult.foreach(eachPartionResultError => {
+          logInfo("eachPartionError.size:"+eachPartionResultError._2.size)
           if (eachPartionResultError._2.nonEmpty) {
             eachPartionResultError._2.foreach(flowErrorInfo => {
               if (!flowIdSet.contains(flowErrorInfo.flowId)) {
@@ -201,7 +212,7 @@ object HdfsMainProcess extends EdpLogging {
           }
         })
 
-        //logInfo(s"flowIdSet $flowIdSet")
+        logInfo(s"flowIdSet $flowIdSet")
 
         val statsProtocolNamespace: Set[(String, String, Long)] = writeResult.flatMap(eachPartionResultError => {
           eachPartionResultError._1.map(r => {
@@ -209,30 +220,33 @@ object HdfsMainProcess extends EdpLogging {
           })
         }).toSet
 
-        //logInfo(s"statsProtocolNamespace $statsProtocolNamespace")
+        logInfo(s"statsProtocolNamespace $statsProtocolNamespace")
 
         statsProtocolNamespace.foreach { case (protocol, namespace, flowId) =>
           var count = 0
           var cdcTs = 0L
           writeResult.foreach(eachPartionResultError => {
             eachPartionResultError._1.foreach(r => {
-            if (protocol == r.protocol && namespace == r.namespace) {
-              count += r.allCount
-              val tmpMaxTs = if (!r.maxTs.trim.equals("")) DateUtils.dt2date(r.maxTs).getTime else 0L
-              if (cdcTs < tmpMaxTs) cdcTs = tmpMaxTs
-            }
-          })
+              if (protocol == r.protocol && namespace == r.namespace) {
+                count += r.allCount
+                val tmpMaxTs = if (!r.maxTs.trim.equals("")) DateUtils.dt2date(r.maxTs).getTime else 0L
+                if (cdcTs < tmpMaxTs) cdcTs = tmpMaxTs
+              }
+            })
           })
           val doneTs = System.currentTimeMillis
-          //logInfo(s"count $count, cdcTs $cdcTs")
-          if (count > 0 && cdcTs > 0)
+          logInfo(s"count $count, cdcTs $cdcTs")
+          if (count > 0 && cdcTs > 0){
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
               UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id,
                 batchId, namespace, topicPartitionOffset.toJSONString,
                 count, DateUtils.dt2string(cdcTs, DtFormat.TS_DASH_MILLISEC), rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
               Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), config.kafka_output.brokers)
+          }
+          logInfo("finish one stat")
 
         }
+        logInfo("finish stat ")
         partitionResultRdd.unpersist()
       } catch {
         case e: Throwable =>
@@ -426,6 +440,7 @@ object HdfsMainProcess extends EdpLogging {
           //获取minTs和maxTs异常，并且未创建错误文件，则创建meta文件和data文件
           logInfo("获取minTs和maxTs异常，并且未创建错误文件，创建meta文件和data文件")
           val (meta, name) = createFile(filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+          logInfo("end 获取minTs和maxTs异常,并且未创建错误文件，创建meta文件和data文件")
           errorFileName = name
           currentErrorMetaContent = meta
           errorCurrentSize = 0
@@ -441,7 +456,9 @@ object HdfsMainProcess extends EdpLogging {
           if (DateUtils.dt2timestamp(DateUtils.dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(DateUtils.dt2timestamp(DateUtils.dt2dateTime(DateUtils.currentyyyyMMddHHmmssmls))) < 0) {
             logInfo("获取minTs和maxTs异常，已创建错误文件，但文件已超过创建间隔，需要重新创建")
             setMetaDataFinished(errorMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)
+            logInfo("end 获取minTs和maxTs异常，已创建错误文件，但文件已超过创建间隔，需要重新创建")
             val (meta, name) = createFile(filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+            logInfo("end createFile 获取minTs和maxTs异常，已创建错误文件，但文件已超过创建间隔，需要重新创建")
             errorFileName = name
             currentErrorMetaContent = meta
             errorCurrentSize = 0
@@ -451,6 +468,7 @@ object HdfsMainProcess extends EdpLogging {
         if (minTs != null && correctFileName == null) {
           logInfo("启动后第一次写数据，先创建文件")
           val (meta, name) = createFile(filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+          logInfo("end 启动后第一次写数据，先创建文件")
           correctFileName = name
           currentCorrectMetaContent = meta
           correctCurrentSize = 0
@@ -467,7 +485,9 @@ object HdfsMainProcess extends EdpLogging {
           if (DateUtils.dt2timestamp(DateUtils.dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(DateUtils.dt2timestamp(DateUtils.dt2dateTime(DateUtils.currentyyyyMMddHHmmssmls))) < 0) {
             logInfo("正常获取minTs和maxTs，已创建文件，但文件已超过创建间隔，需要重新创建")
             setMetaDataFinished(correctMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)
+            logInfo("end 正常获取minTs和maxTs，已创建文件，但文件已超过创建间隔，需要重新创建")
             val (meta, name) = createFile(filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+            logInfo("end createFile 正常获取minTs和maxTs，已创建文件，但文件已超过创建间隔，需要重新创建")
             correctFileName = name
             currentCorrectMetaContent = meta
             correctCurrentSize = 0
@@ -481,19 +501,22 @@ object HdfsMainProcess extends EdpLogging {
         if (minTs == null) {
           if (errorCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
             //60 * 1024 * 1024 Bytes = 60MB
+            logInfo("因获取minTs和maxTs异常，将所有数据写入错误文件中")
             errorCurrentSize += content.length + splitMarkLength
             inputError.write(content)
             inputError.write(splitMark)
             val indexLastUnderScore = currentErrorMetaContent.lastIndexOf("_")
             currentErrorMetaContent = currentErrorMetaContent.substring(0, indexLastUnderScore + 1) + DateUtils.currentyyyyMMddHHmmssmls
-            logInfo("因获取minTs和maxTs异常，将所有数据写入错误文件中")
+
           } else {
+            logInfo("因获取minTs和maxTs异常，并且错误文件已经达到最大值，先新建错误文件，再将所有数据写入错误文件中")
             val errorTuple = writeAndCreateFile(currentErrorMetaContent, errorFileName, configuration, inputError,
               content, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
+            logInfo("end 因获取minTs和maxTs异常，并且错误文件已经达到最大值，先新建错误文件，再将所有数据写入错误文件中")
             errorFileName = errorTuple._1
             currentErrorMetaContent = errorTuple._2
             errorCurrentSize = errorTuple._3
-            logInfo("因获取minTs和maxTs异常，并且错误文件已经达到最大值，先新建错误文件，再将所有数据写入错误文件中")
+
           }
         } else {
           if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
@@ -505,14 +528,15 @@ object HdfsMainProcess extends EdpLogging {
             val currentCorrectMetaContentSplit = currentCorrectMetaContent.split("_")
             currentCorrectMetaContent = currentCorrectMetaContentSplit(0) + "_0_" + currentCorrectMetaContentSplit(2) + "_" + finalMinTs + "_" + finalMaxTs
           } else {
+            logInfo("文件已经达到最大值，先新建文件")
             val correctTuple = writeAndCreateFile(currentCorrectMetaContent, correctFileName, configuration, inputCorrect, content,
               minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
+            logInfo("end 文件已经达到最大值，先新建文件")
             correctFileName = correctTuple._1
             currentCorrectMetaContent = correctTuple._2
             correctCurrentSize = correctTuple._3
             finalMinTs = minTs
             finalMaxTs = maxTs
-            logInfo("文件已经达到最大值，先新建文件")
           }
         }
       })
@@ -521,16 +545,20 @@ object HdfsMainProcess extends EdpLogging {
       val inError = new ByteArrayInputStream(bytesError)
       val inCorrect = new ByteArrayInputStream(bytesCorrect)
       if (bytesError.nonEmpty) {
+        logInfo("存在错误数据，写入错误文件，并更新错误meta文件")
         HdfsUtils.appendToFile(configuration, errorFileName, inError)
         val errorMetaName = getMetaName(errorFileName)
+        logInfo("end appendToFile 存在错误数据，写入错误文件，并更新错误meta文件")
         updateMeta(errorMetaName, currentErrorMetaContent, configuration)
-        logInfo("存在错误数据，写入错误文件，并更新错误meta文件")
+        logInfo("end updateMeta 存在错误数据，写入错误文件，并更新错误meta文件")
       }
       if (bytesCorrect.nonEmpty) {
+        logInfo("存在解析正确的数据，写入文件，并更新meta文件，共计：" + dataList.size)
         HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
+        logInfo("end appendToFile 存在解析正确的数据，写入文件，并更新meta文件，共计：" + dataList.size)
         val correctMetaName = getMetaName(correctFileName)
         updateMeta(correctMetaName, currentCorrectMetaContent, configuration)
-        logInfo("存在解析正确的数据，写入文件，并更新meta文件，共计：" + dataList.size)
+        logInfo("end updateMeta 存在解析正确的数据，写入文件，并更新meta文件，共计：" + dataList.size)
       }
     } catch {
       case e: Throwable =>
