@@ -325,9 +325,9 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], streamGroupIdMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
-      val latest = getLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
-      val consumed = getConsumerOffset(kafkaMap(topic.streamId), streamGroupIdMap(topic.streamId), topic.name, latest.split(",").length, RiderConfig.kerberos.enabled)
+      val earliest = getEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.kafkaEnabled)
+      val latest = getLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.kafkaEnabled)
+      val consumed = getConsumerOffset(kafkaMap(topic.streamId), streamGroupIdMap(topic.streamId), topic.name, latest.split(",").length, RiderConfig.kerberos.kafkaEnabled)
       TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
     })
   }

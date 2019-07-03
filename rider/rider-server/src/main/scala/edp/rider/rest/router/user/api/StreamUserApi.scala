@@ -737,8 +737,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     }
     val kafkaInfo = streamDal.getKafkaInfo(streamId)
     // get kafka earliest/latest offset
-    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
-    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.kafkaEnabled)
+    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.kafkaEnabled)
 
     val topicResponse = SimpleTopicAllOffsets(postTopic.name, RiderConfig.spark.topicDefaultRate, earliestOffset, earliestOffset, latestOffset)
 
@@ -793,8 +793,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = streamDal.getKafkaInfo(streamId)
-      val latestOffset = getLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
-      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val latestOffset = getLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.kafkaEnabled)
+      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.kafkaEnabled)
       val consumedOffset = earliestOffset
       SimpleTopicAllOffsets(topic, RiderConfig.spark.topicDefaultRate, consumedOffset, earliestOffset, latestOffset)
     })
