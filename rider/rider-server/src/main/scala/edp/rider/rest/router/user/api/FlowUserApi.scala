@@ -763,7 +763,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                     feedbackErr.topics, feedbackErr.errorCount, feedbackErr.errorMaxWaterMarkTs, feedbackErr.errorMinWaterMarkTs,
                     feedbackErr.errorInfo, feedbackErr.dataInfo, feedbackErr.feedbackTime, feedbackErr.createTime)
                 })
-                complete(OK, ResponseJson[Seq[SimpleFeedbackErr]](getHeader(200, session), response.sortBy(_.feedbackTime.reverse)))
+                complete(OK, ResponseJson[Seq[SimpleFeedbackErr]](getHeader(200, session), response))
               } else {
                 riderLogger.error(s"user ${
                   session.userId
