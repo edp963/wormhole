@@ -174,7 +174,7 @@ export function* getSelectStreamKafkaTopicWatcher () {
   yield fork(takeLatest, LOAD_SELECT_STREAM_KAFKA_TOPIC, getSelectStreamKafkaTopic)
 }
 
-export function* getSourceTypeNamespace ({ payload }) {
+export function* getTypeNamespace ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code) {
@@ -184,12 +184,12 @@ export function* getSourceTypeNamespace ({ payload }) {
       payload.resolve(result.payload)
     }
   } catch (err) {
-    notifySagasError(err, 'getSourceTypeNamespace')
+    notifySagasError(err, 'getTypeNamespace')
   }
 }
 
-export function* getSourceTypeNamespaceWatcher () {
-  yield fork(takeLatest, LOAD_SOURCESINKTYPE_NAMESPACE, getSourceTypeNamespace)
+export function* getTypeNamespaceWatcher () {
+  yield fork(takeLatest, LOAD_SOURCESINKTYPE_NAMESPACE, getTypeNamespace)
 }
 
 export function* getSinkTypeNamespace ({ payload }) {
@@ -853,7 +853,7 @@ export default [
   getUserAllFlowsWatcher,
   getAdminSingleFlowWatcher,
   getSelectStreamKafkaTopicWatcher,
-  getSourceTypeNamespaceWatcher,
+  getTypeNamespaceWatcher,
   getSinkTypeNamespaceWatcher,
   getTranSinkTypeNamespaceWatcher,
   getSourceToSinkWatcher,

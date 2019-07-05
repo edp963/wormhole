@@ -2392,8 +2392,8 @@ export class Workbench extends React.Component {
   loadTransNs () {
     const { projectId, pipelineStreamId } = this.state
     const flowValues = this.workbenchFlowForm.getFieldsValue()
-    const { sourceDataSystem, sourceNamespace } = flowValues
-    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, sourceDataSystem, 'sourceType', (result) => {
+    const { sourceNamespace } = flowValues
+    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, 'kafka', 'instanceType', (result) => {
       const resultFinal = result.filter((i) => {
         const temp = [i.nsInstance, i.nsDatabase, i.nsTable]
         if (temp.join(',') !== sourceNamespace.join(',')) {
