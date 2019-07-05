@@ -324,10 +324,10 @@ object JobUtils extends RiderLogger {
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
 
-    if(RiderConfig.kerberos.enabled) {
-      UserGroupInformation.setConfiguration(config)
-      UserGroupInformation.loginUserFromKeytab(RiderConfig.kerberos.sparkPrincipal, RiderConfig.kerberos.sparkKeyTab)
-    }
+//    if(RiderConfig.kerberos.kafkaEnabled) {
+//      UserGroupInformation.setConfiguration(config)
+//      UserGroupInformation.loginUserFromKeytab(RiderConfig.kerberos.sparkPrincipal, RiderConfig.kerberos.sparkKeyTab)
+//    }
     val fileList =
       if (isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
       else null
@@ -355,9 +355,9 @@ object JobUtils extends RiderLogger {
     val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
     configuration.set("fs.defaultFS", hdfsRoot)
 
-    if(RiderConfig.kerberos.enabled) {
-      configuration.set("hadoop.security.authentication", "kerberos")
-    }
+//    if(RiderConfig.kerberos.kafkaEnabled) {
+//      configuration.set("hadoop.security.authentication", "kerberos")
+//    }
 
     configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
     //configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")

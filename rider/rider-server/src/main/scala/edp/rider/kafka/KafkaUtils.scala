@@ -30,7 +30,7 @@ object KafkaUtils extends RiderLogger {
 
   def createRiderKafkaTopic(): Unit = {
 
-    if (!RiderConfig.kerberos.enabled) {
+    if (!RiderConfig.kerberos.kafkaEnabled) {
       try {
         WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
         riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
