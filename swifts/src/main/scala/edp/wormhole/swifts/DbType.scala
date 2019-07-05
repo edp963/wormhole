@@ -28,6 +28,7 @@ object DbType {
     case "DATE" => "date"
     case "DATETIME" => "datetime"
     case "DECIMAL" => "decimal"
+    case "DECIMAL UNSIGNED" => "decimal"
     case "SMALLINT" => "int"
     case "SMALLINT UNSIGNED" => "int"
     case "TINYINT" => "int"
