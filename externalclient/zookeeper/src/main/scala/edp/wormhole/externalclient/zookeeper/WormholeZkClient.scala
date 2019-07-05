@@ -26,11 +26,16 @@ import org.apache.curator.framework.recipes.cache._
 import org.apache.curator.framework.recipes.locks.InterProcessMutex
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
+import org.apache.log4j.Logger
 import org.apache.zookeeper.data.Stat
 
 object WormholeZkClient {
 
   @volatile var zkClient: CuratorFramework = null
+
+  private val logger = Logger.getLogger(this.getClass)
+
+  private val retryLimit=3;  //由于zk server问题导致创建失败不抛出异常情况下的重试次数
 
   //  lazy val zookeeperPath:String = null
   def getZkClient(zkAddress: String): CuratorFramework = {
@@ -146,9 +151,14 @@ object WormholeZkClient {
 
   def createAndSetData(zkAddress: String, path: String, payload: Array[Byte]): Unit = {
     if (!checkExist(zkAddress, path)) {
-      getZkClient(zkAddress).create().creatingParentsIfNeeded().forPath(getPath(zkAddress, path), payload)
+      var retryCount:Int=0
+      while(!checkExist(zkAddress, path) && retryCount < retryLimit){
+        getZkClient(zkAddress).create().creatingParentsIfNeeded().forPath(getPath(zkAddress, path), payload)
+        retryCount+=1
+        Thread.sleep(1000);
+      }
     } else {
-      getZkClient(zkAddress).setData().forPath(getPath(zkAddress, path), payload)
+      setData(zkAddress,path,payload)
     }
   }
 
@@ -157,8 +167,11 @@ object WormholeZkClient {
   }
 
   def createPath(zkAddress: String, path: String): Unit = {
-    if (!checkExist(zkAddress, path)) {
+    var retryCount:Int=0
+    while (!checkExist(zkAddress, path) && retryCount < retryLimit) {
       getZkClient(zkAddress).create().creatingParentsIfNeeded().forPath(getPath(zkAddress, path))
+      retryCount+=1
+      Thread.sleep(1000);
     }
   }
 
@@ -173,7 +186,14 @@ object WormholeZkClient {
   }
 
   def setData(zkAddress: String, path: String, payload: Array[Byte]): Stat = {
-    getZkClient(zkAddress).setData().forPath(getPath(zkAddress, path), payload)
+    var retryCount:Int=0
+    var result: Stat= new Stat()
+    while(!(getData(zkAddress,path) sameElements payload) && retryCount < retryLimit){
+      result = getZkClient(zkAddress).setData().forPath(getPath(zkAddress, path), payload)
+      retryCount+=1
+      Thread.sleep(1000);
+    }
+    result
   }
 
   def getData(zkAddress: String, path: String): Array[Byte] = {
