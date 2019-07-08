@@ -110,7 +110,7 @@ object OffsetPersistenceManager extends EdpLogging {
 
   def getWatchSubscribeTopic(subscribeTopic: Ums): Seq[KafkaTopicConfig] = {
     subscribeTopic.payload_get.map(umsTuple => {
-      val topicName = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_name").toString
+      val topicName = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_name").toString.toLowerCase
       val topicRate = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_rate").toString
       val topicPartition = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "partitions_offset").toString
       val topicType = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_type").toString
@@ -167,7 +167,7 @@ object OffsetPersistenceManager extends EdpLogging {
     })
   }
 
-  def doTopicPersistence(config: WormholeConfig, addTopicList: ListBuffer[(KafkaTopicConfig, Long)], delTopicList: mutable.ListBuffer[(String, Long)]): Unit = {
+  def doTopicPersistence(config: WormholeConfig, addTopicList: ListBuffer[(KafkaTopicConfig, Long,Long)], delTopicList: mutable.ListBuffer[(String, Long,Long)]): Unit = {
     if (addTopicList.nonEmpty) {
       val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
       OffsetPersistenceManager.persistTopic(addTopicList.map(_._1), offsetPath, config.zookeeper_path)
