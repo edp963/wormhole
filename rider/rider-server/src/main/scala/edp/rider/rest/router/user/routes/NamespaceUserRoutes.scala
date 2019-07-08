@@ -41,6 +41,7 @@ class NamespaceUserRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "instanceType", value = "instance namespace type", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sourceType", value = "instance namespace type", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "sinkType", value = "sink namespace type", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "transType", value = "transformation namespace type", required = false, dataType = "string", paramType = "query")
   ))
