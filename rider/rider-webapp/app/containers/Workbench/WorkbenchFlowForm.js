@@ -85,14 +85,13 @@ export class WorkbenchFlowForm extends React.Component {
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
-    val = 'kafka'
     const { streamDiffType, flowMode, projectIdGeted, streamId } = this.props
     this.props.emitDataSystem(val)
     if (val) {
       switch (streamDiffType) {
         case 'default':
           if (streamId !== 0) {
-            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'instanceType', (result) => {
+            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
               this.setState({
                 defaultSourceNsData: generateSourceSinkNamespaceHierarchy(val, result)
               })
@@ -105,7 +104,7 @@ export class WorkbenchFlowForm extends React.Component {
           break
         case 'hdfslog':
           if (streamId !== 0) {
-            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'instanceType', (result) => {
+            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
               this.setState({
                 hdfslogSourceNsData: generateHdfslogNamespaceHierarchy(val, result),
                 hdfslogSinkDSValue: val
@@ -119,7 +118,7 @@ export class WorkbenchFlowForm extends React.Component {
           break
         case 'routing':
           if (streamId !== 0) {
-            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'instanceType', (result) => {
+            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
               this.setState({
                 routingNsData: generateSourceSinkNamespaceHierarchy(val, result)
               })
