@@ -392,7 +392,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       onComplete(namespaceDal.dbusInsert(session).mapTo[Seq[Dbus]]) {
         case Success(dbusUpsert) =>
           val insertSeq = namespaceDal.generateNamespaceSeqByDbus(dbusUpsert, session)
-          onComplete(namespaceDal.insertOrUpdate(insertSeq).mapTo[Seq[Namespace]]) {
+          onComplete(namespaceDal.insertOrUpdate(insertSeq)) {
             case Success(_) =>
               riderLogger.info(s"user ${session.userId} insertOrUpdate dbus namespaces success.")
               getNsRoute(session, visible)
