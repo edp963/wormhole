@@ -84,9 +84,18 @@ object JobUtils extends RiderLogger {
           Some(base64byte2s(sinkConfig.trim.getBytes()))
         else None
       } else {
-        val topicConfig = new JSONObject().fluentPut("topic", db.nsDatabase)
-        val sinkSpecConfig = new JSONObject().fluentPut("sink_specific_config", topicConfig)
-        Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
+        val sinkSpecConfig =
+          if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config")) {
+            JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config")
+          } else {
+            new JSONObject()
+          }
+        if(!sinkSpecConfig.containsKey("kerberos")) {
+          sinkSpecConfig.fluentPut("kerberos", RiderConfig.kerberos.kafkaEnabled)
+        }
+        sinkSpecConfig.fluentPut("topic", db.nsDatabase)
+        val sinkConfigRe = new JSONObject().fluentPut("sink_specific_config", sinkSpecConfig)
+        Some(base64byte2s(sinkConfigRe.toString.trim.getBytes))
       }
 
     val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
@@ -270,8 +279,9 @@ object JobUtils extends RiderLogger {
     val projectNsSeq = modules.relProjectNsDal.getNsByProjectId(job.projectId)
     val nsSeq = new ListBuffer[String]
     val sorceNsSeq = job.sourceNs.split("\\.")
+    val sinkNsSeq = job.sinkNs.split("\\.")
     nsSeq += sorceNsSeq(0) + "." + sorceNsSeq(1) + "." + sorceNsSeq(2) + "." + sorceNsSeq(3) + ".*" + ".*" + ".*"
-    nsSeq += job.sinkNs
+    nsSeq += sinkNsSeq(0) + "." + sinkNsSeq(1) + "." + sinkNsSeq(2) + "." + sinkNsSeq(3) + ".*" + ".*" + ".*"
     var flag = true
     for (i <- nsSeq.indices) {
       if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
