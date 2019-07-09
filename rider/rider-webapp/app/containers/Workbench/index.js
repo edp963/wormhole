@@ -351,11 +351,10 @@ export class Workbench extends React.Component {
     this.setState({jobSourceNsSys})
     if (this.state.jobDiffType === 'backfill') {
       this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys })
-    } else if (this.state.jobDiffType === 'default') {
-      this.setState({singleJobResult: {
-        sourceNs: `${jobSourceNsSys}.${value.join('.')}`
-      }})
     }
+    this.setState({singleJobResult: {
+      sourceNs: `${jobSourceNsSys}.${value.join('.')}`
+    }})
   }
   initialSourceNsVersion = () => {
     const { singleJobResult, sourceNsVersionList } = this.state
