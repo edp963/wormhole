@@ -22,16 +22,16 @@
 package edp.rider.monitor
 
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.{RiderConfig, RiderEs, RiderLogger}
-import edp.rider.rest.persistence.entities.{Interval, MonitorInfo}
+import edp.rider.rest.persistence.entities.MonitorInfo
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
-import org.json4s.JsonAST.{JNothing, JNull}
+import org.json4s.JsonAST.JNull
 import org.json4s.{DefaultFormats, Formats, JValue}
 
 import scala.collection.mutable.ListBuffer
