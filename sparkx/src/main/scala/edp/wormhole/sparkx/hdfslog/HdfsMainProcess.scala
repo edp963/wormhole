@@ -234,7 +234,7 @@ object HdfsMainProcess extends EdpLogging {
               }
             })
           })
-          val doneTs = System.currentTimeMillis
+          val doneTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
           logInfo(s"count $count, cdcTs $cdcTs")
           if (count > 0 && cdcTs > 0){
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
