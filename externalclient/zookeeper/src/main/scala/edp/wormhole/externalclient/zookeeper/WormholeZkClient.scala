@@ -188,10 +188,11 @@ object WormholeZkClient {
   def setData(zkAddress: String, path: String, payload: Array[Byte]): Stat = {
     var retryCount:Int=0
     var result: Stat= new Stat()
-    while(!(getData(zkAddress,path) sameElements payload) && retryCount < retryLimit){
+    val pathExist = checkExist(zkAddress, path)
+    while((pathExist && !checkExist(zkAddress, path)) || (!(getData(zkAddress,path) sameElements payload) && retryCount < retryLimit)){
       result = getZkClient(zkAddress).setData().forPath(getPath(zkAddress, path), payload)
       retryCount+=1
-      Thread.sleep(1000);
+      Thread.sleep(1000)
     }
     result
   }
