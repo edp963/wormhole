@@ -112,11 +112,18 @@ object BatchflowMainProcess extends EdpLogging {
         SparkxUtils.printTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
 
         classifyRdd.unpersist()
+
       } catch {
         case e: KafkaException=>
           logError("kafka consumer error,"+e.getMessage, e)
           if(e.getMessage.contains("Failed to construct kafka consumer")){
             logError("kafka consumer error ,stop spark streaming")
+
+            SparkxUtils.setFlowErrorMessage(List.empty[String],
+              topicPartitionOffset, config, "testkerberos", "testkerberos", -1,
+              e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+              -config.spark_config.stream_id, ErrorPattern.StreamError)
+
             stream.stop()
 
             throw e
