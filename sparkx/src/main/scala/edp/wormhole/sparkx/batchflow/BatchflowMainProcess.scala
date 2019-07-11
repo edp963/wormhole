@@ -49,10 +49,12 @@ import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.KafkaException
 import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, _}
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
 import scala.collection.mutable
@@ -62,7 +64,7 @@ import scala.language.postfixOps
 object BatchflowMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, kafkaInput: KafkaInputConfig, session: SparkSession,
-              appId: String): Unit = {
+              appId: String,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
@@ -111,10 +113,18 @@ object BatchflowMainProcess extends EdpLogging {
 
         classifyRdd.unpersist()
       } catch {
+        case e: KafkaException=>
+          logError("kafka consumer error,"+e.getMessage, e)
+          if(e.getMessage.contains("Failed to construct kafka consumer")){
+            logError("kafka consumer error ,stop spark streaming")
+            stream.stop()
+
+            throw e
+          }
+
         case e: Throwable =>
           logAlert("batch error", e)
 
-          //          String, mutable.LinkedHashMap[String, FlowConfig]
           ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
             sinks.foreach { case (sinkNamespace, flowConfig) =>
               SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
@@ -124,6 +134,7 @@ object BatchflowMainProcess extends EdpLogging {
             }
           }
       }
+      logInfo("commit offsets")
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
       if (!zookeeperFlag) {
         logInfo("write appid to zookeeper," + appId)
