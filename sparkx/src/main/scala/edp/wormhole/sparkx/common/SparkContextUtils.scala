@@ -33,9 +33,12 @@ import scala.collection.mutable
 
 object SparkContextUtils extends EdpLogging{
 
-  def checkSparkRestart(zookeeperAddress: String, zookeeperPath: String, streamId: Long, appId: String): Unit = {
+  def checkSparkRestart(zookeeperAddress: String, zookeeperPath: String, streamId: Long, appId: String): Boolean = {
     val appIdPath = zookeeperPath + "/" + streamId + "/" + appId
-    if (WormholeZkClient.checkExist(zookeeperAddress, appIdPath)) logAlert("WormholeStarter restart")
+    if (WormholeZkClient.checkExist(zookeeperAddress, appIdPath)) {
+      logAlert("WormholeStarter restart")
+      true
+    }else false
   }
 
   def setLoggerLevel(): Unit = {

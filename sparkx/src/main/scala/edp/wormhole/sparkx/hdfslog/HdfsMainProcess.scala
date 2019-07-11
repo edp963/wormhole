@@ -40,8 +40,11 @@ import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.KafkaException
 import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
 import scala.collection.mutable
@@ -64,7 +67,7 @@ object HdfsMainProcess extends EdpLogging {
   val metadata = "metadata_"
   val hdfsLog = "hdfslog/"
 
-  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, appId: String, kafkaInput: KafkaInputConfig): Unit = {
+  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig,session: SparkSession, appId: String, kafkaInput: KafkaInputConfig,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val batchId = UUID.randomUUID().toString
@@ -249,6 +252,14 @@ object HdfsMainProcess extends EdpLogging {
         logInfo("finish stat ")
         partitionResultRdd.unpersist()
       } catch {
+        case e: KafkaException=>
+          logError("kafka consumer error,"+e.getMessage, e)
+          if(e.getMessage.contains("Failed to construct kafka consumer")){
+            logError("kafka consumer error ,stop spark streaming")
+            stream.stop()
+
+            throw e
+          }
         case e: Throwable =>
           logAlert("batch error", e)
           hdfslogMap.foreach { case (sourceNamespace, flowConfig) =>
