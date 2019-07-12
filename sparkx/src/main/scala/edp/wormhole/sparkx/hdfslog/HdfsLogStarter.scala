@@ -23,11 +23,13 @@ package edp.wormhole.sparkx.hdfslog
 
 import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sparkx.batchflow.BatchflowStarter.sparkConf
 import edp.wormhole.sparkx.common.{KafkaInputConfig, SparkContextUtils, SparkUtils, WormholeConfig}
 import edp.wormhole.sparkx.directive.DirectiveFlowWatch
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.util.JsonUtils
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
@@ -41,6 +43,7 @@ object HdfsLogStarter extends App with EdpLogging { //todo set hdfslog metadata 
     .setMaster(config.spark_config.master)
     .set("dfs.client.block.write.replace-datanode-on-failure.policy", "ALWAYS")
     .set("dfs.client.block.write.replace-datanode-on-failure.enable", "true")
+    .set("spark.streaming.stopGracefullyOnShutdown","true")
     .setAppName(config.spark_config.stream_name)
   val sparkContext = new SparkContext(sparkConf)
   val ssc: StreamingContext = new StreamingContext(sparkContext, Seconds(config.kafka_input.batch_duration_seconds))
@@ -49,7 +52,8 @@ object HdfsLogStarter extends App with EdpLogging { //todo set hdfslog metadata 
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  HdfsMainProcess.process(kafkaStream, config, appId,kafkaInput)
+  val session: SparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+  HdfsMainProcess.process(kafkaStream, config, session, appId,kafkaInput,ssc)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)

@@ -92,7 +92,12 @@ object OffsetPersistenceManager extends EdpLogging {
     if (topicConfigMap == null) throw new Exception("do not config kafka any topic,include heardbeat topic")
 
     DirectiveOffsetWatch.offsetWatch(config, appId)
-    KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList, inWatch, config.kerberos)
+    val topics = topicConfigMap.values.toList
+
+    topics.foreach((topic: KafkaTopicConfig) =>{
+      logInfo("start topics:"+topic)
+    })
+    KafkaInputConfig(kafkaBaseConfig, topics, inWatch, config.kerberos)
   }
 
   private def deleteTopics(zookeeperAddress: String, offsetPath: String, topicList: Seq[String]): Unit = {
@@ -110,7 +115,7 @@ object OffsetPersistenceManager extends EdpLogging {
 
   def getWatchSubscribeTopic(subscribeTopic: Ums): Seq[KafkaTopicConfig] = {
     subscribeTopic.payload_get.map(umsTuple => {
-      val topicName = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_name").toString.toLowerCase
+      val topicName = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_name").toString
       val topicRate = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_rate").toString
       val topicPartition = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "partitions_offset").toString
       val topicType = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_type").toString

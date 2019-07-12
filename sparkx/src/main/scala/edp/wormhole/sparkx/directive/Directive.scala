@@ -58,9 +58,9 @@ trait Directive extends EdpLogging {
           }
       }
 
-      logInfo(s"addTopicList:$addTopicList,delTopicList:$delTopicList")
+      println(s"addTopicList:$addTopicList,delTopicList:$delTopicList")
       val (finalAddTopicList,finalDelTopicList) =getFinalTopics(addTopicList,delTopicList)
-      logInfo(s"finalAddTopicList:$finalAddTopicList,finalDelTopicList:$finalDelTopicList")
+      println(s"finalAddTopicList:$finalAddTopicList,finalDelTopicList:$finalDelTopicList")
 
       val initialTopics = finalAddTopicList.filter(topic => topic._1.topic_type == TopicType.INITIAL).map(_._1.topic_name)
       ConfMemoryStorage.initialTopicSet ++= initialTopics
@@ -86,9 +86,9 @@ trait Directive extends EdpLogging {
     val delRemove = mutable.HashSet.empty[String]
     addTopicList.foreach(addOne=>{
       delTopicList.foreach(delOne=>{
-        if(addOne._1.topic_name==delOne._1){
+        if(addOne._1.topic_name.toLowerCase==delOne._1.toLowerCase){
           if(addOne._3 >= delOne._3){
-            delRemove += addOne._1.topic_name
+            delRemove += delOne._1
           }else{
             addRemove += addOne._1.topic_name
           }
@@ -115,8 +115,8 @@ trait Directive extends EdpLogging {
     payloads.foreach(tuple => {
       val timeStamp = DateUtils.dt2long(UmsFieldType.umsFieldValue(tuple.tuple, schemas, UmsSysField.TS.toString).toString)
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-      val topicName = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_name").toString.toLowerCase
-      logInfo(s"topicSubscribeParse,$topicName,$timeStamp")
+      val topicName = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_name").toString
+      println(s"topicSubscribeParse,$topicName,$timeStamp")
       val topicRate = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_rate").toString.toInt
       val topicType =
         if (UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_type") != null)
@@ -140,9 +140,9 @@ trait Directive extends EdpLogging {
     val topicList = ListBuffer.empty[(String, Long,Long)]
     payloads.foreach(tuple => {
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-      val topicName = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_name").toString.toLowerCase
+      val topicName = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "topic_name").toString
       val timeStamp = DateUtils.dt2long(UmsFieldType.umsFieldValue(tuple.tuple, schemas, UmsSysField.TS.toString).toString)
-      logInfo(s"topicUnsubscribeParse,$topicName,$timeStamp")
+      println(s"topicUnsubscribeParse,$topicName,$timeStamp")
       topicList += ((topicName, directiveId,timeStamp))
     })
 
