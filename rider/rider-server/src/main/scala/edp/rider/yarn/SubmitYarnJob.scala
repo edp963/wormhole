@@ -145,6 +145,8 @@ object SubmitYarnJob extends App with RiderLogger {
     val confBuffer = othersConfig.split(",").toBuffer
     confBuffer.append(finalDriverJvmConf)
     confBuffer.append(finalExecutorJvmConf)
+    confBuffer.append("spark.yarn.maxAppAttempts=4")
+    confBuffer.append("spark.yarn.am.attemptFailuresValidityInterval=3h")
 
     val files =
       if (RiderConfig.spark.metricsConfPath != "")
