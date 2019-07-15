@@ -82,6 +82,7 @@
         <json4s.version>3.2.11</json4s.version>
         <kudu.version>1.8.0</kudu.version>
         <clickhouse.version>0.1.54</clickhouse.version>
+        <fastjson.version>1.2.58</fastjson.version>
 
         <guava.version>19.0</guava.version>
         <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
