@@ -212,13 +212,15 @@ export class WorkbenchFlowForm extends React.Component {
     const streamTypeClass = [
       streamDiffType === 'default' ? '' : 'hide',
       streamDiffType === 'hdfslog' ? '' : 'hide',
-      streamDiffType === 'routing' ? '' : 'hide'
+      streamDiffType === 'routing' ? '' : 'hide',
+      streamDiffType === 'hdfscsv' ? '' : 'hide'
     ]
 
     const streamTypeHiddens = [
       streamDiffType !== 'default',
       streamDiffType !== 'hdfslog',
-      streamDiffType !== 'routing'
+      streamDiffType !== 'routing',
+      streamDiffType !== 'hdfscsv'
     ]
 
     const itemStyle = {
@@ -479,7 +481,7 @@ export class WorkbenchFlowForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('function type', 'Function Type')
                   }],
-                  initialValue: 'default'
+                  initialValue: streamDiffType || 'default'
                 })(
                   <RadioGroup className="radio-group-style" onChange={this.changeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
@@ -488,6 +490,9 @@ export class WorkbenchFlowForm extends React.Component {
                     )}
                     {flowSubPanelKey === 'flink' ? '' : (
                       <RadioButton value="routing" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Routing</RadioButton>
+                    )}
+                    {flowSubPanelKey === 'flink' ? '' : (
+                      <RadioButton value="hdfscsv" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Hdfscsv</RadioButton>
                     )}
                   </RadioGroup>
                 )}
@@ -725,13 +730,15 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            <Col span={24}>
-              <FormItem label="Table keys" {...itemStyle}>
-                {getFieldDecorator('tableKeys')(
-                  <Input />
-                )}
-              </FormItem>
-            </Col>
+            {
+              streamDiffType === 'default' ? (<Col span={24}>
+                <FormItem label="Table keys" {...itemStyle}>
+                  {getFieldDecorator('tableKeys')(
+                    <Input />
+                  )}
+                </FormItem>
+              </Col>) : ''
+            }
             <Col span={24} className={`result-field-class ${streamDiffType === 'default' ? '' : 'hide'}`}>
               <FormItem label="Result Fields" {...itemStyle}>
                 {getFieldDecorator('resultFields', {
