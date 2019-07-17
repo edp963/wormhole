@@ -22,8 +22,8 @@ package edp.wormhole.sparkx.directive
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+import edp.wormhole.sparkextension.udf.UdfRegister
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkx.udf.UdfRegister
 import edp.wormhole.ums.{Ums, UmsFieldType}
 import org.apache.spark.sql.SparkSession
 
