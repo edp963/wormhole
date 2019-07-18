@@ -103,6 +103,7 @@ export class WorkbenchFlowForm extends React.Component {
           }
           break
         case 'hdfslog':
+        case 'hdfscsv':
           if (streamId !== 0) {
             this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
               this.setState({
@@ -111,7 +112,7 @@ export class WorkbenchFlowForm extends React.Component {
               })
               // placeholder 和单条数据回显
               if (flowMode === 'add' || flowMode === 'copy') {
-                this.props.form.setFieldsValue({ hdfslogNamespace: undefined })
+                this.props.form.setFieldsValue({ hdfsNamespace: undefined })
               }
             })
           }
@@ -179,7 +180,7 @@ export class WorkbenchFlowForm extends React.Component {
 
   render () {
     const {
-      step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkNsValue, routingSourceNsValue,
+      step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfsSinkNsValue, routingSourceNsValue,
       routingSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue,
       onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal, onShowSpecialConfigModal,
       transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform,
@@ -213,14 +214,16 @@ export class WorkbenchFlowForm extends React.Component {
       streamDiffType === 'default' ? '' : 'hide',
       streamDiffType === 'hdfslog' ? '' : 'hide',
       streamDiffType === 'routing' ? '' : 'hide',
-      streamDiffType === 'hdfscsv' ? '' : 'hide'
+      streamDiffType === 'hdfscsv' ? '' : 'hide',
+      streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv' ? '' : 'hide'
     ]
 
     const streamTypeHiddens = [
       streamDiffType !== 'default',
       streamDiffType !== 'hdfslog',
       streamDiffType !== 'routing',
-      streamDiffType !== 'hdfscsv'
+      streamDiffType !== 'hdfscsv',
+      streamDiffType !== 'hdfslog' && streamDiffType !== 'hdfscsv'
     ]
 
     const itemStyle = {
@@ -594,14 +597,14 @@ export class WorkbenchFlowForm extends React.Component {
               </FormItem>
             </Col>
 
-            <Col span={24} className={streamTypeClass[1]}>
+            <Col span={24} className={streamTypeClass[4]}>
               <FormItem label="Namespace" {...itemStyle}>
-                {getFieldDecorator('hdfslogNamespace', {
+                {getFieldDecorator('hdfsNamespace', {
                   rules: [{
                     required: true,
                     message: operateLanguageSelect('namespace', 'Namespace')
                   }],
-                  hidden: streamTypeHiddens[1]
+                  hidden: streamTypeHiddens[4]
                 })(
                   <Cascader
                     disabled={flowDisabledOrNot}
@@ -783,21 +786,21 @@ export class WorkbenchFlowForm extends React.Component {
                 })(<Input />)}
               </FormItem>
             </Col>
-            <Col span={24} className={`ri-input-text ${streamTypeClass[1]}`}>
+            <Col span={24} className={`ri-input-text ${streamTypeClass[4]}`}>
               <FormItem label="Data System" {...itemStyle}>
-                {getFieldDecorator('hdfslogDataSys', {
-                  hidden: streamTypeHiddens[1]
+                {getFieldDecorator('hdfsDataSys', {
+                  hidden: streamTypeHiddens[4]
                 })(
                   <strong className="value-font-style">{hdfslogSinkDSValue}</strong>
                 )}
               </FormItem>
             </Col>
-            <Col span={24} className={`ri-input-text ${streamTypeClass[1]}`}>
+            <Col span={24} className={`ri-input-text ${streamTypeClass[4]}`}>
               <FormItem label="Namespace" {...itemStyle}>
-                {getFieldDecorator('hdfslogSinkNs', {
-                  hidden: streamTypeHiddens[1]
+                {getFieldDecorator('hdfsSinkNs', {
+                  hidden: streamTypeHiddens[4]
                 })(
-                  <strong className="value-font-style">{hdfslogSinkNsValue}</strong>
+                  <strong className="value-font-style">{hdfsSinkNsValue}</strong>
                 )}
               </FormItem>
             </Col>
@@ -1072,7 +1075,7 @@ export class WorkbenchFlowForm extends React.Component {
               </div>
             </Col>
           ) : ''}
-          <Col span={24} className={streamTypeClass[1]}>
+          <Col span={24} className={streamTypeClass[4]}>
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
@@ -1086,7 +1089,7 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
-          <Col span={24} className={streamTypeClass[1]}>
+          <Col span={24} className={streamTypeClass[4]}>
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
@@ -1094,13 +1097,13 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{hdfslogSinkNsValue}</strong>
+                    <strong className="value-font-style">{hdfsSinkNsValue}</strong>
                   </div>
                 </Col>
               </Row>
             </div>
           </Col>
-          <Col span={24} className={streamTypeClass[1]}>
+          <Col span={24} className={streamTypeClass[4]}>
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
@@ -1114,7 +1117,7 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
-          <Col span={24} className={streamTypeClass[1]}>
+          <Col span={24} className={streamTypeClass[4]}>
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
@@ -1122,7 +1125,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{hdfslogSinkNsValue}</strong>
+                    <strong className="value-font-style">{hdfsSinkNsValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -1210,7 +1213,7 @@ WorkbenchFlowForm.propTypes = {
   fieldSelected: PropTypes.string,
   dataframeShowSelected: PropTypes.string,
   streamDiffType: PropTypes.string,
-  hdfslogSinkNsValue: PropTypes.string,
+  hdfsSinkNsValue: PropTypes.string,
   routingSourceNsValue: PropTypes.string,
   routingSinkNsValue: PropTypes.string,
   initResultFieldClass: PropTypes.func,
