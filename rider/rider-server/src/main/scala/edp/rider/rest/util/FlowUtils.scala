@@ -24,6 +24,7 @@ package edp.rider.rest.util
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
+import edp.rider.kafka.WormholeGetOffsetUtils._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
@@ -34,8 +35,6 @@ import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.{ShellUtils, YarnClientLog}
 import edp.rider.yarn.YarnStatusQuery._
 import edp.rider.zookeeper.PushDirective
-import edp.wormhole.kafka.WormholeGetOffsetUtils
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.util.CommonUtils._
 import edp.wormhole.util.DateUtils._
@@ -1483,7 +1482,7 @@ object FlowUtils extends RiderLogger {
         .filter(_.name == db.nsDatabase).head.consumedLatestOffset
       //      val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
       //      else driftStreamOffset
-      val activeTopicOffset = WormholeGetOffsetUtils.getEarliestOffset(nsDetail._1.connUrl, db.nsDatabase, RiderConfig.kerberos.kafkaEnabled)
+      val activeTopicOffset = getEarliestOffset(nsDetail._1.connUrl, db.nsDatabase, RiderConfig.kerberos.kafkaEnabled)
       val offset = getMinStreamOffsets(activeTopicOffset, preStreamOffset, driftStreamOffset).toString
       (offset,
         s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset. The final offset depends on the actual operation time!!!")

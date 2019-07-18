@@ -33,11 +33,11 @@ import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.util.JsonUtils
+import edp.rider.kafka.WormholeGetOffsetUtils._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await

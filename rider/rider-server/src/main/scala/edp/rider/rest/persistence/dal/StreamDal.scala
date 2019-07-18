@@ -24,6 +24,7 @@ package edp.rider.rest.persistence.dal
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common._
+import edp.rider.kafka.WormholeGetOffsetUtils._
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -31,7 +32,6 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.yarn.{ShellUtils, SubmitYarnJob}
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
