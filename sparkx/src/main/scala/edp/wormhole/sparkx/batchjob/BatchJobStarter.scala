@@ -24,11 +24,11 @@ package edp.wormhole.sparkx.batchjob
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sparkextension.udf.UdfRegister
 import edp.wormhole.sparkx.batchflow.BatchflowMainProcess.logInfo
 import edp.wormhole.sparkx.batchjob.transform.Transform
 import edp.wormhole.sparkx.common.SparkUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkx.udf.UdfRegister
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.util.JsonUtils

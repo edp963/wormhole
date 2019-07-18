@@ -26,8 +26,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_2.11</artifactId>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-spark-extension_${spark.extension.version}</artifactId>
+            <version>${project.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.bouncycastle</groupId>
