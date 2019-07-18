@@ -1,5 +1,7 @@
 package edp.rider.kafka
 
+import java.io.EOFException
+
 import edp.rider.common.KafkaVersion
 import org.apache.log4j.Logger
 
@@ -25,9 +27,23 @@ object WormholeGetOffsetUtils extends Serializable{
         currentVersion=KafkaVersion.KAFKA_010
         edp.wormhole.kafka010.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
       }catch {
-        case ex: Exception =>
+        case ex: EOFException =>
           currentVersion=KafkaVersion.KAFKA_0102
-          edp.wormhole.kafka010.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
+          try{
+            edp.wormhole.kafka010.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
+          }catch {
+            case ex: Throwable =>
+              currentVersion=KafkaVersion.KAFKA_UNKOWN
+              throw ex
+          }
+        case _ =>
+          try{
+            edp.wormhole.kafka010.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
+          }catch {
+            case ex: Throwable =>
+              currentVersion=KafkaVersion.KAFKA_UNKOWN
+              throw ex
+          }
       }
     }else{
       logger.info(s"get consumer offset version:${currentVersion}")
@@ -37,12 +53,4 @@ object WormholeGetOffsetUtils extends Serializable{
       }
     }
   }
-
-/*  private def adaptKafkaVersion(version: String)={
-    val versions=version.split("\\.")
-    if(versions(0).toInt > 0 || versions(1).toInt > 10 || versions(2).toInt >= 2)
-      KafkaVersion.KAFKA_0102
-    else
-      KafkaVersion.KAFKA_010
-  }*/
 }
