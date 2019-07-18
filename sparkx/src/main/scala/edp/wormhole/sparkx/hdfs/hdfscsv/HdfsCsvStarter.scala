@@ -19,23 +19,22 @@
  */
 
 
-package edp.wormhole.sparkx.hdfslog
+package edp.wormhole.sparkx.hdfs.hdfscsv
 
-import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sparkx.batchflow.BatchflowStarter.sparkConf
+import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.sparkx.common.{KafkaInputConfig, SparkContextUtils, SparkUtils, WormholeConfig}
 import edp.wormhole.sparkx.directive.DirectiveFlowWatch
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.util.JsonUtils
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.apache.spark.{SparkConf, SparkContext}
 
-object HdfsLogStarter extends App with EdpLogging { //todo set hdfslog metadata to 1 if kill application or die last time
+object HdfsCsvStarter extends App with EdpLogging {
   SparkContextUtils.setLoggerLevel()
-  logInfo("hdfsLogConfig:" + args(0))
+  logInfo("hdfsCsvConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
   WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
@@ -53,7 +52,7 @@ object HdfsLogStarter extends App with EdpLogging { //todo set hdfslog metadata 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
   val session: SparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-  HdfsMainProcess.process(kafkaStream, config, session, appId,kafkaInput,ssc)
+  HdfsCsvMainProcess.process(kafkaStream, config, session, appId,kafkaInput,ssc)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)

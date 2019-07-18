@@ -179,7 +179,8 @@ object SubmitYarnJob extends App with RiderLogger {
       else if (l.startsWith("--class")) {
         functionType match {
           case "default" => s"  --class edp.wormhole.sparkx.batchflow.BatchflowStarter  "
-          case "hdfslog" => s"  --class edp.wormhole.sparkx.hdfslog.HdfsLogStarter  "
+          case "hdfslog" => s"  --class edp.wormhole.sparkx.hdfs.hdfslog.HdfsLogStarter  "
+          case "hdfscsv" => s"  --class edp.wormhole.sparkx.hdfs.hdfscsv.HdfsCsvStarter  "
           case "routing" => s"  --class edp.wormhole.sparkx.router.RouterStarter  "
           case "job" => s"  --class edp.wormhole.sparkx.batchjob.BatchJobStarter  "
         }

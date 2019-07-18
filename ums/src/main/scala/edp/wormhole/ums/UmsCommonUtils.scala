@@ -131,4 +131,17 @@ object UmsCommonUtils extends Serializable {
       else protocolType + "." + namespace
     } else key
   }
+
+  def checkAndGetProtocolNamespace(key: String, umsStr: String): (String,String) = {
+    if (key == null || key.trim.isEmpty) {
+      val protocolType = getProtocolTypeFromUms(umsStr)
+      val namespace = getFieldContentFromJson(umsStr, "namespace")
+      if (protocolType == null)
+        (UmsProtocolType.DATA_INCREMENT_DATA.toString , getFieldContentFromJson(umsStr, "namespace"))
+      else (protocolType , namespace)
+    } else {
+      val typeNamespace = UmsCommonUtils.getTypeNamespaceFromKafkaKey(key)
+      (typeNamespace._1.toString,typeNamespace._2)
+    }
+  }
 }
