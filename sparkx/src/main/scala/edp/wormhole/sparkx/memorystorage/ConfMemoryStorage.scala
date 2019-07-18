@@ -26,9 +26,8 @@ import java.lang.reflect.Method
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
-import edp.wormhole.sparkx.hdfslog.HdfsLogFlowConfig
+import edp.wormhole.sparkx.hdfs.HdfsFlowConfig
 import edp.wormhole.sparkx.router.RouterFlowConfig
-import edp.wormhole.sparkx.router.RouterMainProcess.logAlert
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
@@ -50,7 +49,9 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   val dataStoreConnectionsMap = mutable.HashMap.empty[String, ConnectionConfig]
 
   //Map[namespace(7fields),(json schema info1, json schema info2,flat data,flowid,incrementTopics)]
-  val hdfslogMap = mutable.HashMap.empty[String, HdfsLogFlowConfig]
+  val hdfslogMap = mutable.HashMap.empty[String, HdfsFlowConfig]
+
+  val hdfscsvMap = mutable.HashMap.empty[String, HdfsFlowConfig]
 
   //[lookupNamespace,Seq[sourceNamespace,sinkNamespace]
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
@@ -382,6 +383,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getRouterMap = routerMap.toMap
 
   def getHdfslogMap = hdfslogMap.toMap
+
+  def getHdfscsvMap = hdfscsvMap.toMap
 
   def getDefaultMap = flowConfigMap.toMap
 }

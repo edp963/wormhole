@@ -206,7 +206,7 @@ object DataTypeEnum extends Enumeration {
   type DataTypeEnum = Value
 
   val UMS = Value("ums")
-  val UMS_EXTENSION = Value("ums_extendion")
+  val UMS_EXTENSION = Value("ums_extension")
 }
 
 
