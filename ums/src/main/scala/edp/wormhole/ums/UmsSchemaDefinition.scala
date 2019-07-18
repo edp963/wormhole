@@ -168,6 +168,8 @@ object UmsProtocolType extends Enumeration {
   val DIRECTIVE_TOPIC_UNSUBSCRIBE = Value("directive_topic_unsubscribe")
   val DIRECTIVE_HDFSLOG_FLOW_START = Value("directive_hdfslog_flow_start")
   val DIRECTIVE_HDFSLOG_FLOW_STOP = Value("directive_hdfslog_flow_stop")
+  val DIRECTIVE_HDFSCSV_FLOW_START = Value("directive_hdfscsv_flow_start")
+  val DIRECTIVE_HDFSCSV_FLOW_STOP = Value("directive_hdfscsv_flow_stop")
   val DIRECTIVE_ROUTER_FLOW_START = Value("directive_router_flow_start")
   val DIRECTIVE_ROUTER_FLOW_STOP = Value("directive_router_flow_stop")
   val DIRECTIVE_UDF_ADD = Value("directive_udf_add")
@@ -204,7 +206,7 @@ object DataTypeEnum extends Enumeration {
   type DataTypeEnum = Value
 
   val UMS = Value("ums")
-  val UMS_EXTENSION = Value("ums_extendion")
+  val UMS_EXTENSION = Value("ums_extension")
 }
 
 

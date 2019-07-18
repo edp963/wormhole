@@ -1,4 +1,4 @@
-package edp.wormhole.sparkx.hdfslog
+package edp.wormhole.sparkx.hdfs
 
 case class PartitionResult(index:Int,
                            result: Boolean,
