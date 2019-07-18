@@ -32,7 +32,7 @@ object WormholeGetOffsetUtils extends Serializable{
           try{
             edp.wormhole.kafka.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
           }catch {
-            case ex: Throwable =>
+            case _ =>
               currentVersion=KafkaVersion.KAFKA_UNKOWN
               throw ex
           }
