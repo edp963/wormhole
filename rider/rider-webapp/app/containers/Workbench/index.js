@@ -188,7 +188,7 @@ export class Workbench extends React.Component {
       singleFlowResult: {},
       streamDiffType: 'default',
       pipelineStreamId: 0,
-      hdfslogSinkNsValue: '',
+      hdfsSinkNsValue: '',
       routingSinkNsValue: '',
       flowSourceResult: [],
 
@@ -327,7 +327,7 @@ export class Workbench extends React.Component {
 
   initialHdfslogCascader = (value, selectedOptions) => {
     this.setState({
-      hdfslogSinkNsValue: value.join('.'),
+      hdfsSinkNsValue: value.join('.'),
       flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys
     })
   }
@@ -497,7 +497,7 @@ export class Workbench extends React.Component {
 
       this.setState({
         selectStreamKafkaTopicValue: resultFinal,
-        hdfslogSinkNsValue: ''
+        hdfsSinkNsValue: ''
       })
       if (result.length === 0) {
         message.warning(locale === 'en' ? 'Please create a Stream with corresponding type first!' : '请先新建相应类型的 Stream！', 3)
@@ -522,7 +522,7 @@ export class Workbench extends React.Component {
     })
     this.workbenchFlowForm.setFieldsValue({
       sourceDataSystem: '',
-      hdfslogNamespace: undefined
+      hdfsNamespace: undefined
     })
   }
 
@@ -549,12 +549,12 @@ export class Workbench extends React.Component {
         break
       case 'hdfslog':
         this.setState({
-          hdfslogSinkNsValue: ''
+          hdfsSinkNsValue: ''
         })
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: Number(id),
           sourceDataSystem: '',
-          hdfslogNamespace: undefined
+          hdfsNamespace: undefined
         })
         break
       case 'routing':
@@ -1158,7 +1158,7 @@ export class Workbench extends React.Component {
         this.setState({
           formStep: 0,
           pipelineStreamId: result.streamId,
-          hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : resultSinkNsFinal,
+          hdfsSinkNsValue: this.state.flowMode === 'copy' ? '' : resultSinkNsFinal,
           flowKafkaInstanceValue: result.kafka,
           flowKafkaTopicValue: result.topics,
           singleFlowResult: {
@@ -1184,7 +1184,7 @@ export class Workbench extends React.Component {
 
         this.workbenchFlowForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
-          hdfslogNamespace: [
+          hdfsNamespace: [
             sourceNsArr[1],
             sourceNsArr[2],
             sourceNsArr[3]
@@ -1655,7 +1655,7 @@ export class Workbench extends React.Component {
       case 'flow':
         if (streamDiffType === 'default') {
           this.handleForwardDefault()
-        } else if (streamDiffType === 'hdfslog' || streamDiffType === 'routing') {
+        } else if (streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv' || streamDiffType === 'routing') {
           this.handleForwardHdfslogOrRouting()
         }
         break
@@ -1804,11 +1804,11 @@ export class Workbench extends React.Component {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           // 新增flow时验证source to sink 是否存在
-          const sourceInfo = streamDiffType === 'hdfslog'
-            ? [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          const sourceInfo = streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv'
+            ? [flowSourceNsSys, values.hdfsNamespace[0], values.hdfsNamespace[1], values.hdfsNamespace[2], '*', '*', '*'].join('.')
             : [flowSourceNsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
 
-          const sinkInfo = streamDiffType === 'hdfslog'
+          const sinkInfo = streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv'
             ? sourceInfo
             : ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
 
@@ -2104,6 +2104,7 @@ export class Workbench extends React.Component {
         this.handleSubmitFlowDefault()
         break
       case 'hdfslog':
+      case 'hdfscsv':
         this.handleSubmitFlowHdfslog()
         break
       case 'routing':
@@ -2209,7 +2210,7 @@ export class Workbench extends React.Component {
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
-          const sourceDataInfo = [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          const sourceDataInfo = [flowSourceNsSys, values.hdfsNamespace[0], values.hdfsNamespace[1], values.hdfsNamespace[2], '*', '*', '*'].join('.')
           // const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
 
           const submitFlowData = {
@@ -3683,7 +3684,7 @@ export class Workbench extends React.Component {
 
                       transformTableRequestValue={this.state.transformTableRequestValue}
                       streamDiffType={this.state.streamDiffType}
-                      hdfslogSinkNsValue={this.state.hdfslogSinkNsValue}
+                      hdfsSinkNsValue={this.state.hdfsSinkNsValue}
                       routingSourceNsValue={this.state.routingSourceNsValue}
                       routingSinkNsValue={this.state.routingSinkNsValue}
                       initialDefaultCascader={this.initialDefaultCascader}
