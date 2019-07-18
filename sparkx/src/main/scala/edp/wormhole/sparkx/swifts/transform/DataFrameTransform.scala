@@ -141,9 +141,7 @@ object DataFrameTransform extends EdpLogging {
     val resultSchema: StructType = SqlOptType.toSqlOptType(operate.optType) match {
       case SqlOptType.JOIN | SqlOptType.INNER_JOIN | SqlOptType.LEFT_JOIN =>
         var afterJoinSchema: StructType = inputDfSchema
-        val addColumnType = dbOutPutSchemaMap.map { case (name, (dataType, _)) =>
-          logInfo(s"dataType:$dataType,fieldType:${umsFieldType(dataType)},sparkType:${ums2sparkType(umsFieldType(dataType))}")
-          StructField(name, ums2sparkType(umsFieldType(dataType))) }
+        val addColumnType = dbOutPutSchemaMap.map { case (name, (dataType, _)) => StructField(name, ums2sparkType(umsFieldType(dataType))) }
         addColumnType.foreach(column => afterJoinSchema = afterJoinSchema.add(column))
         afterJoinSchema
       case SqlOptType.UNION => inputDfSchema
@@ -212,10 +210,6 @@ object DataFrameTransform extends EdpLogging {
           })
         } else {
           resultSet = stmt.executeQuery(executeSql)
-          val schema= resultSet.getMetaData
-          for (i <- 0 until schema.getColumnCount) {
-            logInfo(s"column name:${schema.getColumnLabel(i+1)},column type:${schema.getColumnTypeName(i+1)}")
-          }
           dataMapFromDb = getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
         }
       }
@@ -224,13 +218,6 @@ object DataFrameTransform extends EdpLogging {
           case SqlOptType.JOIN | SqlOptType.INNER_JOIN =>
             result = getInnerJoinResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
           case SqlOptType.LEFT_JOIN =>
-            logInfo(s"start ==>originalData:$originalData")
-            logInfo(s"dataMapFromDb start")
-            dataMapFromDb.foreach(data=>{
-              logInfo(s"key:${data._1}")
-              data._2.foreach(dd=>logInfo(s"row:${dd.mkString(",")}"))
-            } )
-            logInfo(s"sourceTableFields:${sourceTableFields.mkString(",")},dbOutPutSchemaMap:$dbOutPutSchemaMap,resultSchema:${resultSchema}")
             result = getLeftJoinResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema)
           case SqlOptType.UNION =>
             result = getUnionResult(originalData, dataMapFromDb, sourceTableFields, dbOutPutSchemaMap, resultSchema).toIterator
