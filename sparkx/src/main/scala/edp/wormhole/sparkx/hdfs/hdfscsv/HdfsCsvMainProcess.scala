@@ -31,6 +31,7 @@ import edp.wormhole.common.json.JsonParseUtils
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
@@ -47,7 +48,6 @@ import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, O
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.collection.JavaConversions._
 
 //fileName:  ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/currentyyyyMMddHHmmss0740（文件编号4位，左补零）
 //metaFile   ../oracle.oracle0.db.table/1/metadata
@@ -276,12 +276,16 @@ object HdfsCsvMainProcess extends EdpLogging {
   }
 
 
-  private def createFile(filePrefixShardingSlash: String, configuration: Configuration, index: Int, fileType: String): String = {
+  private def createFile(filePrefixShardingSlash: String, timestamp:String,configuration: Configuration, index: Int, fileType: String): String = {
 
-    val processTime = DateUtils.currentyyyyMMddHHmmssmls
+    val filename = if(timestamp==null||timestamp.isEmpty){
+      DateUtils.currentyyyyMMddHHmmssmls
+    }else{
+      DateUtils.yyyyMMddHHmmssmls(timestamp)
+    }
     val indexStr = "000" + index
 
-    val incrementalId = processTime + indexStr.substring(indexStr.length - 4, indexStr.length)
+    val incrementalId = filename + indexStr.substring(indexStr.length - 4, indexStr.length)
     val dataName = filePrefixShardingSlash + fileType + "/" + incrementalId
     logInfo("dataName:" + dataName)
     HdfsUtils.createPath(configuration, dataName)
@@ -367,11 +371,24 @@ object HdfsCsvMainProcess extends EdpLogging {
     try {
       if (!HdfsUtils.isPathExist(configuration, schemaFilePath)) {
         val fields = if (DataTypeEnum.UMS_EXTENSION.toString == hdfsFlowConfig.dataType) {
-          JsonUtils.caseClass2json[ Seq[UmsField]](hdfsFlowConfig.jsonSchema.schemaField)
+          val ja = new JSONArray()
+          hdfsFlowConfig.jsonSchema.schemaField.foreach(uf=>{
+            val jo = new JSONObject()
+            jo.put("name",uf.name)
+            jo.put("type",uf.`type`.toString)
+            jo.put("nullable",uf.nullable.get)
+            ja.add(jo)
+          })
+
+          val json = ja.toJSONString
+          logInfo("schema:"+json)
+          json
         } else {
           val jsonObj: JSONObject = JSON.parseObject(data)
           val schemaJSON = jsonObj.getJSONObject("schema")
-          schemaJSON.getString("fields")
+          val json = schemaJSON.getString("fields")
+          logInfo("schema:"+json)
+          json
         }
 
         HdfsUtils.writeString(configuration, fields, schemaFilePath)
@@ -410,11 +427,22 @@ object HdfsCsvMainProcess extends EdpLogging {
     val count = dataList.size
     val inputCorrect = new ByteArrayOutputStream()
     val inputError = new ByteArrayOutputStream()
+
+    var minTs = ""
+    var maxTs = ""
+
     try {
       val configuration = getHadoopConfiguration(config)
+      logInfo(s"configuration:$configuration")
+      logInfo(s"config:$config")
 
       if (dataList.nonEmpty && !schemaFlag && index == 1) {
         schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, vaildMap.head._2)
+      }
+
+      var umsTsIndex = 0
+      for(i <- vaildMap.head._2.jsonSchema.schemaField.indices){
+        if(vaildMap.head._2.jsonSchema.schemaField(i).name==UmsSysField.TS.toString) umsTsIndex = i
       }
 
       dataList.foreach((data: String) => {
@@ -423,7 +451,19 @@ object HdfsCsvMainProcess extends EdpLogging {
 
         try {
           val tupleList: mutable.Seq[String] = parseData(data, vaildMap.head._2)
-          tupleList.foreach(tuple => {
+          tupleList.foreach((tuple: String) => {
+
+            val tmpJA = JSON.parseArray(tuple)
+            logInfo("tmpJA:"+tmpJA)
+            val umsTs = tmpJA.getString(umsTsIndex)
+            if (minTs == "") {
+              minTs = umsTs
+              maxTs = umsTs
+            } else {
+              maxTs = if (firstTimeAfterSecond(umsTs, maxTs)) umsTs else maxTs
+              minTs = if (firstTimeAfterSecond(minTs, umsTs)) umsTs else minTs
+            }
+
             val content = tuple.getBytes(StandardCharsets.UTF_8)
             if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
               correctCurrentSize += content.length + splitMarkLength
@@ -432,7 +472,7 @@ object HdfsCsvMainProcess extends EdpLogging {
             } else {
               logInfo("正确数据缓存满，写入文件")
               if (correctFileName == null) {
-                correctFileName = createFile(filePrefixShardingSlash, configuration, index, rightFlag)
+                correctFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, rightFlag)
               }
               appendToFile(correctFileName, configuration, inputCorrect)
               correctFileName = null
@@ -454,7 +494,7 @@ object HdfsCsvMainProcess extends EdpLogging {
             } else {
               logInfo("错误数据缓存满，写入文件")
               if (errorFileName == null) {
-                errorFileName = createFile(filePrefixShardingSlash, configuration, index, wrongFlag)
+                errorFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, wrongFlag)
               }
               appendToFile(errorFileName, configuration, inputError)
               errorFileName = null
@@ -470,6 +510,9 @@ object HdfsCsvMainProcess extends EdpLogging {
       val bytesError = inputError.toByteArray
       val inError = new ByteArrayInputStream(bytesError)
       if (bytesError.nonEmpty) {
+        if (errorFileName == null) {
+          errorFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, wrongFlag)
+        }
         logInfo("存在错误数据，写入错误文件")
         HdfsUtils.appendToFile(configuration, errorFileName, inError)
         logInfo("end appendToFile 存在错误数据，写入错误文件")
@@ -478,6 +521,9 @@ object HdfsCsvMainProcess extends EdpLogging {
       val bytesCorrect = inputCorrect.toByteArray
       val inCorrect = new ByteArrayInputStream(bytesCorrect)
       if (bytesCorrect.nonEmpty) {
+        if (correctFileName == null) {
+          correctFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, rightFlag)
+        }
         logInfo("存在解析正确的数据，写入文件，共计：" + dataList.size)
         HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
         logInfo("end appendToFile 存在解析正确的数据，写入文件，共计：" + dataList.size)
@@ -499,9 +545,9 @@ object HdfsCsvMainProcess extends EdpLogging {
       }
     }
 
-
+    logInfo(s"minTs:$minTs,maxTs:$maxTs")
     PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
-      correctCurrentSize, currentCorrectMetaContent, protocol, namespace, null, null, count, flowId)
+      correctCurrentSize, currentCorrectMetaContent, protocol, namespace, minTs, maxTs, count, flowId)
   }
 
   private def getFilePrefixShardingSlash(namespace: String, config: WormholeConfig, protocol: String): (String, String) = {
@@ -511,8 +557,8 @@ object HdfsCsvMainProcess extends EdpLogging {
     val version = namespaceSplit(4)
     val sharding1 = namespaceSplit(5)
     val sharding2 = namespaceSplit(6)
-    val filePrefixShardingSlash = config.stream_hdfs_address.get + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
-    val schemaFilePath = config.stream_hdfs_address.get + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + schema
+    val filePrefixShardingSlash = config.stream_hdfs_address.get + "/" + hdfscsv + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
+    val schemaFilePath = config.stream_hdfs_address.get + "/" + hdfscsv + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + schema
     (filePrefixShardingSlash, schemaFilePath)
   }
 
