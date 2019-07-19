@@ -454,7 +454,7 @@ object HdfsCsvMainProcess extends EdpLogging {
           tupleList.foreach((tuple: String) => {
 
             val tmpJA = JSON.parseArray(tuple)
-            logInfo("tmpJA:"+tmpJA)
+//            logInfo("tmpJA:"+tmpJA)
             val umsTs = tmpJA.getString(umsTsIndex)
             if (minTs == "") {
               minTs = umsTs
