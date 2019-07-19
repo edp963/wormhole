@@ -48,6 +48,7 @@ import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, O
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.util.Random
 
 //fileName:  ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/currentyyyyMMddHHmmss0740（文件编号4位，左补零）
 //metaFile   ../oracle.oracle0.db.table/1/metadata
@@ -276,17 +277,17 @@ object HdfsCsvMainProcess extends EdpLogging {
   }
 
 
-  private def createFile(filePrefixShardingSlash: String, timestamp:String,configuration: Configuration, index: Int, fileType: String): String = {
+  private def createFile(filePrefixShardingSlash: String, timestamp: String, configuration: Configuration, index: Int, fileType: String): String = {
 
-    val filename = if(timestamp==null||timestamp.isEmpty){
+    val filename = if (timestamp == null || timestamp.isEmpty) {
       DateUtils.currentyyyyMMddHHmmssmls
-    }else{
+    } else {
       DateUtils.yyyyMMddHHmmssmls(timestamp)
     }
-    val indexStr = "000" + index
 
-    val incrementalId = filename + indexStr.substring(indexStr.length - 4, indexStr.length)
-    val dataName = filePrefixShardingSlash + fileType + "/" + incrementalId
+    val r = Random.nextInt(10000)
+
+    val dataName = filePrefixShardingSlash + fileType + "/" + filename + "_" + r + "_" + index
     logInfo("dataName:" + dataName)
     HdfsUtils.createPath(configuration, dataName)
     dataName
@@ -334,6 +335,8 @@ object HdfsCsvMainProcess extends EdpLogging {
       for (i <- 0 until namenodeAddressSeq.length) {
         configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
       }
+      configuration.set("dfs.client.block.write.replace-datanode-on-failure.policy", "NEVER")
+      configuration.set("dfs.client.block.write.replace-datanode-on-failure.enable", "true")
       configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
     }
 
@@ -349,8 +352,8 @@ object HdfsCsvMainProcess extends EdpLogging {
 
     if (DataTypeEnum.UMS_EXTENSION.toString == hdfsFlowConfig.dataType) {
       val umsTupleList = JsonParseUtils.dataParse(data, hdfsFlowConfig.jsonSchema.fieldsInfo, hdfsFlowConfig.jsonSchema.twoFieldsArr)
-      umsTupleList.foreach((umsTuple: UmsTuple) =>{
-        dataList += JsonUtils.caseClass2json[ Seq[String]](umsTuple.tuple)
+      umsTupleList.foreach((umsTuple: UmsTuple) => {
+        dataList += JsonUtils.caseClass2json[Seq[String]](umsTuple.tuple)
       })
     } else {
       val jsonObj: JSONObject = JSON.parseObject(data)
@@ -372,22 +375,22 @@ object HdfsCsvMainProcess extends EdpLogging {
       if (!HdfsUtils.isPathExist(configuration, schemaFilePath)) {
         val fields = if (DataTypeEnum.UMS_EXTENSION.toString == hdfsFlowConfig.dataType) {
           val ja = new JSONArray()
-          hdfsFlowConfig.jsonSchema.schemaField.foreach(uf=>{
+          hdfsFlowConfig.jsonSchema.schemaField.foreach(uf => {
             val jo = new JSONObject()
-            jo.put("name",uf.name)
-            jo.put("type",uf.`type`.toString)
-            jo.put("nullable",uf.nullable.get)
+            jo.put("name", uf.name)
+            jo.put("type", uf.`type`.toString)
+            jo.put("nullable", uf.nullable.get)
             ja.add(jo)
           })
 
           val json = ja.toJSONString
-          logInfo("schema:"+json)
+          logInfo("schema:" + json)
           json
         } else {
           val jsonObj: JSONObject = JSON.parseObject(data)
           val schemaJSON = jsonObj.getJSONObject("schema")
           val json = schemaJSON.getString("fields")
-          logInfo("schema:"+json)
+          logInfo("schema:" + json)
           json
         }
 
@@ -401,6 +404,24 @@ object HdfsCsvMainProcess extends EdpLogging {
     }
   }
 
+  private def getUmsTsIndex(data: String, hdfsFlowConfig: HdfsFlowConfig): Int = {
+    var umsTsIndex = 0
+    if (DataTypeEnum.UMS_EXTENSION.toString == hdfsFlowConfig.dataType) {
+      for (i <- hdfsFlowConfig.jsonSchema.schemaField.indices) {
+        if (hdfsFlowConfig.jsonSchema.schemaField(i).name == UmsSysField.TS.toString) umsTsIndex = i
+      }
+    } else {
+      val jsonObj: JSONObject = JSON.parseObject(data)
+      val schemaJSON = jsonObj.getJSONObject("schema")
+      val jsonA = schemaJSON.getJSONArray("fields")
+      for(i <- 0 until jsonA.size()){
+        val jsonO = jsonA.getJSONObject(i)
+        if(jsonO.getString("name")==UmsSysField.TS.toString)umsTsIndex = i
+      }
+    }
+    umsTsIndex
+  }
+
   private def doMainData(protocol: String,
                          namespace: String,
                          dataList: Seq[String],
@@ -412,7 +433,9 @@ object HdfsCsvMainProcess extends EdpLogging {
                          index: Int): PartitionResult = {
     var valid = true
     val vaildMap: Map[String, HdfsFlowConfig] = checkValidNamespace(namespace, hdfscsvMap)
-    val flowId = if (vaildMap != null && vaildMap.nonEmpty) vaildMap.head._2.flowId else -1
+    val hdfsFlowConfig: HdfsFlowConfig = vaildMap.head._2
+    logInfo("vaildMap:" + vaildMap)
+    val flowId = if (vaildMap != null && vaildMap.nonEmpty) hdfsFlowConfig.flowId else -1
 
     val (filePrefixShardingSlash, schemaFilePath) = getFilePrefixShardingSlash(namespace, config, protocol)
 
@@ -436,97 +459,94 @@ object HdfsCsvMainProcess extends EdpLogging {
       logInfo(s"configuration:$configuration")
       logInfo(s"config:$config")
 
-      if (dataList.nonEmpty && !schemaFlag && index == 1) {
-        schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, vaildMap.head._2)
-      }
+      if (dataList.nonEmpty) {
+        if (schemaFlag && index == 1) schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, hdfsFlowConfig)
 
-      var umsTsIndex = 0
-      for(i <- vaildMap.head._2.jsonSchema.schemaField.indices){
-        if(vaildMap.head._2.jsonSchema.schemaField(i).name==UmsSysField.TS.toString) umsTsIndex = i
-      }
+        val umsTsIndex = getUmsTsIndex(dataList.head, hdfsFlowConfig)
 
-      dataList.foreach((data: String) => {
-        val splitMark = "\n".getBytes()
-        val splitMarkLength = splitMark.length
+        dataList.foreach((data: String) => {
+          val splitMark = "\n".getBytes()
+          val splitMarkLength = splitMark.length
 
-        try {
-          val tupleList: mutable.Seq[String] = parseData(data, vaildMap.head._2)
-          tupleList.foreach((tuple: String) => {
+          try {
+            val tupleList: mutable.Seq[String] = parseData(data, hdfsFlowConfig)
+            tupleList.foreach((tuple: String) => {
 
-            val tmpJA = JSON.parseArray(tuple)
-//            logInfo("tmpJA:"+tmpJA)
-            val umsTs = tmpJA.getString(umsTsIndex)
-            if (minTs == "") {
-              minTs = umsTs
-              maxTs = umsTs
-            } else {
-              maxTs = if (firstTimeAfterSecond(umsTs, maxTs)) umsTs else maxTs
-              minTs = if (firstTimeAfterSecond(minTs, umsTs)) umsTs else minTs
-            }
-
-            val content = tuple.getBytes(StandardCharsets.UTF_8)
-            if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
-              correctCurrentSize += content.length + splitMarkLength
-              inputCorrect.write(content)
-              inputCorrect.write(splitMark)
-            } else {
-              logInfo("正确数据缓存满，写入文件")
-              if (correctFileName == null) {
-                correctFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, rightFlag)
+              val tmpJA = JSON.parseArray(tuple)
+              //            logInfo("tmpJA:"+tmpJA)
+              val umsTs = tmpJA.getString(umsTsIndex)
+              if (minTs == "") {
+                minTs = umsTs
+                maxTs = umsTs
+              } else {
+                maxTs = if (firstTimeAfterSecond(umsTs, maxTs)) umsTs else maxTs
+                minTs = if (firstTimeAfterSecond(minTs, umsTs)) umsTs else minTs
               }
-              appendToFile(correctFileName, configuration, inputCorrect)
-              correctFileName = null
-              inputCorrect.reset()
-              inputCorrect.write(content)
-              inputCorrect.write(splitMark)
-              correctCurrentSize = content.length + splitMarkLength
-              logInfo("end 正确数据缓存满，写入文件")
-            }
-          })
-        } catch {
-          case e: Throwable =>
-            logError("parse data error", e)
-            val content = data.getBytes(StandardCharsets.UTF_8)
-            if (errorCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
-              errorCurrentSize += content.length + splitMarkLength
-              inputError.write(content)
-              inputError.write(splitMark)
-            } else {
-              logInfo("错误数据缓存满，写入文件")
-              if (errorFileName == null) {
-                errorFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, wrongFlag)
+
+              val content = tuple.getBytes(StandardCharsets.UTF_8)
+              if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
+                correctCurrentSize += content.length + splitMarkLength
+                inputCorrect.write(content)
+                inputCorrect.write(splitMark)
+              } else {
+                logInfo("正确数据缓存满，写入文件")
+                if (correctFileName == null) {
+                  correctFileName = createFile(filePrefixShardingSlash, minTs, configuration, index, rightFlag)
+                }
+                appendToFile(correctFileName, configuration, inputCorrect)
+                correctFileName = null
+                inputCorrect.reset()
+                inputCorrect.write(content)
+                inputCorrect.write(splitMark)
+                correctCurrentSize = content.length + splitMarkLength
+                logInfo("end 正确数据缓存满，写入文件")
               }
-              appendToFile(errorFileName, configuration, inputError)
-              errorFileName = null
-              inputError.reset()
-              inputError.write(content)
-              inputError.write(splitMark)
-              errorCurrentSize = content.length + splitMarkLength
-              logInfo("end 错误数据缓存满，写入文件")
-            }
-        }
-      })
+            })
+          } catch {
+            case e: Throwable =>
+              logError("parse data error", e)
+              val content = data.getBytes(StandardCharsets.UTF_8)
+              if (errorCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
+                errorCurrentSize += content.length + splitMarkLength
+                inputError.write(content)
+                inputError.write(splitMark)
+              } else {
+                logInfo("错误数据缓存满，写入文件")
+                if (errorFileName == null) {
+                  errorFileName = createFile(filePrefixShardingSlash, minTs, configuration, index, wrongFlag)
+                }
+                appendToFile(errorFileName, configuration, inputError)
+                errorFileName = null
+                inputError.reset()
+                inputError.write(content)
+                inputError.write(splitMark)
+                errorCurrentSize = content.length + splitMarkLength
+                logInfo("end 错误数据缓存满，写入文件")
+              }
+          }
+        })
 
-      val bytesError = inputError.toByteArray
-      val inError = new ByteArrayInputStream(bytesError)
-      if (bytesError.nonEmpty) {
-        if (errorFileName == null) {
-          errorFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, wrongFlag)
+        val bytesError = inputError.toByteArray
+        val inError = new ByteArrayInputStream(bytesError)
+        if (bytesError.nonEmpty) {
+          if (errorFileName == null) {
+            errorFileName = createFile(filePrefixShardingSlash, minTs, configuration, index, wrongFlag)
+          }
+          logInfo("存在错误数据，写入错误文件")
+          HdfsUtils.appendToFile(configuration, errorFileName, inError)
+          logInfo("end appendToFile 存在错误数据，写入错误文件")
         }
-        logInfo("存在错误数据，写入错误文件")
-        HdfsUtils.appendToFile(configuration, errorFileName, inError)
-        logInfo("end appendToFile 存在错误数据，写入错误文件")
-      }
 
-      val bytesCorrect = inputCorrect.toByteArray
-      val inCorrect = new ByteArrayInputStream(bytesCorrect)
-      if (bytesCorrect.nonEmpty) {
-        if (correctFileName == null) {
-          correctFileName = createFile(filePrefixShardingSlash,minTs, configuration, index, rightFlag)
+        val bytesCorrect = inputCorrect.toByteArray
+        val inCorrect = new ByteArrayInputStream(bytesCorrect)
+        if (bytesCorrect.nonEmpty) {
+          if (correctFileName == null) {
+            correctFileName = createFile(filePrefixShardingSlash, minTs, configuration, index, rightFlag)
+          }
+          logInfo("存在解析正确的数据，写入文件，共计：" + dataList.size)
+          HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
+          logInfo("end appendToFile 存在解析正确的数据，写入文件，共计：" + dataList.size)
         }
-        logInfo("存在解析正确的数据，写入文件，共计：" + dataList.size)
-        HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
-        logInfo("end appendToFile 存在解析正确的数据，写入文件，共计：" + dataList.size)
       }
 
     } catch {
