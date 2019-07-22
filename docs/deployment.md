@@ -28,17 +28,15 @@ description: Wormhole Deployment page
 
 mysql-connector-java-{your-db-version}.jar
 
-**注意：升级至 0.6.1 版本，须将 Kafka 版本由 0.10.0.0 升级至 0.10.2.2，0.10.2.2 以上版本须自行测试**
-
 ## 部署配置
 
 #### 下载安装包
 
-**下载 wormhole-0.6.1.tar.gz 包 (链接:https://pan.baidu.com/s/1qQQMfHyTEiq6QaMA-IKxaQ 密码:skc0)，或者自编译**
+**下载 wormhole-0.6.2.tar.gz 包 (链接：https://pan.baidu.com/s/1womXy7Ylr1oaO_u3VqeT4g  提取码：nthu)，或者自编译**
 
 ```
-下载wormhole-0.6.1.tar.gz安装包
-tar -xvf wormhole-0.6.1.tar.gz
+下载wormhole-0.6.2.tar.gz安装包
+tar -xvf wormhole-0.6.2.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole
@@ -79,6 +77,7 @@ yarn.application-attempts: 2
 conf/application.conf 配置项介绍
 
 
+
 akka.http.server.request-timeout = 120s
 
 wormholeServer {
@@ -90,6 +89,7 @@ wormholeServer {
   token.secret.key = "iytr174395lclkb?lgj~8u;[=L:ljg"
   admin.username = "admin"    #default admin user name
   admin.password = "admin"    #default admin user password
+  refreshInterval = "5"  #refresh yarn to update stream status interval(second)
 }
 
 mysql = {
@@ -132,11 +132,14 @@ spark = {
 flink = {
   home = "/usr/local/flink"
   yarn.queue.name = "default"
-  feedback.state.count = 100
   checkpoint.enable = false
   checkpoint.interval = 60000
   stateBackend = "hdfs://nn1/flink-checkpoints"
-  feedback.interval = 30
+  feedback = {
+    enabled = false
+    state.count = 100
+    interval = 30
+  }
 }
 
 zookeeper = {
@@ -151,39 +154,36 @@ kafka = {
   using.cluster.suffix = false #if true, _${cluster.id} will be concatenated to consumer.feedback.topic
   consumer = {
     feedback.topic = "wormhole_feedback"
-    poll-interval = 20ms
-    poll-timeout = 1s
+    poll-interval = 1m
+    poll-timeout = 1m
     stop-timeout = 30s
     close-timeout = 20s
     commit-timeout = 70s
-    wakeup-timeout = 60s
-    max-wakeups = 10
-    session.timeout.ms = 60000
+    wakeup-timeout = 1h
+    max-wakeups = 10000
+    session.timeout.ms = 120000
     heartbeat.interval.ms = 50000
     max.poll.records = 1000
-    request.timeout.ms = 80000
-    max.partition.fetch.bytes = 10485760
+    request.timeout.ms = 130000
+    max.partition.fetch.bytes = 4194304
   }
 }
 
 #kerberos = {
-#  keyTab = ""      #the keyTab will be used on yarn
-#  spark.principal = ""   #the principal of spark
-#  spark.keyTab = ""      #the keyTab of spark
-#  server.config = ""     #the path of krb5.conf
-#  jaas.startShell.config = "" #the path of jaas config file which should be used by start.sh
-#  jaas.yarn.config = ""     #the path of jaas config file which will be uploaded to yarn
-#  server.enabled = false   #enable wormhole connect to Kerberized cluster
+#  kafka.enabled = false
+#  keytab = ""
+#  rider.java.security.auth.login.config = ""
+#  spark.java.security.auth.login.config = ""
+#  java.security.krb5.conf = ""
 #}
 
-# choose monitor method among ES/MYSQL
+# choose monitor method among ES、MYSQL
 monitor = {
-   database.type = "ES"
+  database.type = "ES"
 }
 
 #Wormhole feedback data store, if doesn't want to config, you will not see wormhole processing delay and throughput
 #if not set, please comment it
-
 #elasticSearch.http = {
 #  url = "http://localhost:9200"
 #  user = ""
@@ -211,6 +211,44 @@ maintenance = {
 #    }
 #  ]
 #}
+
+```
+
+#### Spark版本配置
+
+wormhole 0.6.2及之后版本增加spark不容版本兼容，已适配spark2.2/2.3/2.4，默认支持的是spark2.2，其他版本需要用户修改代码中的spark版本号进行适配。
+
+##### 适配spark2.3
+
+（1）将parent pom中的properties：
+
+`<spark.extension.version>2.3</spark.extension.version>`
+
+（2）修改启动stream时调用的sparkx jar包名称
+
+修改RiderConfig.scala中wormholeJarPath 和wormholeKafka08JarPath 变量
+
+```
+lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.3-0.6.1-jar-with-dependencies.jar")
+lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.3-0.6.1-jar-with-dependencies-kafka08.jar")
+```
+
+##### 适配spark2.4
+
+（1）将parent pom中的properties：
+
+```
+<spark.extension.version>2.4</spark.extension.version>
+<json4s.version>3.5.3</json4s.version>
+```
+
+（2）修改启动stream时调用的sparkx jar包名称
+
+修改RiderConfig.scala中wormholeJarPath 和wormholeKafka08JarPath 变量
+
+```
+lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.4-0.6.1-jar-with-dependencies.jar")
+lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.4-0.6.1-jar-with-dependencies-kafka08.jar")
 ```
 
 #### Flink 高可用配置
@@ -282,13 +320,9 @@ wormhole 0.5.5-beta 及之后版本支持多套 wormhole 隔离部署
 - HDFS：spark.wormhole.hdfs.root.path 为一级根目录名，HDFS 路径为 spark.wormhole.hdfs.root.path/cluster.id
 - Zookeeper：zookeeper.wormhole.root.path 为一级根目录名，Zookeeper 路径为 zookeeper.wormhole.root.path/cluster.id
 
-#### Wormhole 接入 Kerberos 支持
+#### Wormhole 接入 Kerberos认证的kafka 支持
 
-wormhole 0.6 及之后版本支持接入 kerberos 支持。若无需接入 KerBeros 支持，可跳过此步骤
-
-##### Spark 中 kerberos 认证
-
-Spark 只有在集群模式(即--master yarn 或者--master yarn-cluster)下，才会支持 kerberos 认证。Spark 通过向 yarn 集群提交任务时设定相应的参数支持 kerberos 认证，需要指定的参数包括—principal、--keytab、--files、--conf。这些配置都可以通过配置 wormhole 的 application.conf 中的对应项来完成
+wormhole 0.6.2 及之后版本支持接入 kerberos 支持。若无需接入 KerBeros 支持，可跳过此步骤
 
 ##### Flink 中 kerberos 认证
 
@@ -304,35 +338,23 @@ security.kerberos.login.contexts: client,kafkaClient
 
 ##### Wormhole 中 kerberos 认证
 
-目前版本的 wormhole 支持全部启用 kerberos 认证的安全 hadoop 集群环境和不启用 kerberos 认证的 hadoop 集群环境，不支持部分组件启用，部分组件不启用的场景
+目前版本的 wormhole 支持接入 Kerberos认证的kafka集群
 
 启用 kerberos 认证，需要在配置文件 application.conf 中对下列参数进行设置。参数及设置说明如下：
 
 ```
 kerberos = {
-  keyTab = ""      #the keyTab will be used on yarn
-  spark.principal = ""   #the principal of spark
-  spark.keyTab = ""      #the keyTab of spark
-  server.config = ""     #the path of krb5.conf
-  jaas.startShell.config = "" #the path of jaas config file which should be used by start.sh
-  jaas.yarn.config = ""     #the path of jaas config file which will be uploaded to yarn
-  server.enabled = false   #enable wormhole connect to Kerberized cluster
+  kafka.enabled = false                        #enable wormhole connect to Kerberized cluster
+  keytab = ""                                  #the keyTab will be used on yarn
+  rider.java.security.auth.login.config = ""   #the path of jaas config file which should be used by start.sh
+  spark.java.security.auth.login.config = ""   #the path of jaas config file which will be uploaded to yarn
+  java.security.krb5.conf = ""                 #the path of krb5.conf
 }
 ```
-
-**特别说明：**
-
-keyTab 对应的 keyTab 文件与 jaas.yarn.config 对应的 jaas.conf 文件中指定的 keyTab 文件为同一个 keyTab 文件；
-
-Spark.keyTab 对应的 keyTab 文件与 jaas.startShell.config 对应的 jaas.conf 文件中指定的 keyTab 文件为同一个 keyTab 文件
-
-上述提到的两个 keyTab 文件必须不同名，内容可以是相同的。否则，启动 spark stream 时，将会报错。导致这种情况发生的原因是，为了在 yarn 上读取安全的 kafka 集群，我们需要在 spark-submit 的 files 参数中上传 yarn 上使用的 keytab，但是，spark-submit 的 keytab 文件也会被上传，两者会发生冲突，进而导致程序无法正常启动
 
 ##### 注意事项
 
 在 kerberosized cluster 集群模式下，所有 kafka topic 都被严格控制创建、访问、写入权限，因此，一旦开启 kerberos 认证，wormhole 将不再支持在 kafka 集群中没有 wormhole_feedback 与 wormhole_heartbeat 这两个 topic 的情况下，自动创建这两个 topic 的操作。所以，需要用户联系 kafka 集群的管理人员，由他创建这两个 topic。
-
-目前，Wormhole 仅支持 kafka-0.10.2.2 集群 kerberos 认证功能，其他版本 kafka 暂不支持 kerberos 认证。
 
 #### 授权远程访问
 
