@@ -460,7 +460,7 @@ object HdfsCsvMainProcess extends EdpLogging {
       logInfo(s"config:$config")
 
       if (dataList.nonEmpty) {
-        if (schemaFlag && index == 1) {
+        if (!schemaFlag && index == 1) {
           schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, hdfsFlowConfig)
         }else{
           logInfo("index不是1，不写schema")
