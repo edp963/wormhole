@@ -342,6 +342,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
       conn.setAutoCommit(false)
       logger.info(s"@write list.size:${tupleList.length} masterSql $masterSql")
       logger.info(s"@write list.size:${tupleList.length} subSql $subSql")
+
       tupleList.foreach(tuples => {
         try {
           psMaster = conn.prepareStatement(masterSql)

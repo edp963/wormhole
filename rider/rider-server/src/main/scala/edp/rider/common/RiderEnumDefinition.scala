@@ -160,6 +160,7 @@ object FunctionType extends Enumeration {
   val DEFAULT = Value("default")
   val HDFSLOG = Value("hdfslog")
   val ROUTIING = Value("routing")
+  val HDFSCSV = Value("hdfscsv")
 
   def functionType(s: String) = FunctionType.withName(s.toLowerCase)
 
