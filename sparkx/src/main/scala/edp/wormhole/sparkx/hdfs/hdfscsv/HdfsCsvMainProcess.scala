@@ -384,13 +384,13 @@ object HdfsCsvMainProcess extends EdpLogging {
           })
 
           val json = ja.toJSONString
-          logInfo("schema:" + json)
+          logInfo("UMS_EXTENSION,schema:" + json)
           json
         } else {
           val jsonObj: JSONObject = JSON.parseObject(data)
           val schemaJSON = jsonObj.getJSONObject("schema")
           val json = schemaJSON.getString("fields")
-          logInfo("schema:" + json)
+          logInfo("UMS,schema:" + json)
           json
         }
 
@@ -460,7 +460,11 @@ object HdfsCsvMainProcess extends EdpLogging {
       logInfo(s"config:$config")
 
       if (dataList.nonEmpty) {
-        if (schemaFlag && index == 1) schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, hdfsFlowConfig)
+        if (!schemaFlag && index == 1) {
+          schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, hdfsFlowConfig)
+        }else{
+          logInfo("index不是1，不写schema")
+        }
 
         val umsTsIndex = getUmsTsIndex(dataList.head, hdfsFlowConfig)
 
@@ -483,7 +487,9 @@ object HdfsCsvMainProcess extends EdpLogging {
                 minTs = if (firstTimeAfterSecond(minTs, umsTs)) umsTs else minTs
               }
 
-              val content = tuple.getBytes(StandardCharsets.UTF_8)
+              val tmpTuple = tuple.trim
+
+              val content = tmpTuple.substring(1,tmpTuple.length-1).getBytes(StandardCharsets.UTF_8)
               if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
                 correctCurrentSize += content.length + splitMarkLength
                 inputCorrect.write(content)
@@ -547,6 +553,8 @@ object HdfsCsvMainProcess extends EdpLogging {
           HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
           logInfo("end appendToFile 存在解析正确的数据，写入文件，共计：" + dataList.size)
         }
+      }else{
+        logInfo("无数据")
       }
 
     } catch {
