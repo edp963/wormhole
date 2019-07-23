@@ -166,7 +166,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       Await.result(db.run(flowTable.filter(flow => flow.id === flowId && flow.status =!= "running").map(c => (c.status, c.startedTime, c.updateTime)).update(flowNewStatus, Some(currentSec), currentSec)), minTimeOut)
   }
 
-  def updateStatusByAction(flowId: Long, flowNewStatus: String, startTime: Option[String], stopTime: Option[String]) = {
+  def updateStatusByAction(flowId: Long, flowNewStatus: String, startTime: Option[String], stopTime: Option[String], update: Boolean = true) = {
     var flag = true
     if (flowNewStatus == "starting" || flowNewStatus == "updating") {
       val flow = Await.result(super.findById(flowId), minTimeOut).get
@@ -175,7 +175,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       if (flow.stoppedTime.nonEmpty && stopTime.nonEmpty && dt2long(stopTime.get) < dt2long(flow.stoppedTime.get))
         flag = false
     }
-    if (flag)
+    if (flag && update)
       Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
   }
 
@@ -191,7 +191,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowStatus = actionRule(flowStream, action)
 
-      updateStatusByAction(flowStream.id, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime)
+      updateStatusByAction(flowStream.id, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime, flowStatus.update)
 
       val flow = FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
         flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
