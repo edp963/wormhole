@@ -73,7 +73,15 @@ class Data2HbaseSink extends SinkProcessor{
             tuple._3(schemaMap(OP.toString)._1)
           }else ""
           val rowkeyBytes = Bytes.toBytes(tuple._1)
-          val put = new Put(rowkeyBytes)
+          val put =
+            if(hbaseConfig.`mutation_type.get`==SourceMutationType.I_U_D.toString) {
+              hbaseConfig.`hbase.version.column` match {
+                case Some(columnName) =>
+                  //logger.info(s"rowkeyBytes $rowkeyBytes, version ${tuple._2}, columnName $columnName")
+                  new Put(rowkeyBytes, tuple._2)
+                case None => new Put(rowkeyBytes)
+              }
+            } else new Put(rowkeyBytes)
           schemaMap.keys.foreach { column =>
             val (index, fieldType, _) = schemaMap(column)
             val valueString = tuple._3(index)
@@ -104,7 +112,10 @@ class Data2HbaseSink extends SinkProcessor{
     //    logInfo("before format:" + tupleList.size)
     val rowkey2IdTuples: Seq[(String, Long, Seq[String])] = tupleList.map(tuple => {
       if(hbaseConfig.`mutation_type.get`==SourceMutationType.I_U_D.toString){
-        (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+        hbaseConfig.`hbase.version.column` match {
+          case Some(columnName) => (rowkey(patternContentList, tuple), tuple(schemaMap(columnName)._1).toLong, tuple)
+          case None => (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+        }
       }else{
         (rowkey(patternContentList, tuple), 0l, tuple)
       }
@@ -112,16 +123,22 @@ class Data2HbaseSink extends SinkProcessor{
 
     val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
-        logger.info("hbase iud:")
-        logger.info("before select:" + rowkey2IdTuples.size)
-        val columnList = List((ID.toString, LONG.toString))
-        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`,hbaseConfig.`hbase.valueType.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
-        logger.info("before filter:" + rowkey2IdMap.size)
-        if (rowkey2IdMap.nonEmpty) {
-          rowkey2IdTuples.filter(row => {
-            !rowkey2IdMap.contains(row._1) || (rowkey2IdMap(row._1).contains(ID.toString) && rowkey2IdMap(row._1)(ID.toString).asInstanceOf[Long] < row._2)
-          })
-        } else rowkey2IdTuples
+        hbaseConfig.`hbase.version.column` match {
+          case Some(columnName) =>
+            logger.info(s"hbase iud version column $columnName")
+            rowkey2IdTuples
+          case None =>
+            logger.info("hbase iud:")
+            logger.info("before select:" + rowkey2IdTuples.size)
+            val columnList = List((ID.toString, LONG.toString))
+            val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`,hbaseConfig.`hbase.valueType.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
+            logger.info("before filter:" + rowkey2IdMap.size)
+            if (rowkey2IdMap.nonEmpty) {
+              rowkey2IdTuples.filter(row => {
+                !rowkey2IdMap.contains(row._1) || (rowkey2IdMap(row._1).contains(ID.toString) && rowkey2IdMap(row._1)(ID.toString).asInstanceOf[Long] < row._2)
+              })
+            } else rowkey2IdTuples
+        }
       case SourceMutationType.INSERT_ONLY =>
         logger.info("hbase insert_only:")
         rowkey2IdTuples
