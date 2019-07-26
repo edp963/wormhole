@@ -32,7 +32,7 @@ object WormholeGetOffsetUtils extends Serializable{
           try{
             edp.wormhole.kafka.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
           }catch {
-            case _ =>
+            case ex =>
               currentVersion=KafkaVersion.KAFKA_UNKOWN
               throw ex
           }
@@ -49,7 +49,7 @@ object WormholeGetOffsetUtils extends Serializable{
       logger.info(s"get consumer offset version:${currentVersion}")
       currentVersion match {
         case KafkaVersion.KAFKA_010 => edp.wormhole.kafka010.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
-        case KafkaVersion.KAFKA_0102 => edp.wormhole.kafka010.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
+        case KafkaVersion.KAFKA_0102 => edp.wormhole.kafka.WormholeGetOffsetUtils.getConsumerOffset(brokers,groupId,topic,partitions,kerberos)
       }
     }
   }
