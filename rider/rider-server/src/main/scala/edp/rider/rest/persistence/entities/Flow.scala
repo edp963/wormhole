@@ -243,7 +243,8 @@ case class FlowInfo(id: Long,
                     disableActions: String,
                     startTime: Option[String],
                     stopTime: Option[String],
-                    msg: String)
+                    msg: String,
+                    update: Boolean = true)
 
 case class FlowCacheMap(flowName: String, flowId: Long)
 

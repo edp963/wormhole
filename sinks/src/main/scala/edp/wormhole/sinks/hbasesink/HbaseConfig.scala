@@ -34,11 +34,11 @@ case class HbaseConfig(`hbase.columnFamily`: Option[String] = None,
 
                       ) {
   lazy val `hbase.columnFamily.get` = `hbase.columnFamily`.getOrElse("cf")
- // lazy val `hbase.znParent.get` = `hbase.znParent`.getOrElse("/hbase")
+  // lazy val `hbase.znParent.get` = `hbase.znParent`.getOrElse("/hbase")
   lazy val `hbase.valueType.get` = `hbase.saveAsString`.getOrElse(false)
   lazy val `umsTs.valueType.get` = `umsTs.saveAsString`.getOrElse(true)
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
-  lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
+  //lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
 }
 
 //case class RowkeyInfo(name: String, pattern: String)
