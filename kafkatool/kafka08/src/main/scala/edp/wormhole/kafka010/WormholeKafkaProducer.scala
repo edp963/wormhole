@@ -19,7 +19,7 @@
  */
 
 
-package edp.wormhole.kafka
+package edp.wormhole.kafka010
 
 import java.util.Properties
 

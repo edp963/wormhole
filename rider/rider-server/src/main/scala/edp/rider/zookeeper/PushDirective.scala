@@ -59,6 +59,16 @@ object PushDirective extends RiderLogger {
     deleteData(zkUrl, path)
   }
 
+  def sendHdfsCsvStartDirective(flowId: Long, streamId: Long, sourceNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/hdfscsv->$flowId->$sourceNamespace->$sourceNamespace"
+    setDataToPath(zkUrl, path, flowStartJson)
+  }
+
+  def sendHdfsCsvFlowStopDirective(flowId: Long, streamId: Long, sourceNamespace: String, zkUrl: String = RiderConfig.zk.address): Unit = {
+    val path = s"${RiderConfig.zk.path}/$streamId$flowDir/hdfscsv->$flowId->$sourceNamespace->$sourceNamespace"
+    deleteData(zkUrl, path)
+  }
+
   def sendRouterFlowStartDirective(flowId: Long, streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk.address): Boolean = {
     val path = s"${RiderConfig.zk.path}/$streamId$flowDir/router->$flowId->$sourceNamespace->$sinkNamespace"
     setDataToPath(zkUrl, path, flowStartJson)

@@ -7,11 +7,11 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.1</version>
+        <version>0.6.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>wormhole-ums_${ums.version}-sparkx_${spark.version}</artifactId>
+    <artifactId>wormhole-ums_${ums.version}-sparkx_${spark.extension.version}</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -30,6 +30,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-spark-extension_${spark.extension.version}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-kafka-010-2</artifactId>
@@ -66,11 +73,7 @@
         <!--<artifactId>guava</artifactId>-->
         <!--<version>16.0.1</version>-->
         <!--</dependency>-->
-        <dependency>
-            <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-hadoop</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-zookeeper</artifactId>
@@ -106,6 +109,7 @@
             <artifactId>wormhole-swifts</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch-spark-20_2.11</artifactId>
@@ -115,47 +119,6 @@
             <groupId>org.scalaj</groupId>
             <artifactId>scalaj-http_2.11</artifactId>
             <version>2.3.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.11</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>oro</groupId>
-                    <artifactId>oro</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.iharder</groupId>
-                    <artifactId>base64</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-streaming_2.11</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_2.11</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-streaming-kafka-0-10_2.11</artifactId>
         </dependency>
         <dependency>
             <groupId>org.javassist</groupId>
@@ -214,52 +177,52 @@
 
         <!-- hbase-->
         <!--<dependency>-->
-            <!--<groupId>org.apache.hbase</groupId>-->
-            <!--<artifactId>hbase-client</artifactId>-->
-            <!--<version>${hbase.version}</version>-->
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>junit</groupId>-->
-                    <!--<artifactId>junit</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>com.github.stephenc.findbugs</groupId>-->
-                    <!--<artifactId>findbugs-annotations</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>jdk.tools</groupId>-->
-                    <!--<artifactId>jdk.tools</artifactId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
+        <!--<groupId>org.apache.hbase</groupId>-->
+        <!--<artifactId>hbase-client</artifactId>-->
+        <!--<version>${hbase.version}</version>-->
+        <!--<exclusions>-->
+        <!--<exclusion>-->
+        <!--<groupId>junit</groupId>-->
+        <!--<artifactId>junit</artifactId>-->
+        <!--</exclusion>-->
+        <!--<exclusion>-->
+        <!--<groupId>com.github.stephenc.findbugs</groupId>-->
+        <!--<artifactId>findbugs-annotations</artifactId>-->
+        <!--</exclusion>-->
+        <!--<exclusion>-->
+        <!--<groupId>jdk.tools</groupId>-->
+        <!--<artifactId>jdk.tools</artifactId>-->
+        <!--</exclusion>-->
+        <!--</exclusions>-->
         <!--</dependency>-->
         <!--<dependency>-->
-            <!--<groupId>org.apache.hbase</groupId>-->
-            <!--<artifactId>hbase-server</artifactId>-->
-            <!--<version>${hbase.version}</version>-->
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>org.jamon</groupId>-->
-                    <!--<artifactId>jamon-runtime</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>junit</groupId>-->
-                    <!--<artifactId>junit</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>org.jamon</groupId>-->
-                    <!--<artifactId>jamon-runtime</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>com.github.stephenc.findbugs</groupId>-->
-                    <!--<artifactId>findbugs-annotations</artifactId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
+        <!--<groupId>org.apache.hbase</groupId>-->
+        <!--<artifactId>hbase-server</artifactId>-->
+        <!--<version>${hbase.version}</version>-->
+        <!--<exclusions>-->
+        <!--<exclusion>-->
+        <!--<groupId>org.jamon</groupId>-->
+        <!--<artifactId>jamon-runtime</artifactId>-->
+        <!--</exclusion>-->
+        <!--<exclusion>-->
+        <!--<groupId>junit</groupId>-->
+        <!--<artifactId>junit</artifactId>-->
+        <!--</exclusion>-->
+        <!--<exclusion>-->
+        <!--<groupId>org.jamon</groupId>-->
+        <!--<artifactId>jamon-runtime</artifactId>-->
+        <!--</exclusion>-->
+        <!--<exclusion>-->
+        <!--<groupId>com.github.stephenc.findbugs</groupId>-->
+        <!--<artifactId>findbugs-annotations</artifactId>-->
+        <!--</exclusion>-->
+        <!--</exclusions>-->
         <!--</dependency>-->
 
         <!--<dependency>-->
-            <!--<groupId>org.apache.kudu</groupId>-->
-            <!--<artifactId>kudu-client</artifactId>-->
-            <!--<version>${kudu.version}</version>-->
+        <!--<groupId>org.apache.kudu</groupId>-->
+        <!--<artifactId>kudu-client</artifactId>-->
+        <!--<version>${kudu.version}</version>-->
         <!--</dependency>-->
     </dependencies>
 

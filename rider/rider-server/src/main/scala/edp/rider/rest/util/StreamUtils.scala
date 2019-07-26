@@ -36,12 +36,11 @@ import edp.rider.yarn.YarnStatusQuery.{getActiveResourceManager, getAllYarnAppSt
 import edp.rider.yarn.{ShellUtils, SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
-
+import edp.rider.kafka.WormholeGetOffsetUtils._
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Await

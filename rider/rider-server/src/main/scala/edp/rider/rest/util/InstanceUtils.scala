@@ -25,7 +25,6 @@ import java.util.NoSuchElementException
 
 import edp.wormhole.ums.UmsDataSystem
 import edp.rider.common.RiderLogger
-import scala.tools.nsc.interpreter.session
 import scala.util.hashing.MurmurHash3._
 
 

@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.kafka
+package edp.wormhole.kafka010
 
 import kafka.admin.AdminUtils.getBrokerMetadatas
 import kafka.admin.TopicCommand._
