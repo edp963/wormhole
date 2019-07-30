@@ -79,7 +79,7 @@ object WormholeGetOffsetUtils {
       val offsetSeq = new ListBuffer[String]()
 
       for (i <- 0 until partitionInfos.size()){
-        partitions.add(new TopicPartition(partitionInfos.get(0).topic, partitionInfos.get(0).partition))
+        partitions.add(new TopicPartition(partitionInfos.get(i).topic, partitionInfos.get(i).partition))
       }
       consumer.assign(partitions)
       val recordTemp = consumer.poll(10)
