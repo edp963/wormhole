@@ -37,7 +37,7 @@ trait SinkHbaseSchemaUtils {
     case UmsFieldType.FLOAT => if (value == null) null else Bytes.toBytes(value.trim.toFloat)
     case UmsFieldType.DOUBLE => if (value == null) null else Bytes.toBytes(value.trim.toDouble)
     case UmsFieldType.BOOLEAN => if (value == null) null else Bytes.toBytes(value.trim.toBoolean)
-    case UmsFieldType.DECIMAL => if (value == null) null else Bytes.toBytes(new java.math.BigDecimal(value.trim).stripTrailingZeros())
+    case UmsFieldType.DECIMAL => if (value == null) null else Bytes.toBytes(new java.math.BigDecimal(new java.math.BigDecimal(value.trim).stripTrailingZeros().toPlainString))
     case UmsFieldType.DATE => if (value == null) null else Bytes.toBytes(dt2date(value).getTime)
     case UmsFieldType.DATETIME => if (value == null) null else Bytes.toBytes(dt2date(value).getTime)
     case UmsFieldType.BINARY => if (value == null) null else CommonUtils.base64s2byte(value.trim)

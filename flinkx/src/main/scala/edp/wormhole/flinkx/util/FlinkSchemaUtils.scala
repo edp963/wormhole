@@ -295,7 +295,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case _=>DateUtils.dt2sqlDate(value.asInstanceOf[Date])
     }
     case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
-    case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
+    case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].stripTrailingZeros().toPlainString)
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
   }
 

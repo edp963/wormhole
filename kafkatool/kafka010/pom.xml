@@ -62,8 +62,8 @@
                         <configuration>
                             <relocations>
                                 <relocation>
-                                    <pattern>kafka</pattern>
-                                    <shadedPattern>kafka010</shadedPattern>
+                                    <pattern>kafka.</pattern>
+                                    <shadedPattern>kafka010.</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.apache.kafka</pattern>

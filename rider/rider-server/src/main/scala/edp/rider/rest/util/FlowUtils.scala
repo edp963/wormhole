@@ -232,7 +232,7 @@ object FlowUtils extends RiderLogger {
   }
 
   def actionRule(flowStream: FlowStream, action: String): FlowInfo = {
-    if (flowStream.disableActions.contains("modify") && action == "refresh")
+    var flowInfo = if (flowStream.disableActions.contains("modify") && action == "refresh")
       FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
     else if (flowStream.disableActions.contains(action)) {
       FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, s"$action operation is refused.")
@@ -367,6 +367,9 @@ object FlowUtils extends RiderLogger {
           FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, s"$action isn't supported.")
       }
     }
+    if(flowInfo.flowStatus == flowStream.status) {
+      new FlowInfo(flowInfo.id, flowInfo.flowStatus, flowInfo.disableActions, flowInfo.startTime, flowInfo.stopTime, flowInfo.msg, false)
+    } else flowInfo
   }
 
   def getDisableActions(flow: Flow): String = {
