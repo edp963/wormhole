@@ -107,7 +107,7 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_SINGLE_STREAM_SUCCESS:
       return state.set('streams', payload.stream)
     case LOAD_STREAM_DETAIL:
-      return state
+      return state.set('streamStartModalLoading', true)
     case LOAD_STREAM_DETAIL_SUCCESS:
       return state
     case LOAD_STREAM_NAME_VALUE:
