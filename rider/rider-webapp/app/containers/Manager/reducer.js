@@ -107,7 +107,7 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_SINGLE_STREAM_SUCCESS:
       return state.set('streams', payload.stream)
     case LOAD_STREAM_DETAIL:
-      return state
+      return state.set('streamStartModalLoading', true)
     case LOAD_STREAM_DETAIL_SUCCESS:
       return state
     case LOAD_STREAM_NAME_VALUE:
@@ -179,9 +179,9 @@ function streamReducer (state = initialState, { type, payload }) {
     case OPERATE_STREAMS_ERROR:
       return state.set('streamStartModalLoading', false).set('flowsLoading', false).set('flowsPriorityConfirmLoading', false)
     case LOAD_LASTEST_OFFSET:
-      return state
+      return state.set('streamStartModalLoading', true)
     case LOAD_LASTEST_OFFSET_SUCCESS:
-      return state
+      return state.set('streamStartModalLoading', false)
     case JUMP_STREAM_TO_FLOW_FILTER:
       return state.set('streamFilterId', payload.streamFilterId)
     default:
