@@ -367,7 +367,7 @@ object FlowUtils extends RiderLogger {
           FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, s"$action isn't supported.")
       }
     }
-    if(flowInfo.flowStatus == flowStream.status) {
+    if(flowInfo.flowStatus == flowStream.status && (!(flowStream.streamType == StreamType.FLINK.toString && flowStream.streamStatus == "running"))) {
       new FlowInfo(flowInfo.id, flowInfo.flowStatus, flowInfo.disableActions, flowInfo.startTime, flowInfo.stopTime, flowInfo.msg, false)
     } else flowInfo
   }
