@@ -165,6 +165,8 @@ object HdfsCsvMainProcess extends EdpLogging {
 
         }
         logInfo("finish stat ")
+        logInfo("start printTopicPartition")
+        SparkxUtils.printTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
         partitionResultRdd.unpersist()
       } catch {
         case e: KafkaException =>
