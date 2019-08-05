@@ -208,12 +208,14 @@ object FlowUtils extends RiderLogger {
   }
 
   def getSinkProcessClass(nsSys: String, sinkSchema: Option[String], customerSinkClassName: Option[String]): String = {
+    riderLogger.info(s"nsSys $nsSys, sinkSchema $sinkSchema, customerSinkClassName $customerSinkClassName")
     customerSinkClassName match {
       case Some(sinkClassName) => sinkClassName
       case None =>
         nsSys match {
           case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
-          case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" | "clickhouse" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+          case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+          case "clickhouse" => "edp.wormhole.sinks.clickhousesink.Data2ClickhouseSink"
           case "es" =>
             if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
             else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"

@@ -87,6 +87,7 @@
         <kudu.version>1.8.0</kudu.version>
         <clickhouse.version>0.1.54</clickhouse.version>
         <fastjson.version>1.2.58</fastjson.version>
+        <hash.version>0.9</hash.version>
         <spark.extension.version>2.2</spark.extension.version>
         <!--<json4s.version>3.5.3</json4s.version>-->
         <json4s.version>3.2.11</json4s.version>

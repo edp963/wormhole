@@ -186,7 +186,8 @@ object SqlProcessor {
     val columnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val oracleColumnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val sql = dataSys match {
-      case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+      case UmsDataSystem.MYSQL | UmsDataSystem.CLICKHOUSE =>
+        s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
       case UmsDataSystem.ORACLE =>
         if (oracleSequenceConfig.nonEmpty) {
           val fieldName = oracleSequenceConfig.get.field_name
@@ -194,7 +195,6 @@ object SqlProcessor {
           s"""INSERT INTO ${tableName.toUpperCase} ($fieldName,$oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(" + sequenceName + " ,", ",", ")")
         } else
           s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
-      case UmsDataSystem.CLICKHOUSE =>s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
       case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
     }
 
