@@ -15,7 +15,6 @@ object ClickhouseUtils {
     val shardServers = connectionConfig.connectionUrl.split(",")
     val hashFunction = LongHashFunction.xx()
     val shardServersSorted = shardServers.sortWith((left, right) => {
-      logger.info(s"sort left ${hashFunction.hashChars(getIpPort(left))}, right ${hashFunction.hashChars(getIpPort(right))}")
       hashFunction.hashChars(getIpPort(left)) < hashFunction.hashChars(getIpPort(right))
     }) //取ip:port从小到大排序
 
@@ -34,15 +33,10 @@ object ClickhouseUtils {
   def selectShardUrl(shardValue: String, shardServersSorted: Seq[String]): String = {
     val hashFunction = LongHashFunction.xx()
     val hashNum = math.abs(hashFunction.hashChars(shardValue))
-    logger.info(s"shardvalue: $shardValue; shardServersSorted: $shardServersSorted; hashNum: $hashNum;")
-    val curShardUrl = shardServersSorted((hashNum % shardServersSorted.size).toInt)
-    logger.info(s"curShardUrl: $curShardUrl")
-    curShardUrl
+    shardServersSorted((hashNum % shardServersSorted.size).toInt)
   }
   def getIpPort(jdbcUrl: String): String = {
-    val ipPort = jdbcUrl.split("//")(1).split("/")(0)
-    logger.info(s"jdbcUrl $jdbcUrl, ipPort $ipPort")
-    ipPort
+    jdbcUrl.split("//")(1).split("/")(0)
   }
 
 }

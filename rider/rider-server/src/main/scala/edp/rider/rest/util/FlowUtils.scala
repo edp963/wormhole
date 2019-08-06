@@ -208,7 +208,6 @@ object FlowUtils extends RiderLogger {
   }
 
   def getSinkProcessClass(nsSys: String, sinkSchema: Option[String], customerSinkClassName: Option[String]): String = {
-    riderLogger.info(s"nsSys $nsSys, sinkSchema $sinkSchema, customerSinkClassName $customerSinkClassName")
     customerSinkClassName match {
       case Some(sinkClassName) => sinkClassName
       case None =>
