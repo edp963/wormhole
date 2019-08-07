@@ -548,6 +548,7 @@ export class Workbench extends React.Component {
         })
         break
       case 'hdfslog':
+      case 'hdfscsv':
         this.setState({
           hdfsSinkNsValue: ''
         })
