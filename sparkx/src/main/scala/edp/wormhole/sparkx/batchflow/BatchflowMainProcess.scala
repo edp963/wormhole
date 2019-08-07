@@ -694,7 +694,7 @@ object BatchflowMainProcess extends EdpLogging {
                     if (!processedSourceNamespace(namespace)) {
                       val currentTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
                       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString,
+                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_HEARTBEAT.toString,
                           DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace, topics,
                           0, umsTs, currentTs, currentTs, currentTs, currentTs, currentTs,
                           currentTs.toString, flowConfig.flowId), Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowConfig.flowId),
