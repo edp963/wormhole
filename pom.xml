@@ -42,8 +42,8 @@
         <module>reporter</module>
         <module>flinkx</module>
         <module>sparkextension/spark_extension_2_2</module>
-<!--        <module>sparkextension/spark_extension_2_3</module>-->
-<!--        <module>sparkextension/spark_extension_2_4</module>-->
+        <module>sparkextension/spark_extension_2_3</module>
+        <module>sparkextension/spark_extension_2_4</module>
         <module>sparkx</module>
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
