@@ -33,7 +33,7 @@ import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
 import edp.wormhole.sparkx.common._
-import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFlowConfig, PartitionResult}
+import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFinder, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums._
@@ -65,6 +65,7 @@ object HdfsCsvMainProcess extends EdpLogging {
   val hdfscsv = "hdfscsv/"
   val rightFlag = "right"
   val wrongFlag = "wrong"
+  var hdfsActiveUrl = ""
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig, ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
@@ -319,36 +320,6 @@ object HdfsCsvMainProcess extends EdpLogging {
     (index2FileRightMap, index2FileWrongMap)
   }
 
-  private def getHadoopConfiguration(config: WormholeConfig): Configuration = {
-    val configuration = new Configuration()
-    val hdfsPath = config.stream_hdfs_address.get
-    val hdfsPathGrp = hdfsPath.split("//")
-    val hdfsRoot = if (hdfsPathGrp(1).contains("/"))
-      hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/"))
-    else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
-    configuration.set("fs.defaultFS", hdfsRoot)
-    configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
-    if (config.hdfs_namenode_hosts.nonEmpty) {
-      val clusterName = hdfsRoot.split("//")(1)
-      configuration.set("dfs.nameservices", clusterName)
-      configuration.set(s"dfs.ha.namenodes.$clusterName", config.hdfs_namenode_ids.get)
-      val namenodeAddressSeq = config.hdfs_namenode_hosts.get.split(",")
-      val namenodeIdSeq = config.hdfs_namenode_ids.get.split(",")
-      for (i <- 0 until namenodeAddressSeq.length) {
-        configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
-      }
-      configuration.set("dfs.client.block.write.replace-datanode-on-failure.policy", "NEVER")
-      configuration.set("dfs.client.block.write.replace-datanode-on-failure.enable", "true")
-      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
-    }
-
-    if (config.kerberos && config.hdfslog_server_kerberos.nonEmpty && !config.hdfslog_server_kerberos.get) {
-      configuration.set("ipc.client.fallback-to-simple-auth-allowed", "true")
-    }
-
-    configuration
-  }
-
   def parseData(data: String, hdfsFlowConfig: HdfsFlowConfig): ListBuffer[String] = {
     val dataList = ListBuffer.empty[String]
 
@@ -439,8 +410,6 @@ object HdfsCsvMainProcess extends EdpLogging {
     logInfo("vaildMap:" + vaildMap)
     val flowId = if (vaildMap != null && vaildMap.nonEmpty) hdfsFlowConfig.flowId else -1
 
-    val (filePrefixShardingSlash, schemaFilePath) = getFilePrefixShardingSlash(namespace, config, protocol)
-
     val (index2FileRightMap, index2FileWrongMap) = getIndex2FileMap(namespace2FileMap, protocol, namespace)
 
     var (correctFileName, correctCurrentSize, currentCorrectMetaContent) = if (index2FileRightMap != null && index2FileRightMap.contains(index))
@@ -457,7 +426,11 @@ object HdfsCsvMainProcess extends EdpLogging {
     var maxTs = ""
 
     try {
-      val configuration = getHadoopConfiguration(config)
+      val (configuration,hdfsRoot,hdfsPath)=HdfsFinder.getHadoopConfiguration(config)
+      val (filePrefixShardingSlash, schemaFilePath) = getFilePrefixShardingSlash(namespace, hdfsPath, protocol)
+      correctFileName = if(correctFileName==null) null else hdfsRoot + "/" + correctFileName
+      errorFileName = if(correctFileName==null) null else hdfsRoot + "/" + errorFileName
+
       logInfo(s"configuration:$configuration")
       logInfo(s"config:$config")
 
@@ -576,19 +549,19 @@ object HdfsCsvMainProcess extends EdpLogging {
     }
 
     logInfo(s"minTs:$minTs,maxTs:$maxTs")
-    PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
+    PartitionResult(index, valid, HdfsFinder.getHdfsRelativeFileName(errorFileName), errorCurrentSize, currentErrorMetaContent, HdfsFinder.getHdfsRelativeFileName(correctFileName),
       correctCurrentSize, currentCorrectMetaContent, protocol, namespace, minTs, maxTs, count, flowId)
   }
 
-  private def getFilePrefixShardingSlash(namespace: String, config: WormholeConfig, protocol: String): (String, String) = {
+  private def getFilePrefixShardingSlash(namespace: String, streamHdfsAddress: String, protocol: String): (String, String) = {
     val namespaceSplit = namespace.split("\\.")
     val namespaceDb = namespaceSplit.slice(0, 3).mkString(".")
     val namespaceTable = namespaceSplit(3)
     val version = namespaceSplit(4)
     val sharding1 = namespaceSplit(5)
     val sharding2 = namespaceSplit(6)
-    val filePrefixShardingSlash = config.stream_hdfs_address.get + "/" + hdfscsv + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
-    val schemaFilePath = config.stream_hdfs_address.get + "/" + hdfscsv + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + schema
+    val filePrefixShardingSlash = streamHdfsAddress + "/" + hdfscsv + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
+    val schemaFilePath = streamHdfsAddress + "/" + hdfscsv + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + schema
     (filePrefixShardingSlash, schemaFilePath)
   }
 

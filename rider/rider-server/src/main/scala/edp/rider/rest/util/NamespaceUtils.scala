@@ -48,7 +48,7 @@ object NamespaceUtils extends RiderLogger {
 
   def getConnUrl(instance: Instance, db: NsDatabase, connType: String = "sink") = {
     instance.nsSys match {
-      case "mysql" | "postgresql" | "phoenix" | "vertica" | "clickhouse"=>
+      case "mysql" | "postgresql" | "phoenix" | "vertica" =>
         db.config match {
           case Some(conf) =>
             if (conf != "") {
@@ -58,6 +58,18 @@ object NamespaceUtils extends RiderLogger {
             } else s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
           case None => s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
         }
+      case "clickhouse" =>
+        instance.connUrl.split(",").map(url => {
+          db.config match {
+            case Some(conf) =>
+              if (conf != "") {
+                val confStr =
+                  (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
+                s"jdbc:${instance.nsSys}://$url/${db.nsDatabase}?$confStr"
+              } else s"jdbc:${instance.nsSys}://$url/${db.nsDatabase}"
+            case None => s"jdbc:${instance.nsSys}://$url/${db.nsDatabase}"
+          }
+        }).mkString(",")
       case "oracle" =>
         val hostPort = instance.connUrl.split(":")
         val serviceName = db.config match {
