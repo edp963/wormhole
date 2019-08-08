@@ -420,7 +420,7 @@ object HdfsLogMainProcess extends EdpLogging {
     val inputCorrect = new ByteArrayOutputStream()
     val inputError = new ByteArrayOutputStream()
     try {
-      val (configuration,hdfsRoot,hdfsPath) = HdfsFinder.getHadoopConfiguration(config)
+      val (configuration, hdfsRoot, hdfsPath) = HdfsFinder.getHadoopConfiguration(config)
       val filePrefixShardingSlash = hdfsPath + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
       //修改map为只存储后半部分，此处改为拼接
       correctFileName = if(correctFileName==null) null else hdfsRoot + "/" + correctFileName
