@@ -816,6 +816,7 @@ export class Workbench extends React.Component {
             this.queryFlowDefault(flow)
             break
           case 'hdfslog':
+          case 'hdfscsv':
             this.queryFlowHdfslog(flow)
             break
           case 'routing':
@@ -1383,7 +1384,6 @@ export class Workbench extends React.Component {
         currentUdf: currentUdf,
         usingUdf: usingUdf
       })
-
       const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamType,
