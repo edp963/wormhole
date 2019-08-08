@@ -32,7 +32,7 @@ import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.utils.SinkCommonUtils._
 import edp.wormhole.sparkx.common._
-import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFlowConfig, PartitionResult}
+import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFinder, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils._
@@ -40,6 +40,7 @@ import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException
 import org.apache.spark.HashPartitioner
@@ -67,6 +68,7 @@ object HdfsLogMainProcess extends EdpLogging {
   val fileMaxSize = 128
   val metadata = "metadata_"
   val hdfsLog = "hdfslog/"
+  var hdfsActiveUrl = ""
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig,session: SparkSession, appId: String, kafkaInput: KafkaInputConfig,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
@@ -393,7 +395,6 @@ object HdfsLogMainProcess extends EdpLogging {
     val version = namespaceSplit(4)
     val sharding1 = namespaceSplit(5)
     val sharding2 = namespaceSplit(6)
-    val filePrefixShardingSlash = config.stream_hdfs_address.get + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
     //logInfo(s"namespace2FileMap $namespace2FileMap, protocol $protocol, namespace $namespace")
 
     val index2FileRightMap: mutable.Map[Int, (String, Int, String)] = if (namespace2FileMap.contains((protocol, namespace)) &&
@@ -419,30 +420,12 @@ object HdfsLogMainProcess extends EdpLogging {
     val inputCorrect = new ByteArrayOutputStream()
     val inputError = new ByteArrayOutputStream()
     try {
-      val configuration = new Configuration()
-      val hdfsPath = config.stream_hdfs_address.get
-      val hdfsPathGrp = hdfsPath.split("//")
-      val hdfsRoot = if (hdfsPathGrp(1).contains("/"))
-        hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/"))
-      else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
-      configuration.set("fs.defaultFS", hdfsRoot)
-      configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
-      if (config.hdfs_namenode_hosts.nonEmpty) {
-        val clusterName = hdfsRoot.split("//")(1)
-        configuration.set("dfs.nameservices", clusterName)
-        configuration.set(s"dfs.ha.namenodes.$clusterName", config.hdfs_namenode_ids.get)
-        val namenodeAddressSeq = config.hdfs_namenode_hosts.get.split(",")
-        val namenodeIdSeq = config.hdfs_namenode_ids.get.split(",")
-        for (i <- 0 until namenodeAddressSeq.length) {
-          configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
-        }
-        configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
-      }
-
-      if (config.kerberos && config.hdfslog_server_kerberos.nonEmpty && !config.hdfslog_server_kerberos.get) {
-        configuration.set("ipc.client.fallback-to-simple-auth-allowed", "true")
-      }
-
+      val (configuration,hdfsRoot,hdfsPath) = HdfsFinder.getHadoopConfiguration(config)
+      val filePrefixShardingSlash = hdfsPath + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
+      //修改map为只存储后半部分，此处改为拼接
+      correctFileName = if(correctFileName==null) null else hdfsRoot + "/" + correctFileName
+      errorFileName = if(correctFileName==null) null else hdfsRoot + "/" + errorFileName
+      logInfo(s"correctFileName:$correctFileName,errorFileName:$errorFileName")
       dataList.foreach(data => {
         val splitMark = "\n".getBytes()
         val splitMarkLength = splitMark.length
@@ -574,6 +557,7 @@ object HdfsLogMainProcess extends EdpLogging {
       }
       if (bytesCorrect.nonEmpty) {
         logInfo("存在解析正确的数据，写入文件，并更新meta文件，共计：" + dataList.size)
+        logInfo(s"configuration:$configuration,correctFileName:$correctFileName")
         HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
         logInfo("end appendToFile 存在解析正确的数据，写入文件，并更新meta文件，共计：" + dataList.size)
         val correctMetaName = getMetaName(correctFileName)
@@ -601,7 +585,7 @@ object HdfsLogMainProcess extends EdpLogging {
 
     //logInfo(s"index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName, correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId: $index, $valid, $errorFileName, $errorCurrentSize, $currentErrorMetaContent, $correctFileName, $correctCurrentSize, $currentCorrectMetaContent, $protocol, $namespace, $finalMinTs, $finalMaxTs, $count, $flowId")
 
-    PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
+    PartitionResult(index, valid, HdfsFinder.getHdfsRelativeFileName(errorFileName), errorCurrentSize, currentErrorMetaContent, HdfsFinder.getHdfsRelativeFileName(correctFileName),
       correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId)
   }
 
