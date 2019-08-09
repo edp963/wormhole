@@ -121,12 +121,14 @@ object HdfsLogMainProcess extends EdpLogging {
           dataList.foreach { case ((protocolType, sourceNamespace), _) =>
             val result: Map[String, HdfsFlowConfig] = checkValidNamespace(sourceNamespace, hdfslogMap)
             if (result.nonEmpty && (protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString ||
-              protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString)) {
+              protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString || protocolType == UmsProtocolType.DATA_BATCH_DATA.toString)) {
               val (_, flowConfig) = result.head
               if (!namespaceMap.contains((UmsProtocolType.DATA_INITIAL_DATA.toString, sourceNamespace)))
                 namespaceMap((UmsProtocolType.DATA_INITIAL_DATA.toString, sourceNamespace)) = flowConfig
               if (!namespaceMap.contains((UmsProtocolType.DATA_INCREMENT_DATA.toString, sourceNamespace)))
                 namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, sourceNamespace)) = flowConfig
+              if (!namespaceMap.contains((UmsProtocolType.DATA_BATCH_DATA.toString, sourceNamespace)))
+                namespaceMap((UmsProtocolType.DATA_BATCH_DATA.toString, sourceNamespace)) = flowConfig
             }
           }
           logInfo("check namespace ok. all data num=" + dataList.size + ",namespaceMap=" + namespaceMap)

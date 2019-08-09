@@ -229,7 +229,10 @@ object StreamUtils extends RiderLogger {
     val hadoopHome = System.getenv("HADOOP_HOME")
     val configuration = new Configuration(false)
     configuration.addResource(new Path(s"$hadoopHome/conf/hdfs-site.xml"))
-    val nameServiceName=configuration.get("dfs.internal.nameservices")
+    val nameServiceNameInternal=configuration.get("dfs.internal.nameservices")
+    //val nameServiceNameNoInternal=configuration.get("dfs.nameservices")
+    val nameServiceName = if(null != nameServiceNameInternal && nameServiceNameInternal != "") nameServiceNameInternal else configuration.get("dfs.nameservices")
+
     val nameNodeIds = configuration.get(s"dfs.ha.namenodes.$nameServiceName")
     val nameNodeHosts = nameNodeIds.split(",").map(nodeId => configuration.get(s"dfs.namenode.rpc-address.$nameServiceName.$nodeId")).mkString(",")
     riderLogger.info(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
