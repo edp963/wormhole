@@ -4,15 +4,39 @@ import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
+import org.apache.spark.SparkContext
 
 object HdfsFinder extends EdpLogging{
   var hdfsActiveUrl = ""
+
+  def fillWormholeConfig(config: WormholeConfig, hadoopConfig: Configuration)={
+      if(config.hdfs_namenode_hosts.nonEmpty)
+         config
+      else{
+         val (nameNodeIds,nameNodeHosts) = getNameNodeInfoFromLocalHadoop(hadoopConfig)
+         new WormholeConfig(config.kafka_input,config.kafka_output,config.spark_config,
+           config.rdd_partition_number,config.zookeeper_address,config.zookeeper_path,
+           config.kafka_persistence_config_isvalid,config.stream_hdfs_address,
+           Some(nameNodeHosts),Some(nameNodeIds),config.kerberos,config.hdfslog_server_kerberos)
+      }
+  }
+
+  private  def getNameNodeInfoFromLocalHadoop(configuration: Configuration)={
+    val nameServiceName=if(configuration.get("dfs.internal.nameservices")==null)configuration.get("") else configuration.get("dfs.nameservices")
+    val nameNodeIds = configuration.get(s"dfs.ha.namenodes.$nameServiceName")
+    val nameNodeHosts = nameNodeIds.split(",").map(nodeId => configuration.get(s"dfs.namenode.rpc-address.$nameServiceName.$nodeId")).mkString(",")
+    logInfo(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
+    (nameNodeIds , nameNodeHosts)
+  }
+
   def getHadoopConfiguration(config: WormholeConfig): (Configuration,String,String) = {
     val configuration = new Configuration()
     configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
     if (config.kerberos && config.hdfslog_server_kerberos.nonEmpty && !config.hdfslog_server_kerberos.get) {
       configuration.set("ipc.client.fallback-to-simple-auth-allowed", "true")
     }
+
     val hdfsRoot=findDefaultFs(configuration,config.hdfs_namenode_hosts.get.split(","))
     val hdfsTuple=findActiveStreamHdfsAddress(config,hdfsRoot)
     configuration.set("fs.defaultFS",hdfsRoot)

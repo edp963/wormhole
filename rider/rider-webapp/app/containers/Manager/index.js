@@ -1062,7 +1062,8 @@ export class Manager extends React.Component {
       filters: [
         {text: 'default', value: 'default'},
         {text: 'hdfslog', value: 'hdfslog'},
-        {text: 'routing', value: 'routing'}
+        {text: 'routing', value: 'routing'},
+        {text: 'hdfscsv', value: 'hdfscsv'}
       ],
       filteredValue: filteredInfo.functionType,
       onFilter: (value, record) => record.functionType.includes(value)

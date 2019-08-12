@@ -43,7 +43,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException
-import org.apache.spark.HashPartitioner
+import org.apache.spark.{HashPartitioner, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.StreamingContext
@@ -111,6 +111,7 @@ object HdfsLogMainProcess extends EdpLogging {
         //        logInfo("validNameSpaceMap:" + validNameSpaceMap)
 
         val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
+        val wholeConfig=HdfsFinder.fillWormholeConfig(config,ssc.sparkContext.hadoopConfiguration)
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]
@@ -144,7 +145,7 @@ object HdfsLogMainProcess extends EdpLogging {
             var tmpCount = 0
             try {
               if (namespaceDataList.nonEmpty) {
-                val tmpResult: PartitionResult = doMainData(protocol, namespace, namespaceDataList, config, flowConfig.hourDuration,
+                val tmpResult: PartitionResult = doMainData(protocol, namespace, namespaceDataList, wholeConfig, flowConfig.hourDuration,
                   namespace2FileMap, config.zookeeper_path, hdfslogMap, index)
                 tmpMinTs = tmpResult.minTs
                 tmpMaxTs = tmpResult.maxTs
@@ -422,11 +423,11 @@ object HdfsLogMainProcess extends EdpLogging {
     val inputCorrect = new ByteArrayOutputStream()
     val inputError = new ByteArrayOutputStream()
     try {
-      val (configuration,hdfsRoot,hdfsPath) = HdfsFinder.getHadoopConfiguration(config)
+      val (configuration, hdfsRoot, hdfsPath) = HdfsFinder.getHadoopConfiguration(config)
       val filePrefixShardingSlash = hdfsPath + "/" + "hdfslog" + "/" + namespaceDb.toLowerCase + "/" + namespaceTable.toLowerCase + "/" + version + "/" + sharding1 + "/" + sharding2 + "/" + protocol + "/"
       //修改map为只存储后半部分，此处改为拼接
-      correctFileName = if(correctFileName==null) null else hdfsRoot + "/" + correctFileName
-      errorFileName = if(correctFileName==null) null else hdfsRoot + "/" + errorFileName
+      correctFileName = if(correctFileName==null) null else if(correctFileName.startsWith("/")) hdfsRoot + correctFileName else hdfsRoot + "/" + correctFileName
+      errorFileName = if(errorFileName==null) null else if(errorFileName.startsWith("/")) hdfsRoot + errorFileName else hdfsRoot + "/" + errorFileName
       logInfo(s"correctFileName:$correctFileName,errorFileName:$errorFileName")
       dataList.foreach(data => {
         val splitMark = "\n".getBytes()

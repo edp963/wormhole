@@ -41,6 +41,7 @@ import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.StreamingContext
@@ -89,6 +90,7 @@ object HdfsCsvMainProcess extends EdpLogging {
         val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
 
         val namespace2FileMap = namespace2FileStore.toMap
+        val wholeConfig=HdfsFinder.fillWormholeConfig(config,ssc.sparkContext.hadoopConfiguration)
         val partitionResultRdd: RDD[(ListBuffer[PartitionResult], ListBuffer[FlowErrorInfo])] = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           val resultList = ListBuffer.empty[PartitionResult]
           val namespaceMap = mutable.HashMap.empty[(String, String), HdfsFlowConfig]
@@ -109,7 +111,7 @@ object HdfsCsvMainProcess extends EdpLogging {
 
             try {
               if (namespaceDataList.nonEmpty) {
-                val tmpResult: PartitionResult = doMainData(protocol, namespace, namespaceDataList, config, flowConfig.hourDuration,
+                val tmpResult: PartitionResult = doMainData(protocol, namespace, namespaceDataList, wholeConfig, flowConfig.hourDuration,
                   namespace2FileMap, config.zookeeper_path, hdfscsvMap, index)
                 resultList += tmpResult
               }
@@ -430,9 +432,9 @@ object HdfsCsvMainProcess extends EdpLogging {
     try {
       val (configuration,hdfsRoot,hdfsPath)=HdfsFinder.getHadoopConfiguration(config)
       val (filePrefixShardingSlash, schemaFilePath) = getFilePrefixShardingSlash(namespace, hdfsPath, protocol)
-      correctFileName = if(correctFileName==null) null else hdfsRoot + "/" + correctFileName
-      errorFileName = if(correctFileName==null) null else hdfsRoot + "/" + errorFileName
-
+      correctFileName = if(correctFileName==null) null else if(correctFileName.startsWith("/")) hdfsRoot + correctFileName else hdfsRoot + "/" + correctFileName
+      errorFileName = if(errorFileName==null) null else if(errorFileName.startsWith("/")) hdfsRoot + errorFileName  else hdfsRoot + "/" + errorFileName
+      logInfo(s"correctFileName:$correctFileName,errorFileName:$errorFileName")
       logInfo(s"configuration:$configuration")
       logInfo(s"config:$config")
 
