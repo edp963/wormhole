@@ -215,16 +215,16 @@ object StreamUtils extends RiderLogger {
             RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.kafkaEnabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
             RiderConfig.spark.remoteHdfsNamenodeIds, Option(false))
         case None =>
-          val (hdfsNameNodeIds,hdfsNameNodeHosts)=getNameNodeInfoFromLocalHadoop()
+         // val (hdfsNameNodeIds,hdfsNameNodeHosts)=getNameNodeInfoFromLocalHadoop()
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled,Some(hdfsNameNodeHosts),
-            Some(hdfsNameNodeIds), Option(false))
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled)
       }
     caseClass2json[BatchFlowConfig](config)
   }
 
+/*
   def getNameNodeInfoFromLocalHadoop()={
     val hadoopHome = System.getenv("HADOOP_HOME")
     val configuration = new Configuration(false)
@@ -235,6 +235,7 @@ object StreamUtils extends RiderLogger {
     riderLogger.info(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
     (nameNodeIds , nameNodeHosts)
   }
+*/
 
   def startStream(stream: Stream, logPath: String): (Boolean, Option[String]) = {
     StreamType.withName(stream.streamType) match {
