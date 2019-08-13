@@ -255,12 +255,14 @@ object HdfsCsvMainProcess extends EdpLogging {
 
   private def uniqueProtocolNamespaceConfig(namespaceMap: mutable.HashMap[(String, String), HdfsFlowConfig], sourceNamespace: String, protocolType: String, hdfscsvMap: Map[String, HdfsFlowConfig]): mutable.HashMap[(String, String), HdfsFlowConfig] = {
     val result: Map[String, HdfsFlowConfig] = checkValidNamespace(sourceNamespace, hdfscsvMap)
-    if (result.nonEmpty && (protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString || protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString)) {
+    if (result.nonEmpty && (protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString || protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString || protocolType == UmsProtocolType.DATA_BATCH_DATA.toString)) {
       val (_, flowConfig) = result.head
       if (!namespaceMap.contains((UmsProtocolType.DATA_INITIAL_DATA.toString, sourceNamespace)))
         namespaceMap((UmsProtocolType.DATA_INITIAL_DATA.toString, sourceNamespace)) = flowConfig
       if (!namespaceMap.contains((UmsProtocolType.DATA_INCREMENT_DATA.toString, sourceNamespace)))
         namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, sourceNamespace)) = flowConfig
+      if (!namespaceMap.contains((UmsProtocolType.DATA_BATCH_DATA.toString, sourceNamespace)))
+        namespaceMap((UmsProtocolType.DATA_BATCH_DATA.toString, sourceNamespace)) = flowConfig
     }
     namespaceMap
   }

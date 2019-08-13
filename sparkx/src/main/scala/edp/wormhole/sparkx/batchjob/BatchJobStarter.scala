@@ -67,13 +67,14 @@ object BatchJobStarter extends App with EdpLogging {
   else writeSink()
 
   def writeSink(): Unit = {
-    val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema)
     val limit = sinkConfig.maxRecordPerPartitionProcessed
     val sinkClassFullName = sinkConfig.classFullName.get
     val sinkNamespace = sinkConfig.sinkNamespace
     val sourceNamespace = sourceConfig.sourceNamespace
     val sinkConnectionConfig = sinkConfig.connectionConfig
     val sinkProcessConfig = SinkProcessConfig("", sinkConfig.tableKeys, sinkSpecialConfig, None, sinkClassFullName, 1, 1) //todo json to replace none
+    val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema, sinkProcessConfig.sinkUid)
+
     outPutTransformDf.foreachPartition(partition => {
       val sendList = ListBuffer.empty[Seq[String]]
       val sinkClazz = Class.forName(sinkClassFullName)
