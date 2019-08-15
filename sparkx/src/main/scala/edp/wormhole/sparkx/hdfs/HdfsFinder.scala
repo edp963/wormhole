@@ -23,7 +23,7 @@ object HdfsFinder extends EdpLogging{
   }
 
   private  def getNameNodeInfoFromLocalHadoop(configuration: Configuration)={
-    val nameServiceName=if(configuration.get("dfs.internal.nameservices")==null)configuration.get("") else configuration.get("dfs.nameservices")
+    val nameServiceName=if(configuration.get("dfs.internal.nameservices")!=null)configuration.get("dfs.internal.nameservices") else configuration.get("dfs.nameservices")
     val nameNodeIds = configuration.get(s"dfs.ha.namenodes.$nameServiceName")
     val nameNodeHosts = nameNodeIds.split(",").map(nodeId => configuration.get(s"dfs.namenode.rpc-address.$nameServiceName.$nodeId")).mkString(",")
     logInfo(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
