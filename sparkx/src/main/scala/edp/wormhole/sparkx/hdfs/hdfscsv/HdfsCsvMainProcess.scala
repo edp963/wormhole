@@ -444,7 +444,7 @@ object HdfsCsvMainProcess extends EdpLogging {
         if (!schemaFlag && index == 0) {
           schemaFlag = checkAndSetSchema(schemaFilePath, configuration, schemaArray)
         } else {
-          logInfo("index不是1，不写schema")
+          logInfo("index不是0，不写schema")
         }
 
         val umsTsIndex = getUmsTsIndex(dataList.head, hdfsFlowConfig)
