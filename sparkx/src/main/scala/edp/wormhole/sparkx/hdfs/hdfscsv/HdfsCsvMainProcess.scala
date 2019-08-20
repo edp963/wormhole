@@ -41,7 +41,6 @@ import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.StreamingContext
@@ -90,7 +89,7 @@ object HdfsCsvMainProcess extends EdpLogging {
         val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
 
         val namespace2FileMap = namespace2FileStore.toMap
-        val wholeConfig=HdfsFinder.fillWormholeConfig(config,ssc.sparkContext.hadoopConfiguration)
+        val wholeConfig = HdfsFinder.fillWormholeConfig(config, ssc.sparkContext.hadoopConfiguration)
         val partitionResultRdd: RDD[(ListBuffer[PartitionResult], ListBuffer[FlowErrorInfo])] = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           val resultList = ListBuffer.empty[PartitionResult]
           val namespaceMap = mutable.HashMap.empty[(String, String), HdfsFlowConfig]
@@ -161,7 +160,7 @@ object HdfsCsvMainProcess extends EdpLogging {
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
               UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id,
                 batchId, namespace, topicPartitionOffset.toJSONString,
-                count, DateUtils.dt2string(cdcTs*1000, DtFormat.TS_DASH_MILLISEC), rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
+                count, DateUtils.dt2string(cdcTs * 1000, DtFormat.TS_DASH_MILLISEC), rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
               Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), config.kafka_output.brokers)
           }
           logInfo("finish one stat")
@@ -347,31 +346,32 @@ object HdfsCsvMainProcess extends EdpLogging {
     dataList
   }
 
-  private def checkAndSetSchema(schemaFilePath: String, data: String, configuration: Configuration, hdfsFlowConfig: HdfsFlowConfig): Boolean = {
+  private def getDataSchema(data: String, hdfsFlowConfig: HdfsFlowConfig): JSONArray = {
+    if (DataTypeEnum.UMS_EXTENSION.toString == hdfsFlowConfig.dataType) {
+      val ja = new JSONArray()
+      hdfsFlowConfig.jsonSchema.schemaField.foreach(uf => {
+        val jo = new JSONObject()
+        jo.put("name", uf.name)
+        jo.put("type", uf.`type`.toString)
+        jo.put("nullable", uf.nullable.get)
+        ja.add(jo)
+      })
+
+      logInfo("UMS_EXTENSION,schema:" + ja.toJSONString)
+      ja
+    } else {
+      val jsonObj: JSONObject = JSON.parseObject(data)
+      val schemaJSON = jsonObj.getJSONObject("schema")
+      val json = schemaJSON.getJSONArray("fields")
+      logInfo("UMS,schema:" + json.toJSONString)
+      json
+    }
+  }
+
+  private def checkAndSetSchema(schemaFilePath: String, configuration: Configuration, schemaArray: JSONArray): Boolean = {
     try {
       if (!HdfsUtils.isPathExist(configuration, schemaFilePath)) {
-        val fields = if (DataTypeEnum.UMS_EXTENSION.toString == hdfsFlowConfig.dataType) {
-          val ja = new JSONArray()
-          hdfsFlowConfig.jsonSchema.schemaField.foreach(uf => {
-            val jo = new JSONObject()
-            jo.put("name", uf.name)
-            jo.put("type", uf.`type`.toString)
-            jo.put("nullable", uf.nullable.get)
-            ja.add(jo)
-          })
-
-          val json = ja.toJSONString
-          logInfo("UMS_EXTENSION,schema:" + json)
-          json
-        } else {
-          val jsonObj: JSONObject = JSON.parseObject(data)
-          val schemaJSON = jsonObj.getJSONObject("schema")
-          val json = schemaJSON.getString("fields")
-          logInfo("UMS,schema:" + json)
-          json
-        }
-
-        HdfsUtils.writeString(configuration, fields, schemaFilePath)
+        HdfsUtils.writeString(configuration, schemaArray.toJSONString, schemaFilePath)
       }
       true
     } catch {
@@ -391,9 +391,9 @@ object HdfsCsvMainProcess extends EdpLogging {
       val jsonObj: JSONObject = JSON.parseObject(data)
       val schemaJSON = jsonObj.getJSONObject("schema")
       val jsonA = schemaJSON.getJSONArray("fields")
-      for(i <- 0 until jsonA.size()){
+      for (i <- 0 until jsonA.size()) {
         val jsonO = jsonA.getJSONObject(i)
-        if(jsonO.getString("name")==UmsSysField.TS.toString)umsTsIndex = i
+        if (jsonO.getString("name") == UmsSysField.TS.toString) umsTsIndex = i
       }
     }
     umsTsIndex
@@ -430,18 +430,20 @@ object HdfsCsvMainProcess extends EdpLogging {
     var maxTs = ""
 
     try {
-      val (configuration,hdfsRoot,hdfsPath)=HdfsFinder.getHadoopConfiguration(config)
+      val (configuration, hdfsRoot, hdfsPath) = HdfsFinder.getHadoopConfiguration(config)
       val (filePrefixShardingSlash, schemaFilePath) = getFilePrefixShardingSlash(namespace, hdfsPath, protocol)
-      correctFileName = if(correctFileName==null) null else if(correctFileName.startsWith("/")) hdfsRoot + correctFileName else hdfsRoot + "/" + correctFileName
-      errorFileName = if(errorFileName==null) null else if(errorFileName.startsWith("/")) hdfsRoot + errorFileName  else hdfsRoot + "/" + errorFileName
+      correctFileName = if (correctFileName == null) null else if (correctFileName.startsWith("/")) hdfsRoot + correctFileName else hdfsRoot + "/" + correctFileName
+      errorFileName = if (errorFileName == null) null else if (errorFileName.startsWith("/")) hdfsRoot + errorFileName else hdfsRoot + "/" + errorFileName
       logInfo(s"correctFileName:$correctFileName,errorFileName:$errorFileName")
       logInfo(s"configuration:$configuration")
       logInfo(s"config:$config")
 
       if (dataList.nonEmpty) {
-        if (!schemaFlag && index == 1) {
-          schemaFlag = checkAndSetSchema(schemaFilePath, dataList.head, configuration, hdfsFlowConfig)
-        }else{
+        val schemaArray = getDataSchema(dataList.head, hdfsFlowConfig)
+        log.info("partition index="+index)
+        if (!schemaFlag && index == 0) {
+          schemaFlag = checkAndSetSchema(schemaFilePath, configuration, schemaArray)
+        } else {
           logInfo("index不是1，不写schema")
         }
 
@@ -466,9 +468,8 @@ object HdfsCsvMainProcess extends EdpLogging {
                 minTs = if (firstTimeAfterSecond(minTs, umsTs)) umsTs else minTs
               }
 
-              val tmpTuple = tuple.trim
+              val content = getFormatData(tuple.trim, schemaArray).getBytes(StandardCharsets.UTF_8)
 
-              val content = tmpTuple.substring(1,tmpTuple.length-1).getBytes(StandardCharsets.UTF_8)
               if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
                 correctCurrentSize += content.length + splitMarkLength
                 inputCorrect.write(content)
@@ -532,7 +533,7 @@ object HdfsCsvMainProcess extends EdpLogging {
           HdfsUtils.appendToFile(configuration, correctFileName, inCorrect)
           logInfo("end appendToFile 存在解析正确的数据，写入文件，共计：" + dataList.size)
         }
-      }else{
+      } else {
         logInfo("无数据")
       }
 
@@ -555,6 +556,24 @@ object HdfsCsvMainProcess extends EdpLogging {
     logInfo(s"minTs:$minTs,maxTs:$maxTs")
     PartitionResult(index, valid, HdfsFinder.getHdfsRelativeFileName(errorFileName), errorCurrentSize, currentErrorMetaContent, HdfsFinder.getHdfsRelativeFileName(correctFileName),
       correctCurrentSize, currentCorrectMetaContent, protocol, namespace, minTs, maxTs, count, flowId)
+  }
+
+  def getFormatData(data: String, schemaArray: JSONArray): String = {
+    val contentArray = JSON.parseArray(data)
+    val dataList = ListBuffer.empty[String]
+    for (i <- 0 until contentArray.size()) {
+      val umsFieldType = UmsFieldType.umsFieldType(schemaArray.getJSONObject(i).getString("type"))
+      val value = contentArray.getString(i).trim
+      val newValue: String = umsFieldType match {
+        case UmsFieldType.STRING => "\"" + value + "\""
+        case UmsFieldType.BINARY => "\"" + value + "\""
+        case UmsFieldType.DATE => "\"" + value + "\""
+        case UmsFieldType.DATETIME => "\"" + value + "\""
+        case _ => value
+      }
+      dataList += newValue
+    }
+    dataList.mkString(",")
   }
 
   private def getFilePrefixShardingSlash(namespace: String, streamHdfsAddress: String, protocol: String): (String, String) = {
