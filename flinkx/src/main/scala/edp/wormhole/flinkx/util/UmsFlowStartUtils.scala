@@ -121,6 +121,17 @@ object UmsFlowStartUtils {
     else null
   }
 
+  def latenessSecondsGet(swiftsSpecificConfig: JSONObject): Int = {
+    try {
+      if (null != swiftsSpecificConfig && swiftsSpecificConfig.containsKey(FlinkxSwiftsConstants.LATENESS_SECONDS) && swiftsSpecificConfig.getString(FlinkxSwiftsConstants.LATENESS_SECONDS).nonEmpty) {
+        swiftsSpecificConfig.getIntValue(FlinkxSwiftsConstants.LATENESS_SECONDS)
+      } else 0
+    } catch {
+      case e: Throwable =>
+        logger.error("get lateness seconds error:", e)
+        0
+    }
+  }
 
   def extractSwiftsSpecialConfig(swifts: JSONObject): JSONObject = {
     if (swifts.containsKey(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG) && (swifts.getJSONObject(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG) != null))
