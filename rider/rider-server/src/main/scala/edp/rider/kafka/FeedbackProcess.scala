@@ -132,8 +132,8 @@ object FeedbackProcess extends RiderLogger {
             else ""
           val topics =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
-              UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
-            else null
+              Some(UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString)
+            else None
           val feedbackTimeValue =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_") != null)
               DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_SEC)
