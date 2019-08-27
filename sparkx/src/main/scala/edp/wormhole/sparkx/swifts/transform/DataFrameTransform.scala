@@ -328,6 +328,7 @@ object DataFrameTransform extends EdpLogging {
 
   def getLeftJoinResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
     val resultData = ListBuffer.empty[Row]
+    val originalDataSize = originalData.size
     originalData.foreach(iter => {
       val sch: Array[StructField] = iter.schema.fields
       val originalJoinFields = sourceTableFields.map(joinFields => {
@@ -356,6 +357,8 @@ object DataFrameTransform extends EdpLogging {
       }
     })
     // orignialData.clear
+    val resultDataSize = resultData.size
+    logInfo(s"getLeftJoinResult,originalDataSize:$originalDataSize,resultDataSize:$resultDataSize")
     resultData.toIterator
   }
 
