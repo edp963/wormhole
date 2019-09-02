@@ -20,6 +20,7 @@
 
 package edp.wormhole.flinkx.eventflow
 
+import java.sql.Timestamp
 import java.util.{Properties, TimeZone}
 
 import com.alibaba.fastjson
@@ -31,12 +32,14 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.udaf.{AdjacentSub, FirstValue, LastValue}
 import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
+import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -44,7 +47,9 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.runtime.state.StateBackend
 import org.apache.flink.runtime.state.filesystem.FsStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
+import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
+import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.{CheckpointingMode, TimeCharacteristic}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.scala.StreamTableEnvironment
@@ -73,6 +78,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
 
   private val exceptionProcessMethod: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swiftsSpecialConfig))
+  private val latenessSeconds: Int = UmsFlowStartUtils.latenessSecondsGet(swiftsSpecialConfig)
   private val exceptionConfig = ExceptionConfig(streamId, flowId, sourceNamespace, sinkNamespace, exceptionProcessMethod)
 
   private val kafkaDataTag = OutputTag[String]("kafkaDataException")
@@ -101,6 +107,11 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
 
   private def udfRegister(tableEnv: StreamTableEnvironment): Unit = {
+
+    tableEnv.registerFunction(BuiltInFunctions.ADJACENTSUB.toString, new AdjacentSub())
+    tableEnv.registerFunction(BuiltInFunctions.FIRSTVALUE.toString, new FirstValue())
+    tableEnv.registerFunction(BuiltInFunctions.LASTVALUE.toString, new LastValue())
+
     config.udf_config.foreach(udf => {
       val udfName = udf.functionName
       val udfClassFullName = udf.fullClassName
@@ -195,10 +206,23 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   }
 
   private def assignTimestamp(inputStream: DataStream[Row], sourceSchemaMap: Map[String, (TypeInformation[_], Int)]) = {
-    if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME)
+    if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME) {
       inputStream
-    else
+    }
+    else if(latenessSeconds <= 0){
       inputStream.assignTimestampsAndWatermarks(new FlinkxTimestampExtractor(sourceSchemaMap))
+    } else {
+      inputStream.assignTimestampsAndWatermarks(
+       new BoundedOutOfOrdernessTimestampExtractor[Row](Time.seconds(latenessSeconds)) {
+         override def extractTimestamp(element: Row): Long = {
+           val umsTs = element.getField(sourceSchemaMap(UmsSysField.TS.toString)._2)
+           logger.info(s"latenessSeconds is $latenessSeconds, umsTs in assignTimestamp $umsTs")
+           val umsTsInLong = DateUtils.dt2long(umsTs.asInstanceOf[Timestamp])
+           logger.info("umsTsInLong " + umsTsInLong)
+           umsTsInLong
+         }}
+      )
+    }
   }
 
   private def getSwiftsSql(swiftsString: String, dataType: String): Option[Array[SwiftsSql]] = {

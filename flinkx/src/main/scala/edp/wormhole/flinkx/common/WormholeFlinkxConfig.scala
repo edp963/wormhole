@@ -91,8 +91,20 @@ object ExceptionProcessMethod extends Enumeration with Serializable {
 
   def exceptionProcessMethod(s: String) = {
     if (s == null)
-      UNHANDLE
+      FEEDBACK
     else
       ExceptionProcessMethod.withName(s.toLowerCase)
+  }
+}
+
+object BuiltInFunctions extends Enumeration with Serializable {
+  type BuiltInFunctions = Value
+
+  val FIRSTVALUE = Value("firstvalue")
+  val LASTVALUE = Value("lastvalue")
+  val ADJACENTSUB = Value("adjacentsub")
+
+  def builtInFunctions(s: String): BuiltInFunctions = {
+    BuiltInFunctions.withName(s.toLowerCase)
   }
 }
