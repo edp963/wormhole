@@ -148,7 +148,7 @@ trait UmsSchemaUtils {
     toUmsSchemaFromJsonObject(schema.getJSONObject("schema"))
   }
 
-  private def toUmsSchemaFromJsonObject(schema: JSONObject): UmsSchema = {
+  def toUmsSchemaFromJsonObject(schema: JSONObject): UmsSchema = {
     val namespace = schema.getString("namespace").toLowerCase
     val fields = if (schema.containsKey("fields") && schema.getJSONArray("fields").size() > 0) {
       val fieldsArr: JSONArray = schema.getJSONArray("fields")

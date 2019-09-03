@@ -225,7 +225,7 @@ object YarnStatusQuery extends RiderLogger {
           } catch {
             case ex: Exception =>
               retryNum = retryNum + 1
-              riderLogger.error(s"Get Flink job status failed by request url $url retry num $retryNum", ex.getMessage)
+              riderLogger.error(s"Get Flink job status failed by request url $url retry num $retryNum: $ex")
               if (retryNum >= 3) throw ex
           }
         }
@@ -248,7 +248,7 @@ object YarnStatusQuery extends RiderLogger {
           }
         } catch {
           case ex: Exception =>
-            riderLogger.error(s"Get Flink job status failed by request url $url", ex)
+            riderLogger.error(s"Get Flink job status failed by request url $url, ${response.body}: $ex")
             throw ex
         }
     }

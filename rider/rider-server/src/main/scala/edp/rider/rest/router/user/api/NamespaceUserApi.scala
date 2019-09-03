@@ -104,8 +104,8 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
   def filterFlowNsByProjectId(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "namespaces") {
     (projectId, streamId) =>
       get {
-        parameter('sourceType.as[String].?, 'sinkType.as[String].?, 'transType.as[String].?) {
-          (sourceType, sinkType, transType) =>
+        parameter('instanceType.as[String].?,'sourceType.as[String].?, 'sinkType.as[String].?, 'transType.as[String].?) {
+          (instanceType, sourceType, sinkType, transType) =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>
                 if (session.roleType == "admin") {
@@ -114,8 +114,17 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                 }
                 else {
                   if (session.projectIdList.contains(projectId)) {
-                    (sourceType, sinkType, transType) match {
-                      case (Some(source), None, None) =>
+                    (instanceType, sourceType, sinkType, transType) match {
+                      case (Some(instance),None, None, None) =>
+                        onComplete(relProjectNsDal.getFlowInstanceNamespaceByProjectId(projectId, streamId, instance).mapTo[Seq[NamespaceInfo]]) {
+                          case Success(nsSeq) =>
+                            riderLogger.info(s"user ${session.userId} select namespaces where project id is $projectId, stream id is $streamId and nsSys is $instance success.")
+                            complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable))))
+                          case Failure(ex) =>
+                            riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $instance failed", ex)
+                            complete(OK, getHeader(451, ex.getMessage, session))
+                        }
+                      case (None, Some(source),None,None) =>
                         onComplete(relProjectNsDal.getFlowSourceNamespaceByProjectId(projectId, streamId, source).mapTo[Seq[NamespaceInfo]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $projectId, stream id is $streamId and nsSys is $source success.")
@@ -124,7 +133,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $source failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
-                      case (None, Some(sink), None) =>
+                      case (None, None,Some(sink), None) =>
                         onComplete(relProjectNsDal.getSinkNamespaceByProjectId(projectId, sink).mapTo[Seq[NamespaceInfo]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $sink success.")
@@ -133,7 +142,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $sink failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
-                      case (None, None, Some(trans)) =>
+                      case (None, None, None, Some(trans)) =>
                         onComplete(relProjectNsDal.getTransNamespaceByProjectId(projectId, trans).mapTo[Seq[TransNamespace]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $trans success.")
@@ -142,7 +151,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $trans failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
-                      case (_, _, _) =>
+                      case (_, _, _, _) =>
                         riderLogger.error(s"user ${session.userId} request url is not supported.")
                         complete(OK, getHeader(404, session))
                     }

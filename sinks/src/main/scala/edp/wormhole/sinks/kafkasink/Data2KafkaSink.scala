@@ -23,7 +23,8 @@ package edp.wormhole.sinks.kafkasink
 
 import java.util.UUID
 
-import com.alibaba.fastjson.JSONObject
+import com.alibaba.fastjson.{JSON, JSONObject}
+import com.alibaba.fastjson.serializer.SerializerFeature
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.WormholeUms._
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -97,7 +98,7 @@ class Data2KafkaSink extends SinkProcessor {
       })
       flattenJson.put("namespace", sinkNamespace)
       flattenJson.put("protocol", protocol)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, JSON.toJSONString(flattenJson, SerializerFeature.WriteMapNullValue), Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
@@ -116,7 +117,7 @@ class Data2KafkaSink extends SinkProcessor {
         }
         index += 1
       })
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, JSON.toJSONString(flattenJson, SerializerFeature.WriteMapNullValue), Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }

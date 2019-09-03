@@ -1,7 +1,5 @@
 package edp.wormhole.flinkx.util
 
-import edp.wormhole.kafka._
-
 import scala.collection.mutable
 
 object FlinkKafkaProducer {

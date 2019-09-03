@@ -145,6 +145,8 @@ object SubmitYarnJob extends App with RiderLogger {
     val confBuffer = othersConfig.split(",").toBuffer
     confBuffer.append(finalDriverJvmConf)
     confBuffer.append(finalExecutorJvmConf)
+    confBuffer.append("spark.yarn.maxAppAttempts=4")
+    confBuffer.append("spark.yarn.am.attemptFailuresValidityInterval=3h")
 
     val files =
       if (RiderConfig.spark.metricsConfPath != "")
@@ -177,7 +179,8 @@ object SubmitYarnJob extends App with RiderLogger {
       else if (l.startsWith("--class")) {
         functionType match {
           case "default" => s"  --class edp.wormhole.sparkx.batchflow.BatchflowStarter  "
-          case "hdfslog" => s"  --class edp.wormhole.sparkx.hdfslog.HdfsLogStarter  "
+          case "hdfslog" => s"  --class edp.wormhole.sparkx.hdfs.hdfslog.HdfsLogStarter  "
+          case "hdfscsv" => s"  --class edp.wormhole.sparkx.hdfs.hdfscsv.HdfsCsvStarter  "
           case "routing" => s"  --class edp.wormhole.sparkx.router.RouterStarter  "
           case "job" => s"  --class edp.wormhole.sparkx.batchjob.BatchJobStarter  "
         }

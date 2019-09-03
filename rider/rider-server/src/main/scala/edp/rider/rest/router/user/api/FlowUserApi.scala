@@ -33,13 +33,13 @@ import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, Ses
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, StreamUtils}
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
-import edp.wormhole.kafka.{WormholeKafkaConsumer, WormholeKafkaProducer}
 import edp.wormhole.ums.UmsProtocolType
 import edp.wormhole.util.{DateUtils, JsonUtils}
 import org.apache.commons.collections.CollectionUtils
 import org.apache.kafka.common.TopicPartition
 import slick.jdbc.MySQLProfile.api._
+import edp.rider.kafka.WormholeGetOffsetUtils._
+import edp.wormhole.kafka.{WormholeKafkaConsumer, WormholeKafkaProducer}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.{JavaConversions, JavaConverters}
@@ -760,10 +760,10 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                   val flow = Await.result(flowDal.findByFilter(flow => flow.id === feedbackErr.flowId), minTimeOut).headOption.get
                   new SimpleFeedbackErr(feedbackErr.id, feedbackErr.projectId, feedbackErr.batchId, feedbackErr.streamId,
                     flow.flowName, feedbackErr.sourceNamespace, feedbackErr.sinkNamespace, feedbackErr.dataType, feedbackErr.errorPattern,
-                    feedbackErr.topics, feedbackErr.errorCount, feedbackErr.errorMaxWaterMarkTs, feedbackErr.errorMinWaterMarkTs,
+                    feedbackErr.topics.getOrElse(""), feedbackErr.errorCount, feedbackErr.errorMaxWaterMarkTs, feedbackErr.errorMinWaterMarkTs,
                     feedbackErr.errorInfo, feedbackErr.dataInfo, feedbackErr.feedbackTime, feedbackErr.createTime)
                 })
-                complete(OK, ResponseJson[Seq[SimpleFeedbackErr]](getHeader(200, session), response.sortBy(_.feedbackTime.reverse)))
+                complete(OK, ResponseJson[Seq[SimpleFeedbackErr]](getHeader(200, session), response))
               } else {
                 riderLogger.error(s"user ${
                   session.userId
@@ -794,7 +794,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                     if (feedbackError.nonEmpty) {
                       val stream = Await.result(streamDal.findByFilter(stream => stream.id === feedbackError.get.streamId), minTimeOut).headOption.get
                       val instance = Await.result(instanceDal.findByFilter(instance => instance.id === stream.instanceId), minTimeOut).headOption.get
-                      val topics = JavaConverters.asScalaIteratorConverter(JSON.parseArray(feedbackError.get.topics).iterator()).asScala.toSeq
+                      val topics = JavaConverters.asScalaIteratorConverter(JSON.parseArray(feedbackError.get.topics.getOrElse("[]")).iterator()).asScala.toSeq
                       val topicList = topics.map(topic => JsonUtils.json2caseClass[FeedbackErrTopicInfo](topic.toString)).seq
                       var rst = true
                       val partitionResults: ListBuffer[FeedbackPartitionResult] = new ListBuffer[FeedbackPartitionResult]()

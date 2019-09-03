@@ -81,7 +81,7 @@
     <files>
         <file>
             <source>
-                ${project.parent.basedir}/sparkx/target/wormhole-ums_${ums.version}-sparkx_${spark.version}-${project.version}-jar-with-dependencies.jar
+                ${project.parent.basedir}/sparkx/target/wormhole-ums_${ums.version}-sparkx_${spark.extension.version}-${project.version}-jar-with-dependencies.jar
             </source>
             <outputDirectory>app</outputDirectory>
         </file>

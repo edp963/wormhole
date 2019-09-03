@@ -63,7 +63,7 @@ object SparkUtils extends EdpLogging {
     }
   }
 
-  def getSchemaMap(schema: StructType): Map[String, (Int, UmsFieldType, Boolean)] = {
+  def getSchemaMap(schema: StructType, sinkUid: Boolean): Map[String, (Int, UmsFieldType, Boolean)] = {
     var index = -1
     val schemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
     schema.fields.foreach(field => {
@@ -77,17 +77,20 @@ object SparkUtils extends EdpLogging {
     //    val r = schemaMap.toMap.filter(_._1 != UmsSysField.UID.toString)
     //    schemaMap.remove(UmsSysField.UID.toString)
     logInfo("schemaMap:" + schemaMap)
-    if (schemaMap.contains(UmsSysField.UID.toString)) {
-      val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
-      schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
-      schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+    if(sinkUid) {
+      logInfo("sink uid, schemaMap:" + schemaMap)
+      schemaMap.toMap
+    } else {
+      if (schemaMap.contains(UmsSysField.UID.toString)) {
+        val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
+        schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
+        schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+      }
+      logInfo("swap schemaMap:" + schemaMap)
+      schemaMap.remove(UmsSysField.UID.toString)
+      logInfo("not sink uid, remove schemaMap:" + schemaMap)
+      schemaMap.toMap
     }
-    logInfo("swap schemaMap:" + schemaMap)
-    schemaMap.remove(UmsSysField.UID.toString)
-    logInfo("remove schemaMap:" + schemaMap)
-    schemaMap.toMap
-    //    r
-
   }
 
   def getSchemaMap(sinkFields: Seq[UmsField], sinkProcessConfig: SinkProcessConfig):

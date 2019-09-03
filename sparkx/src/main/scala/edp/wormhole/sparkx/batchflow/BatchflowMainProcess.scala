@@ -49,10 +49,12 @@ import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.KafkaException
 import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, _}
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
 import scala.collection.mutable
@@ -62,7 +64,7 @@ import scala.language.postfixOps
 object BatchflowMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, kafkaInput: KafkaInputConfig, session: SparkSession,
-              appId: String): Unit = {
+              appId: String,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
@@ -110,11 +112,26 @@ object BatchflowMainProcess extends EdpLogging {
         SparkxUtils.printTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
 
         classifyRdd.unpersist()
+
       } catch {
+        case e: KafkaException=>
+          logError("kafka consumer error,"+e.getMessage, e)
+          if(e.getMessage.contains("Failed to construct kafka consumer")){
+            logError("kafka consumer error ,stop spark streaming")
+
+            SparkxUtils.setFlowErrorMessage(List.empty[String],
+              topicPartitionOffset, config, "testkerberos", "testkerberos", -1,
+              e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+              -config.spark_config.stream_id, ErrorPattern.StreamError)
+
+            stream.stop()
+
+            throw e
+          }
+
         case e: Throwable =>
           logAlert("batch error", e)
 
-          //          String, mutable.LinkedHashMap[String, FlowConfig]
           ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
             sinks.foreach { case (sinkNamespace, flowConfig) =>
               SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
@@ -124,6 +141,7 @@ object BatchflowMainProcess extends EdpLogging {
             }
           }
       }
+      logInfo("commit offsets")
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
       if (!zookeeperFlag) {
         logInfo("write appid to zookeeper," + appId)
@@ -480,7 +498,7 @@ object BatchflowMainProcess extends EdpLogging {
 
     val mutationType =
       if (specialConfigJson.containsKey("mutation_type")) specialConfigJson.getString("mutation_type").trim
-      else if (sinkProcessConfig.classFullname.contains("Kafka")) SourceMutationType.INSERT_ONLY.toString
+      else if (sinkProcessConfig.classFullname.contains("Kafka") || sinkProcessConfig.classFullname.contains("Clickhouse")) SourceMutationType.INSERT_ONLY.toString
       else SourceMutationType.I_U_D.toString
 
     val repartitionRDD = if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
@@ -676,7 +694,7 @@ object BatchflowMainProcess extends EdpLogging {
                     if (!processedSourceNamespace(namespace)) {
                       val currentTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
                       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString,
+                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_HEARTBEAT.toString,
                           DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace, topics,
                           0, umsTs, currentTs, currentTs, currentTs, currentTs, currentTs,
                           currentTs.toString, flowConfig.flowId), Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowConfig.flowId),

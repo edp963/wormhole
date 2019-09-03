@@ -391,11 +391,19 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
     try {
       onComplete(namespaceDal.dbusInsert(session).mapTo[Seq[Dbus]]) {
         case Success(dbusUpsert) =>
-          val insertSeq = namespaceDal.generateNamespaceSeqByDbus(dbusUpsert, session)
-          onComplete(namespaceDal.insertOrUpdate(insertSeq).mapTo[Seq[Namespace]]) {
+          val (insertSeq, updateSeq) = namespaceDal.generateNamespaceSeqByDbus(dbusUpsert, session)
+          onComplete(namespaceDal.insert(insertSeq)) {
             case Success(_) =>
-              riderLogger.info(s"user ${session.userId} insertOrUpdate dbus namespaces success.")
+              riderLogger.info(s"user ${session.userId} insert dbus namespaces success.")
               getNsRoute(session, visible)
+            //              onComplete(namespaceDal.update(updateSeq)) {
+            //                case Success(_) =>
+            //                  riderLogger.info(s"user ${session.userId} update dbus namespaces success.")
+            //                  getNsRoute(session, visible)
+            //                case Failure(ex) =>
+            //                  riderLogger.error(s"user ${session.userId} update dbus namespaces failed", ex)
+            //                  getNsRoute(session, visible)
+            //              }
             case Failure(ex) =>
               riderLogger.error(s"user ${session.userId} insertOrUpdate dbus namespaces failed", ex)
               getNsRoute(session, visible)

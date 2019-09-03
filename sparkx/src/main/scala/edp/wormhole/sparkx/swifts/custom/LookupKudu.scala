@@ -53,6 +53,7 @@ object LookupKudu extends EdpLogging {
       val selectFieldNewNameArray: Seq[String] = getFieldsArray(sqlConfig.fields.get).map(_._1).toList //select fields,newname
 
       val originalData: ListBuffer[Row] = partition.to[ListBuffer]
+      val originalDataSize = originalData.size
       val resultData = ListBuffer.empty[Row]
 
       val lookupFieldNameArray = sqlConfig.lookupTableFields.get
@@ -63,35 +64,33 @@ object LookupKudu extends EdpLogging {
         val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
         keySchemaMap(lookupFieldNameArray.head) = (0, keyType, true)
 
-//        originalData.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
-        log.info(s"lookup kudu originalData:$originalData")
-          val tupleList: mutable.Seq[List[String]] = originalData.map(row => {
-            sqlConfig.sourceTableFields.get.toList.map(field => {
-              val tmpKey = row.get(row.fieldIndex(field))
-              if (tmpKey == null) null.asInstanceOf[String]
-              else tmpKey.toString
-            })
-
-          }).filter((keys: Seq[String]) => {
-            !keys.contains(null)
+        //        originalData.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
+        val tupleList: mutable.Seq[List[String]] = originalData.map(row => {
+          sqlConfig.sourceTableFields.get.toList.map(field => {
+            val tmpKey = row.get(row.fieldIndex(field))
+            if (tmpKey == null) null.asInstanceOf[String]
+            else tmpKey.toString
           })
 
-         log.info(s"lookupField:${lookupFieldNameArray.head},tupleList:$tupleList")
-          val queryDataMap: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]] =
-            KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
-              lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray, batchSize.getOrElse(1))
-        log.info(s"queryDataMap:$queryDataMap")
+        }).filter((keys: Seq[String]) => {
+          !keys.contains(null)
+        })
+
+        val queryDataMap: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]] =
+          KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
+            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray, batchSize.getOrElse(1))
+        val queryDataMapSize = queryDataMap.size
+        logInfo(s"doQueryMultiByKeyListInBatch,originalDataSize:$originalDataSize,queryDataMapSize:$queryDataMapSize.")
         originalData.foreach((row: Row) => {
-            val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
-            val joinData = row.get(row.fieldIndex(sourceFieldName))
-            if (joinData == null || queryDataMap == null || queryDataMap.isEmpty || !queryDataMap.contains(joinData.toString))
-              resultData.append(getJoinRow(selectFieldNewNameArray, null.asInstanceOf[Map[String, (Any, String)]], originalArray, resultSchema))
-            else queryDataMap(joinData.toString).foreach(data => {
-              resultData.append(getJoinRow(selectFieldNewNameArray, data, originalArray, resultSchema))
-            })
-
+          val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
+          val joinData = row.get(row.fieldIndex(sourceFieldName))
+          if (joinData == null || queryDataMap == null || queryDataMap.isEmpty || !queryDataMap.contains(joinData.toString))
+            resultData.append(getJoinRow(selectFieldNewNameArray, null.asInstanceOf[Map[String, (Any, String)]], originalArray, resultSchema))
+          else queryDataMap(joinData.toString).foreach(data => {
+            resultData.append(getJoinRow(selectFieldNewNameArray, data, originalArray, resultSchema))
           })
-//        })
+
+        })
       } else {
         val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
         try {
@@ -113,7 +112,7 @@ object LookupKudu extends EdpLogging {
             } else {
               val queryResult: mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = KuduConnection.doQueryMultiByKey(lookupFieldNameArray, tuple.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
 
-              if (queryResult == null || queryResult.isEmpty ) {
+              if (queryResult == null || queryResult.isEmpty) {
                 resultData.append(getJoinRow(selectFieldNewNameArray, null.asInstanceOf[Map[String, (Any, String)]], originalArray, resultSchema))
               } else {
                 queryResult.head._2.foreach(data => {
@@ -135,6 +134,8 @@ object LookupKudu extends EdpLogging {
         }
       }
 
+      val resultDataSize = resultData.size
+      logInfo(s"lookup finish,originalDataSize:$originalDataSize,resultData:$resultDataSize")
       resultData.toIterator
     })
     session.createDataFrame(joinedRDD, resultSchema)

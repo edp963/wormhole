@@ -328,6 +328,7 @@ object DataFrameTransform extends EdpLogging {
 
   def getLeftJoinResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
     val resultData = ListBuffer.empty[Row]
+    val originalDataSize = originalData.size
     originalData.foreach(iter => {
       val sch: Array[StructField] = iter.schema.fields
       val originalJoinFields = sourceTableFields.map(joinFields => {
@@ -356,6 +357,8 @@ object DataFrameTransform extends EdpLogging {
       }
     })
     // orignialData.clear
+    val resultDataSize = resultData.size
+    logInfo(s"getLeftJoinResult,originalDataSize:$originalDataSize,resultDataSize:$resultDataSize")
     resultData.toIterator
   }
 
@@ -398,10 +401,13 @@ object DataFrameTransform extends EdpLogging {
       }
       dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
         val value = rs.getObject(name)
+        //logInfo("getDataMap value:" + value)
         arrayBuf(index) = if (value != null) {
-          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(rs.getBytes(name))
+          //if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
           else value.toString
         } else null
+        //logInfo("getDataMap arrayBuf(index):" + arrayBuf(index))
         tmpMap(name) = arrayBuf(index)
       }
 
