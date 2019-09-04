@@ -13,7 +13,7 @@ case class FeedbackErr(id: Long,
                        sinkNamespace: String,
                        dataType: String,
                        errorPattern: String,
-                       topics: String,
+                       topics: Option[String],
                        errorCount: Int,
                        errorMaxWaterMarkTs: String,
                        errorMinWaterMarkTs: String,
@@ -94,7 +94,7 @@ class FeedbackErrTable(_tableTag: Tag) extends BaseTable[FeedbackErr](_tableTag,
    val sinkNamespace: Rep[String]= column[String]("sink_ns")
    val dataType:Rep[String]=column[String]("data_type")
    val errorPattern:Rep[String]=column[String]("error_pattern")
-  val topics:Rep[String]=column[String]("topics")
+  val topics:Rep[Option[String]]=column[Option[String]]("topics")
   val errorCount:Rep[Int]=column[Int]("error_count")
   val errorMaxWaterMarkTs:Rep[String]=column[String]("error_max_watermark_ts")
   val errorMinWaterMarkTs:Rep[String]=column[String]("error_min_watermark_ts")

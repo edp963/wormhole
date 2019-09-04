@@ -1426,20 +1426,26 @@ object FlowUtils extends RiderLogger {
   private def getFlowStatusByYarnAndLog(dbInfo: FlinkFlowStatus, yarnInfo: FlinkJobStatus): FlinkFlowStatus
 
   = {
-    YarnAppStatus.withName(yarnInfo.state) match {
-      case YarnAppStatus.ACCEPTED =>
-        FlinkFlowStatus(FlowStatus.STARTING.toString, dbInfo.startTime, dbInfo.stopTime)
-      case YarnAppStatus.RUNNING =>
-        FlinkFlowStatus(FlowStatus.RUNNING.toString, dbInfo.startTime, dbInfo.stopTime)
-      case YarnAppStatus.CANCELED | YarnAppStatus.KILLED | YarnAppStatus.FINISHED | YarnAppStatus.FAILED =>
-        if (FlowStatus.withName(dbInfo.status) == FlowStatus.RUNNING || FlowStatus.withName(dbInfo.status) == FlowStatus.STARTING) {
-          FlinkFlowStatus(FlowStatus.FAILED.toString, dbInfo.startTime, Option(yarnInfo.stopTime))
-        } else if (FlowStatus.withName(dbInfo.status) == FlowStatus.STOPPING) {
-          FlinkFlowStatus(FlowStatus.STOPPED.toString, dbInfo.startTime, Option(yarnInfo.stopTime))
-        } else {
-          dbInfo
-        }
-      case _ => dbInfo
+    try {
+      YarnAppStatus.withName(yarnInfo.state) match {
+        case YarnAppStatus.ACCEPTED =>
+          FlinkFlowStatus(FlowStatus.STARTING.toString, dbInfo.startTime, dbInfo.stopTime)
+        case YarnAppStatus.RUNNING =>
+          FlinkFlowStatus(FlowStatus.RUNNING.toString, dbInfo.startTime, dbInfo.stopTime)
+        case YarnAppStatus.CANCELED | YarnAppStatus.KILLED | YarnAppStatus.FINISHED | YarnAppStatus.FAILED =>
+          if (FlowStatus.withName(dbInfo.status) == FlowStatus.RUNNING || FlowStatus.withName(dbInfo.status) == FlowStatus.STARTING) {
+            FlinkFlowStatus(FlowStatus.FAILED.toString, dbInfo.startTime, Option(yarnInfo.stopTime))
+          } else if (FlowStatus.withName(dbInfo.status) == FlowStatus.STOPPING) {
+            FlinkFlowStatus(FlowStatus.STOPPED.toString, dbInfo.startTime, Option(yarnInfo.stopTime))
+          } else {
+            dbInfo
+          }
+        case _ => dbInfo
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.warn(s"getFlowStatusByYarnAndLog error, task name is ${yarnInfo.name}, job id is ${yarnInfo.jobId}, yarn state is ${yarnInfo.state}, $ex")
+        dbInfo
     }
   }
 
@@ -1457,7 +1463,7 @@ object FlowUtils extends RiderLogger {
     }
     catch {
       case ex: Exception =>
-        riderLogger.warn(s"Refresh flow $flowName status from client log failed", ex)
+        riderLogger.warn(s"Refresh flow $flowName status from client log failed, $ex")
         preStatus
     }
   }
