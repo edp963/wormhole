@@ -124,8 +124,8 @@ class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag,
   val intervalDataProcessToRdd: Rep[Long] = column[Long]("interval_data_process_to_rdd")
   val intervalRddToSwifts: Rep[Long]=  column[Long]("interval_rdd_to_swifts")
   val intervalDataProcessToDone: Rep[Long] = column[Long]("interval_data_process_to_done")
-  val intervalSwiftsToSink: Rep[Long] = column[Long]("interval_swifts_sink")
-  val intervalSinkToDone: Rep[Long] = column[Long]("interval_sink_done")
+  val intervalSwiftsToSink: Rep[Long] = column[Long]("interval_swifts_to_sink")
+  val intervalSinkToDone: Rep[Long] = column[Long]("interval_sink_to_done")
 
   lazy val flowNamespace=sourceNamespace+"_"+sinkNamespace
 }

@@ -450,7 +450,7 @@ alter table `feedback_directive` modify column `result_desc` varchar(5000);
 
 CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `batch_id` VARCHAR(32) NOT NULL,
+  `batch_id` VARCHAR(100) NOT NULL,
   `stream_id` bigint(20) NOT NULL,
   `flow_id` bigint(20) NOT NULL,
   `source_ns` varchar(200) NOT NULL,
@@ -480,6 +480,7 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 alter table `feedback_flow_stats` add column `project_id` BIGINT NOT NULL after `id`;
+alter table `feedback_flow_stats` modify column `batch_id` varchar(100);
 
 CREATE TABLE IF NOT EXISTS `feedback_error` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
