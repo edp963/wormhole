@@ -140,6 +140,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     properties.setProperty("group.id", config.kafka_input.groupId)
     properties.setProperty("session.timeout.ms", config.kafka_input.sessionTimeout)
     properties.setProperty("enable.auto.commit", config.kafka_input.autoCommit.toString)
+    //config.kafka_input.kafka_base_config.`max.partition.fetch.bytes`.toString
+    properties.setProperty("max.partition.fetch.bytes", 10485760.toString)
     if (config.kerberos) {
       properties.put("security.protocol", "SASL_PLAINTEXT")
       properties.put("sasl.kerberos.service.name", "kafka")
