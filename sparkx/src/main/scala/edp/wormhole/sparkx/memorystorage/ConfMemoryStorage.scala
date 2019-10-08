@@ -247,7 +247,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
         logInfo("No Customer Class param Find")
         clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
       }else{
-        logInfo("Customer Class param :" + param+"成 the length "+param.length)
+        logInfo("Customer Class param :" + param+" the length "+param.length)
         clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig],classOf[String])
       }
 
