@@ -64,8 +64,13 @@ object SwiftsTransform extends EdpLogging {
         try {
           SqlOptType.toSqlOptType(operate.optType) match {
             case SqlOptType.CUSTOM_CLASS =>
-              val (obj, method) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
-              currentDf = method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]
+              val (obj, method,param) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
+
+              currentDf = if(param.isEmpty){method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]}
+              else {
+                logInfo("Transform get Param :" + param)
+                method.invoke(obj, session, currentDf, swiftsLogic,param).asInstanceOf[DataFrame]}
+
             case SqlOptType.JOIN | SqlOptType.LEFT_JOIN | SqlOptType.RIGHT_JOIN =>
               if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {
                 // lookup Namespace is also match rule format .*.*
