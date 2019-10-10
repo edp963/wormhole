@@ -36,7 +36,7 @@ object ClickhouseUtils {
     val longHashNum = hasher.hash(ByteBuffer.wrap(shardKey.getBytes()), 0)
     val uInt64HashNum = long2UInt64(longHashNum)
     val shardNum = uInt64HashNum % shardServersSize
-    logger.info(s"shardKey: $shardKey, longHashNum: $longHashNum, uInt64HashNum $uInt64HashNum, shardNum: $shardNum")
+//    logger.info(s"shardKey: $shardKey, longHashNum: $longHashNum, uInt64HashNum $uInt64HashNum, shardNum: $shardNum")
     shardNum.toInt
   }
 

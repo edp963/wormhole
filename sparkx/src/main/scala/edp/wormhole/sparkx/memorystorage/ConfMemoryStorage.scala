@@ -68,7 +68,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
   //val JsonSourceSinkSchema = mutable.HashMap.empty[(String, String), String]//[(source, sink), schema]
   //[className, (object, method)]
-  private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
+  private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method,String)]
 
   //[className, (object, method)]
   private val sinkTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
@@ -233,15 +233,29 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
   def registerSwiftsTransformReflectMap(className: String): Any = {
+    //com.cred.wh.custeomreclass(a=a,b=n,c=v,d=d)
+    //val param = if(className.contains("(")){className.substring(className.indexOf("(")+1,className.lastIndexOf(")"))} else ""
+
+    //com.cred.wh.custeomreclass$*********全是参数爱咋写咋写
+    val param = if(className.contains("$")){
+      className.substring(className.indexOf("$")+1,className.length)
+    } else ""
     if (!swiftsTransformReflectMap.contains(className)) {
-      val clazz = Class.forName(className)
+      val clazz = Class.forName(className.split('$')(0))
       val reflectObject: Any = clazz.newInstance()
-      val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
-      swiftsTransformReflectMap += (className -> (reflectObject, transformMethod))
+      val transformMethod = if("".equals(param)) {
+        logInfo("No Customer Class param Find")
+        clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+      }else{
+        logInfo("Customer Class param :" + param+" the length "+param.length)
+        clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig],classOf[String])
+      }
+
+      swiftsTransformReflectMap += (className -> (reflectObject,transformMethod,param))
     }
   }
 
-  def getSwiftsTransformReflectValue(className: String): (Any, Method) = {
+  def getSwiftsTransformReflectValue(className: String): (Any, Method,String) = {
     swiftsTransformReflectMap(className)
   }
 
