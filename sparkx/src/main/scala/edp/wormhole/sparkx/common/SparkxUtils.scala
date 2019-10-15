@@ -21,11 +21,10 @@ package edp.wormhole.sparkx.common
 
 import java.sql.Timestamp
 
-import com.alibaba.fastjson.{JSONArray, JSONObject}
+import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
@@ -36,7 +35,6 @@ import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object SparkxUtils extends EdpLogging{
