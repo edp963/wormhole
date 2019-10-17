@@ -37,7 +37,7 @@ class MaidianEventTransform extends EdpLogging {
         val sinkFieldValue = sinksConfig.getString(sinkFieldName)
         s" when ($condition) then '$sinkFieldValue' "
       })
-      val subSql = s"case ${subSqlSeq.mkString(" ")} else null end as $sinkFieldName  "
+      val subSql = s"case ${subSqlSeq.mkString(" ")} else 'unknown' end as $sinkFieldName  "
       subSqlList += subSql
     }
 
