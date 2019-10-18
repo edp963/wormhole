@@ -123,7 +123,9 @@ class MaidianSchemaTransform extends EdpLogging {
   }
 
   def getRules(param: String): mutable.HashMap[String, JSONArray] = {
-    val configJson = JSON.parseObject(param)
+    val replaceParam = param.replaceAll("\\\\","")
+    logInfo(s"replaceParam:$replaceParam")
+    val configJson = JSON.parseObject(replaceParam)
     val url = configJson.getString("httpUrl")
     val token = if (configJson.containsKey("token")) configJson.getString("token") else null
     val dataFlowId = configJson.getString("dataFlowId")
@@ -135,8 +137,8 @@ class MaidianSchemaTransform extends EdpLogging {
     val headerMap = new util.HashMap[String, String]
     headerMap.put("Authorization", token)
     val httpResult = new HttpClientService().doPost(url, headerMap, paramMap)
+    logInfo(s"httpResult.getStatus:${httpResult.getStatus},httpResult.getData:${httpResult.getData}")
     if (httpResult.getStatus == 200) {
-      logInfo(s"httpResult.getData:${httpResult.getData}")
       val schemaRuleJson: JSONObject = JSON.parseObject(httpResult.getData)
       if (schemaRuleJson.getString("code").equals("200")) {
         val dataJson: JSONObject = schemaRuleJson.getJSONObject("data")

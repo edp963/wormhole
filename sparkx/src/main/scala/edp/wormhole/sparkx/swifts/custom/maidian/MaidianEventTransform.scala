@@ -16,13 +16,10 @@ class MaidianEventTransform extends EdpLogging {
   def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String): DataFrame = {
     val ruleList: mutable.Seq[JSONObject] = getRules(param)
 
-//    println(s"ruleList:$ruleList")
-
     val sourceFieldList = getSourceFields(df)
     val fieldTypeMap: util.HashMap[String, DataType] = MaidianCommon.getFieldType(df)
     val conditionSubSelect: mutable.Seq[(String, JSONObject)] = getConditionSubSelect(fieldTypeMap, ruleList)
 
-//    println(s"conditionSubSelect:$conditionSubSelect")
     val subSqlList = ListBuffer.empty[String]
     val sinksConfig: JSONObject = conditionSubSelect.head._2
 
@@ -73,7 +70,10 @@ class MaidianEventTransform extends EdpLogging {
   }
 
   def getRules(param: String): mutable.ListBuffer[JSONObject] = {
-    val configJson = JSON.parseObject(param)
+    val replaceParam = param.replaceAll("\\\\","")
+    logInfo(s"replaceParam:$replaceParam")
+
+    val configJson = JSON.parseObject(replaceParam)
     val url = configJson.getString("httpUrl")
     val token = if (configJson.containsKey("token")) configJson.getString("token") else null
     val dataFlowId = configJson.getString("dataFlowId")
@@ -85,9 +85,9 @@ class MaidianEventTransform extends EdpLogging {
     val headerMap = new util.HashMap[String, String]
     headerMap.put("Authorization", token)
     val httpResult = new HttpClientService().doPost(url, headerMap, paramMap)
+    logInfo(s"httpResult.getStatus:${httpResult.getStatus},httpResult.getData:${httpResult.getData}")
     if (httpResult.getStatus == 200) {
-      logInfo(s"httpResult.getData:${httpResult.getData}")
-      val schemaRuleJson: JSONObject = JSON.parseObject(httpResult.getData)
+      val schemaRuleJson: JSONObject = JSON.parseObject(httpResult.getData.replaceAll("\uFEFF",""))
       if (schemaRuleJson.getString("code").equals("200")) {
         val dataJson: JSONObject = schemaRuleJson.getJSONObject("data")
         val ruleArray: JSONArray = dataJson.getJSONArray("list")
