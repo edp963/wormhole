@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
  * To change this template use File | Settings | File Templates.
  */
 public enum FilterFunction {
+
     EQUAL("equal") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
@@ -257,7 +258,6 @@ public enum FilterFunction {
     GREATERTHANEQUALTO("gteq") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
-            System.out.println("field:"+field+",dataType:"+dataType);
             if (CollectionUtils.isEmpty(param)) {
                 return null;
             }

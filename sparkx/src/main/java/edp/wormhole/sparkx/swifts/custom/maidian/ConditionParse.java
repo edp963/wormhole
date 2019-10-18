@@ -11,7 +11,7 @@ public class ConditionParse {
 
     static Logger logger = Logger.getLogger(ConditionParse.class.getName());
 
-    public String getWhereSqlByNestCondition(JSONObject conditions, Map<String,DataType> tableFieldMap) {
+    public String getWhereSqlByNestCondition(JSONObject conditions, Map<String,DataType> tableFieldMap) throws Exception{
         String operator = conditions.getString("operator");
         String whereSql = "";
         switch (operator) {
@@ -22,7 +22,7 @@ public class ConditionParse {
                     logger.error("can not find filter function " + filter.getFunction());
                     break;
                 }
-                whereSql = function.getFieldWhereClause(filter.getField(),tableFieldMap.get(filter.getField().toLowerCase()),filter.getParam());
+                whereSql = function.getFieldWhereClause(filter.getField(),tableFieldMap.get(filter.getField()),filter.getParam());
                 break;
             case "and":
                 JSONArray filterArrayAnd = JSON.parseArray(conditions.getString("filter"));
