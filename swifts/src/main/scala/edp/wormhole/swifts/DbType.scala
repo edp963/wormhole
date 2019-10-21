@@ -51,6 +51,7 @@ object DbType {
 
     //oracle
     case "VARCHAR2" => "string"
+    case "NVARCHAR2" => "string"
     case "INTEGER" => "int"
     case "CLOB" => "string"
     case "RAW" => "binary"
