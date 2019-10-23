@@ -265,8 +265,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         } else {
           s"INSERT INTO $mTableName ($masterColumnNames) VALUES " + (1 to masterBaseFieldNames.size).map(_ => "?").mkString("(", ",", ")")
         }
-      } else if (opType.startsWith("u") && !updateColumns.trim.equals("")) s"UPDATE $mTableName SET $updateColumns WHERE $dataTkNames "
-      else if(opType.startsWith("u") && updateColumns.trim.equals("")) ""
+      } else if (opType.startsWith("u")) s"UPDATE $mTableName SET $updateColumns WHERE $dataTkNames "
       else s"delete from $mTableName  WHERE $dataTkNames "
 
     val subSql = if (opType.split("_")(1).startsWith("i")) s"INSERT INTO $sTableName ($subColumnNames,${UmsSysField.ACTIVE.toString}) VALUES " + (1 to subBaseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
@@ -346,14 +345,12 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
 
       tupleList.foreach(tuples => {
         try {
-          if(!masterSql.trim.equals("")){
-            psMaster = conn.prepareStatement(masterSql)
-            //tuples.foreach(tuple => {
-            setPlaceholder(tuples, psMaster, DataTable, masterSql, masterBaseFieldNames, masterUpdateFieldNames)
-            psMaster.addBatch()
-            // })
-            psMaster.executeBatch()
-          }
+          psMaster = conn.prepareStatement(masterSql)
+          //tuples.foreach(tuple => {
+          setPlaceholder(tuples, psMaster, DataTable, masterSql, masterBaseFieldNames, masterUpdateFieldNames)
+          psMaster.addBatch()
+          // })
+          psMaster.executeBatch()
 
           psSub = conn.prepareStatement(subSql)
           //tuples.foreach(tuple => {
