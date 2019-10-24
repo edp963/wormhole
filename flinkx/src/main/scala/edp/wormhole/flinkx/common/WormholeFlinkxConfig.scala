@@ -91,7 +91,7 @@ object ExceptionProcessMethod extends Enumeration with Serializable {
 
   def exceptionProcessMethod(s: String) = {
     if (s == null)
-      FEEDBACK
+      UNHANDLE
     else
       ExceptionProcessMethod.withName(s.toLowerCase)
   }
