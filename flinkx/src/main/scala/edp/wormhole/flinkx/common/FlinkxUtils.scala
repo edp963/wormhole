@@ -54,10 +54,12 @@ object FlinkxUtils {
                           streamId: Long,
                           errorPattern: String): String = {
     val ts: String = null
+    val errorMaxLength = 2000
 
     val errorMsg = if(error!=null){
       val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
-      error.toString + "\n" + first
+      val errorAll = error.toString + "\n" + first
+      errorAll.substring(0, math.min(errorMaxLength, errorAll.length))
     } else null
     UmsProtocolUtils.feedbackFlowError(sourceNamespace,
       streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
