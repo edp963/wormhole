@@ -52,6 +52,7 @@ object SparkxUtils extends EdpLogging{
                           errorPattern:String): Unit ={
 
     val ts: String = null
+    val errorMaxLength = 2000
 //    val tmpJsonArray = new JSONArray()
 //    val sourceTopicSet = mutable.HashSet.empty[String]
 //    sourceTopicSet ++= incrementTopicList
@@ -63,7 +64,8 @@ object SparkxUtils extends EdpLogging{
 
     val errorMsg = if(error!=null){
       val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
-      error.toString + "\n" + first
+      val errorAll = error.toString + "\n" + first
+      errorAll.substring(0, math.min(errorMaxLength, errorAll.length))
     } else null
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
       FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
