@@ -7,6 +7,7 @@ import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.util.httpclient.HttpClientService
+import org.apache.http.entity.ContentType
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable
@@ -80,11 +81,16 @@ class MaidianEventTransform extends EdpLogging {
 
     val ruleList = mutable.ListBuffer.empty[JSONObject]
 
-    val paramMap = new util.HashMap[String, String]
-    paramMap.put("dataFlowId", dataFlowId)
+//    val paramMap = new util.HashMap[String, String]
+//    paramMap.put("dataFlowId", dataFlowId)
     val headerMap = new util.HashMap[String, String]
     headerMap.put("Authorization", token)
-    val httpResult = new HttpClientService().doPost(url, headerMap, paramMap)
+    val contentType =  "application/json"
+    headerMap.put("Content-Type",contentType)
+    val paramJson = new JSONObject()
+    paramJson.put("dataFlowId",dataFlowId)
+    paramJson.put("config","")
+    val httpResult = new HttpClientService().doPost(url, headerMap, paramJson.toJSONString, ContentType.APPLICATION_JSON)
     logInfo(s"httpResult.getStatus:${httpResult.getStatus},httpResult.getData:${httpResult.getData}")
     if (httpResult.getStatus == 200) {
       val schemaRuleJson: JSONObject = JSON.parseObject(httpResult.getData.replaceAll("\uFEFF",""))
