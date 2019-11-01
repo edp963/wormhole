@@ -3,8 +3,11 @@ package edp.wormhole.sparkx.swifts.custom.maidian;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Joiner;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class ConditionParse {
@@ -26,15 +29,21 @@ public class ConditionParse {
                 break;
             case "and":
                 JSONArray filterArrayAnd = JSON.parseArray(conditions.getString("filter"));
-                String leftWhereAnd = getWhereSqlByNestCondition(filterArrayAnd.getJSONObject(0), tableFieldMap);
-                String rightWhereAnd = getWhereSqlByNestCondition(filterArrayAnd.getJSONObject(1), tableFieldMap);
-                whereSql = "(" + leftWhereAnd +") and (" + rightWhereAnd +")";
+                List<String> whereArrayAnd = new ArrayList<>();
+                for(int i=0; i<filterArrayAnd.size(); i++) {
+                    String curWhereAnd = getWhereSqlByNestCondition(filterArrayAnd.getJSONObject(i), tableFieldMap);
+                    whereArrayAnd.add(curWhereAnd);
+                }
+                whereSql = "(" + Joiner.on(") and (").join(whereArrayAnd) + ")";
                 break;
             case "or":
                 JSONArray filterArrayOr = JSON.parseArray(conditions.getString("filter"));
-                String leftWhereOr = getWhereSqlByNestCondition(filterArrayOr.getJSONObject(0), tableFieldMap);
-                String rightWhereOr = getWhereSqlByNestCondition(filterArrayOr.getJSONObject(1), tableFieldMap);
-                whereSql = "(" + leftWhereOr +") and (" + rightWhereOr +")";
+                List<String> whereArrayOr = new ArrayList<>();
+                for(int i=0; i<filterArrayOr.size(); i++) {
+                    String curWhereOr = getWhereSqlByNestCondition(filterArrayOr.getJSONObject(i), tableFieldMap);
+                    whereArrayOr.add(curWhereOr);
+                }
+                whereSql = "(" + Joiner.on(") or (").join(whereArrayOr) + ")";
                 break;
             default:
                 break;

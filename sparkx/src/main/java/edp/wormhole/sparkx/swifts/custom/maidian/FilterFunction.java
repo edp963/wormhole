@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
  * To change this template use File | Settings | File Templates.
  */
 public enum FilterFunction {
-
     EQUAL("equal") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
@@ -110,16 +109,10 @@ public enum FilterFunction {
             StringBuilder where = new StringBuilder();
             switch (dataType) {
                 case TEXT:
-                    where.append(" ").append(field).append(" is  not null");
-                    break;
                 case NUMBER:
-                    where.append(" ").append(field).append(" is  not null");
-                    break;
                 case TIME:
-                    where.append(" ").append(field).append(" is  not null");
-                    break;
                 case LOGIC:
-                    where.append(" ").append(field).append(" is  not null");
+                    where.append(" isNotNull(").append(field).append(")");
                     break;
             }
             return where.toString();
@@ -131,16 +124,10 @@ public enum FilterFunction {
             StringBuilder where = new StringBuilder();
             switch (dataType) {
                 case TEXT:
-                    where.append(" ").append(field).append(" is null");
-                    break;
                 case NUMBER:
-                    where.append(" ").append(field).append(" is null");
-                    break;
                 case TIME:
-                    where.append(" ").append(field).append(" is null");
-                    break;
                 case LOGIC:
-                    where.append(" ").append(field).append(" is null");
+                    where.append(" isNull(").append(field).append(")");
                     break;
             }
             return where.toString();
@@ -149,16 +136,40 @@ public enum FilterFunction {
     EMPTY("empty") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
-            return NOT_SET.getFieldWhereClause(field, dataType, param);
+            StringBuilder where = new StringBuilder();
+            switch (dataType) {
+                case TEXT:
+                    //where.append(" (").append(field).append("='')");
+                    where.append(field).append("=''");
+                    break;
+                case NUMBER:
+                case TIME:
+                case LOGIC:
+                    where.append(NOT_SET.getFieldWhereClause(field, dataType, param));
+                    break;
+            }
+            return where.toString();
         }
     },
     NOT_EMPTY("notEmpty") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
-            return IS_SET.getFieldWhereClause(field, dataType, param);
+            StringBuilder where = new StringBuilder();
+            switch (dataType) {
+                case TEXT:
+                    //where.append(" (").append(field).append("!='')");
+                    where.append(field).append("!=''");
+                    break;
+                case NUMBER:
+                case TIME:
+                case LOGIC:
+                    where.append(IS_SET.getFieldWhereClause(field, dataType, param));
+                    break;
+            }
+            return where.toString();
         }
     },
-    LIKE("like") {
+    /*LIKE("like") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
             if (CollectionUtils.isEmpty(param)) {
@@ -167,8 +178,9 @@ public enum FilterFunction {
             StringBuilder where = new StringBuilder();
             switch (dataType) {
                 case TEXT:
-                    where.append(" match(").append(field).append(field).append(",").append("'").append("\\(.*)")
-                            .append("(").append(param.get(0)).append(")").append("(.*)").append(")=1");
+//                    where.append(" match(").append(field).append(field).append(",").append("'").append("\\(.*)")
+//                            .append("(").append(param.get(0)).append(")").append("(.*)").append(")=1");
+                    where.append(" match(").append(field).append(",").append("'").append(param.get(0)).append("')=1");
                     break;
                 case NUMBER:
                 case TIME:
@@ -187,8 +199,9 @@ public enum FilterFunction {
             StringBuilder where = new StringBuilder();
             switch (dataType) {
                 case TEXT:
-                    where.append(" match(").append(field).append(field).append(",").append("'").append("\\(.*)")
-                            .append("(").append(param.get(0)).append(")").append("(.*)").append(")=0");
+//                    where.append(" match(").append(field).append(field).append(",").append("'").append("\\(.*)")
+//                            .append("(").append(param.get(0)).append(")").append("(.*)").append(")=0");
+                    where.append(" match(").append(field).append(",").append("'").append(param.get(0)).append("')=0");
                     break;
                 case NUMBER:
                 case TIME:
@@ -198,6 +211,66 @@ public enum FilterFunction {
             return where.toString();
         }
     },
+    LEFT_LIKE("startWith") {
+        @Override
+        public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
+            if (CollectionUtils.isEmpty(param)) {
+                return null;
+            }
+            StringBuilder where = new StringBuilder();
+            switch (dataType) {
+                case TEXT:
+                    String reg = "\\^" + param.get(0) + ".*";
+                    where.append(" match(").append(field).append(",").append("'").append(reg).append("')=1");
+                    break;
+                case NUMBER:
+                case TIME:
+                case LOGIC:
+                    throw new IllegalArgumentException("unsupported dataType=" + dataType + " on this function=" + this.name());
+            }
+            return where.toString();
+        }
+    },
+    RIGHT_LIKE("endWith") {
+        @Override
+        public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
+            if (CollectionUtils.isEmpty(param)) {
+                return null;
+            }
+            StringBuilder where = new StringBuilder();
+            switch (dataType) {
+                case TEXT:
+                    String reg = ".*" + param.get(0) + "\\$";
+                    where.append(" match(").append(field).append(",").append("'").append(reg).append("')=1");
+                    break;
+                case NUMBER:
+                case TIME:
+                case LOGIC:
+                    throw new IllegalArgumentException("unsupported dataType=" + dataType + " on this function=" + this.name());
+            }
+            return where.toString();
+        }
+    },
+    INCLUDE_LIKE("include") {
+        @Override
+        public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
+            if (CollectionUtils.isEmpty(param)) {
+                return null;
+            }
+            StringBuilder where = new StringBuilder();
+            switch (dataType) {
+                case TEXT:
+                    String reg = ".*" + param.get(0) + ".*";
+                    where.append(" match(").append(field).append(",").append("'").append(reg).append("')=1");
+                    break;
+                case NUMBER:
+                case TIME:
+                case LOGIC:
+                    throw new IllegalArgumentException("unsupported dataType=" + dataType + " on this function=" + this.name());
+            }
+            return where.toString();
+        }
+    },*/
     LESS("less") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
@@ -284,8 +357,8 @@ public enum FilterFunction {
             switch (dataType) {
                 case NUMBER:
                 case TIME:
-                    where.append(" (").append(field).append(">=").append(param.get(0)).append(" and").append(" ")
-                            .append(field).append("<=").append(param.get(1)).append(") ");
+                    where.append(" (").append(field).append(">='").append(param.get(0)).append(":00' and").append(" ")
+                            .append(field).append("<='").append(param.get(1)).append(":00') ");
                     break;
                 case TEXT:
                 case LOGIC:
@@ -305,7 +378,6 @@ public enum FilterFunction {
                     throw new IllegalArgumentException("unsupported dataType=" + dataType + " on this function=" + this.name());
                 case LOGIC:
                     where.append(" ").append(field).append("=").append("1");
-                    break;
             }
             return where.toString();
         }
@@ -321,12 +393,10 @@ public enum FilterFunction {
                     throw new IllegalArgumentException("unsupported dataType=" + dataType + " on this function=" + this.name());
                 case LOGIC:
                     where.append(" ").append(field).append("=").append("0");
-                    break;
             }
             return where.toString();
         }
-    },
-    ;
+    },;
 
 
     abstract public String getFieldWhereClause(String field, DataType dataType, List<String> param);
@@ -352,8 +422,4 @@ public enum FilterFunction {
         }
         return null;
     }
-
-
-
-
 }
