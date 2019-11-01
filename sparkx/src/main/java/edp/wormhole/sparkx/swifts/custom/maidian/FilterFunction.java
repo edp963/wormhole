@@ -169,7 +169,7 @@ public enum FilterFunction {
             return where.toString();
         }
     },
-    LIKE("like") {
+    /*LIKE("like") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
             if (CollectionUtils.isEmpty(param)) {
@@ -270,7 +270,7 @@ public enum FilterFunction {
             }
             return where.toString();
         }
-    },
+    },*/
     LESS("less") {
         @Override
         public String getFieldWhereClause(String field, DataType dataType, List<String> param) {
