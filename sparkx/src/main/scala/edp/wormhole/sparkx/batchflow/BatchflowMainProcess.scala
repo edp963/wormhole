@@ -67,7 +67,7 @@ object BatchflowMainProcess extends EdpLogging {
               appId: String,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
-      WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
+      WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
 
       val offsetInfo: ArrayBuffer[OffsetRange] = getOffsets(streamRdd)
       val topicPartitionOffset = SparkUtils.getTopicPartitionOffset(offsetInfo)
