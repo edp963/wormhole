@@ -71,7 +71,7 @@ object RouterMainProcess extends EdpLogging {
         val errorFlows = dataRepartitionRdd.mapPartitions { partition =>
           routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, routerFlowConfig) =>
-              WormholeKafkaProducer.init(routerFlowConfig.brokers, None, config.kerberos)
+              WormholeKafkaProducer.initWithoutAcksAll(routerFlowConfig.brokers, None, config.kerberos)
             }
           }
 

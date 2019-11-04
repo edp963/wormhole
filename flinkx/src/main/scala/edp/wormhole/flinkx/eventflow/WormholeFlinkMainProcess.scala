@@ -238,7 +238,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   }
 
   private def doOtherData(row: String): Unit = {
-    WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
+    WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
     val ums = UmsCommonUtils.json2Ums(row)
     if (ums.payload_get.nonEmpty) {
       try {

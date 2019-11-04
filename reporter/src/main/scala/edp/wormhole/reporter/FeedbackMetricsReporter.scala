@@ -54,7 +54,7 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
       //if (payloadSize.toInt >= feedbackCount.head) {
       val batchId = UUID.randomUUID().toString
       Thread.currentThread.setContextClassLoader(null) //当kafkaProducer在单独线程里时，会存在由于classLoader加载问题，导致的StringSerilizer加载异常问题，故这里做此操作
-      WormholeKafkaProducer.init(brokers.toString, None, kerberos.toString.toBoolean)
+      WormholeKafkaProducer.initWithoutAcksAll(brokers.toString, None, kerberos.toString.toBoolean)
       val firtstUmsTsStr = DateUtils.dt2string(firstUmsTs.toLong * 1000, DtFormat.TS_DASH_MILLISEC)
       val lastUmsTsStr = DateUtils.dt2string(lastUmsTs.toLong * 1000, DtFormat.TS_DASH_MILLISEC)
 
