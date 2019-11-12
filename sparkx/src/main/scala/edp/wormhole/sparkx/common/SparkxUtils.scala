@@ -21,11 +21,10 @@ package edp.wormhole.sparkx.common
 
 import java.sql.Timestamp
 
-import com.alibaba.fastjson.{JSONArray, JSONObject}
+import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
@@ -36,7 +35,6 @@ import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object SparkxUtils extends EdpLogging{
@@ -54,23 +52,25 @@ object SparkxUtils extends EdpLogging{
                           errorPattern:String): Unit ={
 
     val ts: String = null
-    val tmpJsonArray = new JSONArray()
-    val sourceTopicSet = mutable.HashSet.empty[String]
-    sourceTopicSet ++= incrementTopicList
-    sourceTopicSet ++= ConfMemoryStorage.initialTopicSet
-    sourceTopicSet.foreach(topic=>{
-      tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
-    })
-    logInfo(s"incrementTopicList:${incrementTopicList},initialTopicSet:${ConfMemoryStorage.initialTopicSet},sourceTopicSet:${sourceTopicSet},tmpJsonArray:${tmpJsonArray}")
+    val errorMaxLength = 2000
+//    val tmpJsonArray = new JSONArray()
+//    val sourceTopicSet = mutable.HashSet.empty[String]
+//    sourceTopicSet ++= incrementTopicList
+//    sourceTopicSet ++= ConfMemoryStorage.initialTopicSet
+//    sourceTopicSet.foreach(topic=>{
+//      tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
+//    })
+//    logInfo(s"incrementTopicList:${incrementTopicList},initialTopicSet:${ConfMemoryStorage.initialTopicSet},sourceTopicSet:${sourceTopicSet},tmpJsonArray:${tmpJsonArray}")
 
     val errorMsg = if(error!=null){
       val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
-      error.toString + "\n" + first
+      val errorAll = error.toString + "\n" + first
+      errorAll.substring(0, math.min(errorMaxLength, errorAll.length))
     } else null
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
       FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
         config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
-        UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString,protocolType.replaceAll("\"",""),
+        UmsWatermark(ts), errorCount, errorMsg, batchId, topicPartitionOffset.toJSONString,protocolType.replaceAll("\"",""),
         flowId,errorPattern),
       Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)
