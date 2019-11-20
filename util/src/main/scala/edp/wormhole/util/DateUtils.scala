@@ -143,7 +143,12 @@ trait DateUtils {
 
       val ts = if (s.endsWith("Z")) s
       else if (hasDot && overMsLength >= 0) s.dropRight(overMsLength)
-      else if (hasDot && lessMsLength >= 0) (0 until lessMsLength).foldLeft(s)((soFar, i) => soFar + "0")
+      else if (hasDot && lessMsLength >= 0) {
+        val preDotField=s.trim.substring(0,dotStart-1)
+        var afterDotField=s.trim.substring(dotStart)
+        afterDotField = (0 until lessMsLength).foldLeft(afterDotField)((soFar, i) => "0" + soFar )
+        preDotField  + "." + afterDotField
+      }
       else if (hasDot) s + ".000"
       else s
 
