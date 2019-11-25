@@ -1384,13 +1384,14 @@ export class Workbench extends React.Component {
         currentUdf: currentUdf,
         usingUdf: usingUdf
       })
-      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId } = resultVal
+      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId, specialConfig } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamType,
         streamName: name,
         type: functionType,
         desc: desc,
-        kafka: instance
+        kafka: instance,
+        specialConfig
       })
 
       this.setState({
@@ -2315,6 +2316,11 @@ export class Workbench extends React.Component {
 
     this.workbenchStreamForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
+        const specialConfig = values.specialConfig
+        if (specialConfig && !isJSON(specialConfig)) {
+          message.error('Special Config Format Error', 3)
+          return
+        }
         switch (streamMode) {
           case 'add':
             const requestValues = {
@@ -2322,7 +2328,8 @@ export class Workbench extends React.Component {
               desc: values.desc,
               instanceId: Number(values.kafka),
               functionType: values.type,
-              streamType: values.streamType
+              streamType: values.streamType,
+              specialConfig
             }
 
             this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
@@ -2338,7 +2345,7 @@ export class Workbench extends React.Component {
             })
             break
           case 'edit':
-            const editValues = { desc: values.desc }
+            const editValues = { desc: values.desc, specialConfig }
             const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
 
             this.props.onEditStream(requestEditValues, () => {

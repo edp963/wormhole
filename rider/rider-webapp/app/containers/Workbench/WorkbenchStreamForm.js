@@ -206,6 +206,18 @@ export class WorkbenchStreamForm extends React.PureComponent {
               </div>
             </div>
           </Col>
+          <Col span={24}>
+            <FormItem label="Special Config" {...itemStyle}>
+              {getFieldDecorator('specialConfig', {})(
+                <textarea
+                  placeholder="Paste your Sink Config JSON here."
+                  className="ant-input ant-input-extra"
+                  rows="5">
+                </textarea>
+              )}
+            </FormItem>
+          </Col>
+
           <Col span={24} className="hide">
             <FormItem>
               {getFieldDecorator('config', {})(<Input />)}
