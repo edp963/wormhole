@@ -41,6 +41,7 @@ import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.kafka.WormholeGetOffsetUtils._
+import edp.wormhole.util.JsonUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
@@ -205,13 +206,15 @@ object StreamUtils extends RiderLogger {
     val startConfig = json2caseClass[StartConfig](stream.startConfig)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
     val kafkaUrl = getKafkaByStreamId(stream.id)
+
+
     val config =
       RiderConfig.spark.remoteHdfsRoot match {
         case Some(_) =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn", startConfig.executorNums * startConfig.perExecutorCores),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
             RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.kafkaEnabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
             RiderConfig.spark.remoteHdfsNamenodeIds, Option(false))
         case None =>
@@ -219,9 +222,19 @@ object StreamUtils extends RiderLogger {
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled)
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
+            Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled, None, None, None)
       }
     caseClass2json[BatchFlowConfig](config)
+  }
+
+  def getStreamSpecialConfig(config: Option[String]): Option[StreamSpecialConfig] = {
+    config match {
+      case Some(_) =>
+        Option(JsonUtils.json2caseClass[StreamSpecialConfig](config.get))
+      case None =>
+        None
+    }
   }
 
 /*
@@ -696,9 +709,10 @@ object StreamUtils extends RiderLogger {
 
   def hidePid(stream: Stream): Stream = {
     if (stream != null && stream.status == "starting") {
-      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
-        stream.launchConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
-        stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
+      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType,
+        stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
+        stream.launchConfig, stream.specialConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
+        stream.active, stream.userTimeInfo)
     } else stream
   }
 

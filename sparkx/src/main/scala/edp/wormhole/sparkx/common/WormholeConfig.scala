@@ -36,7 +36,8 @@ case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           hdfs_namenode_hosts: Option[String],
                           hdfs_namenode_ids: Option[String],
                           kerberos: Boolean,
-                          hdfslog_server_kerberos: Option[Boolean])
+                          hdfslog_server_kerberos: Option[Boolean],
+                          special_config: Option[StreamSpecialConfig])
 
 //for parquet，data is main namespace or join namespace
 
@@ -92,3 +93,6 @@ case class KafkaTopicConfig(topic_name: String,
 
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
+case class StreamSpecialConfig(
+                                useDefaultKey: Option[Boolean]
+                              )

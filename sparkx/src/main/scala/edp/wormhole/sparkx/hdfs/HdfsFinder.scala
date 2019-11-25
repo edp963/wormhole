@@ -18,7 +18,7 @@ object HdfsFinder extends EdpLogging{
          new WormholeConfig(config.kafka_input,config.kafka_output,config.spark_config,
            config.rdd_partition_number,config.zookeeper_address,config.zookeeper_path,
            config.kafka_persistence_config_isvalid,config.stream_hdfs_address,
-           Some(nameNodeHosts),Some(nameNodeIds),config.kerberos,config.hdfslog_server_kerberos)
+           Some(nameNodeHosts),Some(nameNodeIds),config.kerberos,config.hdfslog_server_kerberos, config.special_config)
       }
   }
 

@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `others_config` VARCHAR(1000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
+  `special_config` VARCHAR(1000) NULL,
   `spark_appid` VARCHAR(200) NULL,
   `log_path` VARCHAR(200) NULL,
   `status` VARCHAR(200) NOT NULL,
@@ -116,6 +117,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `stream` add column `function_type` VARCHAR(100) NOT NULL after `stream_type`;
+alter table `stream` add column `special_config` VARCHAR(1000) NULL after `launch_config`;
 alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) NULL;
 alter table `stream` add column `jvm_driver_config` VARCHAR(1000) NULL;
 alter table `stream` add column `jvm_executor_config` VARCHAR(1000) NULL;

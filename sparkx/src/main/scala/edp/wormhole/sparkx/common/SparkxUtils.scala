@@ -21,7 +21,7 @@ package edp.wormhole.sparkx.common
 
 import java.sql.Timestamp
 
-import com.alibaba.fastjson.JSONObject
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -360,5 +360,39 @@ object SparkxUtils extends EdpLogging{
   //    }
   //    realKey
   //  }
+   def getDefaultKeyConfig(specialConfig: Option[StreamSpecialConfig]): Boolean = {
+    log.info(s"stream special config is $specialConfig")
+    try {
+      specialConfig match {
+        case Some(_) =>
+          specialConfig.get.useDefaultKey.getOrElse(false)
+        case None =>
+          false
+      }
+    } catch {
+      case e: Throwable =>
+        log.error("parse stream specialConfig error, ", e)
+        false
+    }
+  }
+
+  def getDefaultKey(key: String, namespaces: Set[String], defaultKey: Boolean): String = {
+    /*if(key != null) {
+      log.info(s"getDefaultKey: key $key")
+    } else {
+      log.info(s"getDefaultKey: key null")
+    }
+    if(namespaces != null) {
+      log.info(s"getDefaultKey: namespaces $namespaces, defaultKey $defaultKey")
+    } else {
+      log.info(s"getDefaultKey: namespaces null")
+    }*/
+    if(null == key && null != namespaces && namespaces.nonEmpty && defaultKey) {
+      //log.info(s"getDefaultKey: use default namespace ${namespaces.head} as kafka key, all namespace is $namespaces")
+      UmsProtocolType.DATA_INCREMENT_DATA.toString + "." + namespaces.head
+    } else {
+      key
+    }
+  }
 
 }

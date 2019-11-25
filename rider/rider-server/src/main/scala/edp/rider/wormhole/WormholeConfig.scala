@@ -21,7 +21,7 @@
 
 package edp.rider.wormhole
 
-import edp.rider.rest.persistence.entities.FlowUdfResponse
+import edp.rider.rest.persistence.entities.{FlowUdfResponse, StreamSpecialConfig}
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 
 
@@ -60,6 +60,7 @@ case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
                            zookeeper_address: String,
                            zookeeper_path: String,
                            kafka_persistence_config_isvalid: Boolean,
+                           special_config: Option[StreamSpecialConfig] = None,
                            stream_hdfs_address: Option[String],
                            kerberos: Boolean = false,
                            hdfs_namenode_hosts: Option[String] = None,

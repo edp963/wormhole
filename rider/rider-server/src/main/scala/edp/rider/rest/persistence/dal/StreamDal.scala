@@ -163,7 +163,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
     db.run(streamTable.filter(_.id === putStream.id)
-      .map(stream => (stream.desc, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
+      .map(stream => (stream.desc, stream.jvmDriverConfig, stream.jvmExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
       .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
@@ -187,7 +187,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     streams.map(stream =>
       Await.result(db.run(streamTable.filter(_.id === stream.id)
         .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime))
-        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime)).mapTo[Int], minTimeOut))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.userTimeInfo.updateTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {

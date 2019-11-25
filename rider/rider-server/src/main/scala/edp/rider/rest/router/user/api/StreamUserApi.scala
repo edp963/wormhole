@@ -75,8 +75,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
           val streamName = genStreamNameByProjectName(projectName, simpleStream.name)
           val insertStream = Stream(0, streamName, simpleStream.desc, projectId,
-            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig,
-            None, None, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
+            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig, simpleStream.specialConfig,
+            None, None, "new", None, None, active = true, UserTimeInfo(currentSec, session.userId, currentSec, session.userId))
           if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
             onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
               case Success(stream) =>
