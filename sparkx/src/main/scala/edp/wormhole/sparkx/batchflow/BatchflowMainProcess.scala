@@ -84,11 +84,13 @@ object BatchflowMainProcess extends EdpLogging {
         BatchflowDirective.doDirectiveTopic(config, stream)
 
         logInfo("start Repartition")
-
+        val sourceNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
         val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => {
-          (UmsCommonUtils.checkAndGetKey(row.key, row.value), row.value)
+          val rowKey = SparkxUtils.getDefaultKey(row.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+          (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
         }).repartition(config.rdd_partition_number) else streamRdd.map(row => {
-          (UmsCommonUtils.checkAndGetKey(row.key, row.value), row.value)
+          val rowKey = SparkxUtils.getDefaultKey(row.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+          (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
         })
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
 
@@ -159,6 +161,7 @@ object BatchflowMainProcess extends EdpLogging {
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
     val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+    //log.info(s"streamLookupNamespaceSet: $streamLookupNamespaceSet, mainNamespaceSet $mainNamespaceSet, jsonSourceParseMap $jsonSourceParseMap")
     dataRepartitionRdd.mapPartitions(partition => {
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
@@ -290,6 +293,7 @@ object BatchflowMainProcess extends EdpLogging {
               flow._2.consumptionDataType(InputDataProtocolBaseType.BATCH.toString)
           }
           if (isProcessed) {
+            session.sparkContext.getConf.set("original_source_namespace", sourceNamespace)
             val sinkNamespace = flow._1
             logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamespace:" + sinkNamespace)
             val swiftsTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
@@ -313,9 +317,18 @@ object BatchflowMainProcess extends EdpLogging {
             }
 
             val sinkTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
+
+            val newSourceNamespace = if(session.sparkContext.getConf.contains("processed_source_namespace")) {
+              val processedSourceNamespace = session.sparkContext.getConf.get("processed_source_namespace")
+              if(!processedSourceNamespace.isEmpty) {
+                log.info(s"original source namespace: $sourceNamespace, processed source namespace: $processedSourceNamespace")
+                processedSourceNamespace
+              }
+              else sourceNamespace
+            } else sourceNamespace
             if (sinkRDD != null) {
               try {
-                validityAndSinkProcess(protocolType, sourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)
+                validityAndSinkProcess(protocolType, newSourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)
               }
               catch {
                 case e: Throwable =>
@@ -623,7 +636,6 @@ object BatchflowMainProcess extends EdpLogging {
     logInfo(sourceNamespace + ":" + sinkNamespace + ",sendList.size=" + sendList.size + ",saveList.size=" + saveList.size)
     (sendList, saveList)
   }
-
 
   private def streamJoinTimeoutProcess(matchSourceNamespace: String,
                                        sinkNamespace: String,

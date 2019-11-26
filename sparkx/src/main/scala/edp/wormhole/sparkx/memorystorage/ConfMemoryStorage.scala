@@ -362,6 +362,13 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     JsonSourceParseMap.toMap
   }
 
+  def getAllSourceNamespaceSet: Set[String] = {
+    if(JsonSourceParseMap.nonEmpty) {
+      JsonSourceParseMap.keySet.map(key => key._2).toSet
+    } else {
+      null
+    }
+  }
 
   def getAllLookupNamespaceSet: Set[String] = {
     lookup2SourceSinkNamespaceMap.keySet.toSet
@@ -398,7 +405,11 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
   def getHdfslogMap = hdfslogMap.toMap
 
+  def getHdfslogNamespaceSet = hdfslogMap.keySet.toSet
+
   def getHdfscsvMap = hdfscsvMap.toMap
+
+  def getHdfscsvNamespaceSet = hdfscsvMap.keySet.toSet
 
   def getDefaultMap = flowConfigMap.toMap
 }
