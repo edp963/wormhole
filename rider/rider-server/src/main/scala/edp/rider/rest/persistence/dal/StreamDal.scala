@@ -163,8 +163,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
     db.run(streamTable.filter(_.id === putStream.id)
-      .map(stream => (stream.desc, stream.jvmDriverConfig, stream.jvmExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
-      .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
+      .map(stream => (stream.desc, stream.jvmDriverConfig, stream.jvmExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.specialConfig, stream.updateTime, stream.updateBy))
+      .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, putStream.specialConfig, currentSec, userId)).mapTo[Int]
   }
 
   def updateStatusByStart(streamId: Long, status: String, userId: Long, logPath: String, pid: Option[String]): Future[Int] = {
