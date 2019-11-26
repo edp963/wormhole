@@ -293,7 +293,13 @@ object BatchflowMainProcess extends EdpLogging {
               flow._2.consumptionDataType(InputDataProtocolBaseType.BATCH.toString)
           }
           if (isProcessed) {
-            session.sparkContext.getConf.set("original_source_namespace", sourceNamespace)
+            session.sessionState.conf.setConfString("original_source_namespace", sourceNamespace)
+            if(session.sessionState.conf.contains("original_source_namespace")) {
+              log.info(s"original_source_namespace is ${session.sessionState.conf.getConfString("original_source_namespace")}")
+            } else {
+              log.info("original_source_namespace not set")
+            }
+
             val sinkNamespace = flow._1
             logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamespace:" + sinkNamespace)
             val swiftsTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
@@ -318,8 +324,8 @@ object BatchflowMainProcess extends EdpLogging {
 
             val sinkTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
 
-            val newSourceNamespace = if(session.sparkContext.getConf.contains("processed_source_namespace")) {
-              val processedSourceNamespace = session.sparkContext.getConf.get("processed_source_namespace")
+            val newSourceNamespace = if(session.sessionState.conf.contains("processed_source_namespace")) {
+              val processedSourceNamespace = session.sessionState.conf.getConfString("processed_source_namespace")
               if(!processedSourceNamespace.isEmpty) {
                 log.info(s"original source namespace: $sourceNamespace, processed source namespace: $processedSourceNamespace")
                 processedSourceNamespace
