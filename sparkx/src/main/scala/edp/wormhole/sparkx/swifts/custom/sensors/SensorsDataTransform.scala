@@ -32,7 +32,12 @@ class SensorsDataTransform {
     if(param==null){
       throw new IllegalArgumentException("param must be not empty");
     }
-    val paramUtil=new ParamUtils(param,streamConfig.zookeeper_address,streamConfig.zookeeper_path+"/"+streamConfig.spark_config.stream_id,session.sparkContext.getConf.get("original_source_namespace"));
+    val originalSourceNamespace = if(session.sparkContext.getConf.contains("original_source_namespace")) {
+      session.sparkContext.getConf.get("original_source_namespace")
+    } else {
+      ""
+    }
+    val paramUtil=new ParamUtils(param,streamConfig.zookeeper_address,streamConfig.zookeeper_path+"/"+streamConfig.spark_config.stream_id,originalSourceNamespace);
     val dataSet=df.filter(row=>row!=null
       && row.length>0
       && paramUtil.getMyProjectId.equals(row.getAs[Long](SchemaUtils.KafkaOriginColumn.project_id.name()))

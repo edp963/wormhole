@@ -294,6 +294,12 @@ object BatchflowMainProcess extends EdpLogging {
           }
           if (isProcessed) {
             session.sparkContext.getConf.set("original_source_namespace", sourceNamespace)
+            if(session.sparkContext.getConf.contains("original_source_namespace")) {
+              log.info(s"original_source_namespace is ${session.sparkContext.getConf.get("original_source_namespace")}")
+            } else {
+              log.info("original_source_namespace not set")
+            }
+
             val sinkNamespace = flow._1
             logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamespace:" + sinkNamespace)
             val swiftsTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)

@@ -41,6 +41,7 @@ case class ValidityConfig(checkColumns: Array[String],
                           ruleParams: String,
                           againstAction: String)
 
+/*
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           kafka_output: KafkaOutputConfig,
                           //                          udf: Option[Seq[String]],
@@ -77,4 +78,4 @@ case class SparkConfig(//batch_duration_seconds: Int,
 
 case class StreamSpecialConfig(
                                 useDefaultKey: Option[Boolean]
-                              )
+                              )*/
