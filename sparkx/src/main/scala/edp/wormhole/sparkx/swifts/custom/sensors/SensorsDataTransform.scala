@@ -32,8 +32,8 @@ class SensorsDataTransform {
     if(param==null){
       throw new IllegalArgumentException("param must be not empty");
     }
-    val originalSourceNamespace = if(session.sparkContext.getConf.contains("original_source_namespace")) {
-      session.sparkContext.getConf.get("original_source_namespace")
+    val originalSourceNamespace = if(session.sessionState.conf.contains("original_source_namespace")) {
+      session.sessionState.conf.getConfString("original_source_namespace")
     } else {
       ""
     }
@@ -49,7 +49,7 @@ class SensorsDataTransform {
     schemaUtils.checkSensorSystemCompleteSchemaChange(paramUtil.getMyProjectId());
     schemaUtils.checkClickHouseSchemaNeedChange(paramUtil.getMyProjectId());
     schemaUtils.destroy();
-    session.sparkContext.getConf.set("processed_source_namespace",paramUtil.getNameSpace())
+    session.sessionState.conf.setConfString("processed_source_namespace",paramUtil.getNameSpace())
     val proColumnMap:util.Map[String,PropertyColumnEntry]=schemaUtils.getProColumnMap();
     val eventMap:util.Map[String,EventEntry]=schemaUtils.getEventMap();
     val sortedList:util.List[String]=schemaUtils.getPropertiesSortedList();
