@@ -48,7 +48,7 @@ object SensorsDataTest  extends App {
   val t:SensorsDataTransform=new SensorsDataTransform();
 
   val param:String="{\n\"projectId\":1,\n\"mysqlConnUrl\":\"jdbc:mysql://10.143.252.121:3306/metadata\",\n\"mysqlUser\":\"test121\",\n\"mysqlPassword\":\"dds@test121\",\n\"mysqlDatabase\":\"metadata\",\n\"clickHouseConnUrl\":\"jdbc:clickhouse://10.143.151.220:8123\",\n\"clickHouseUser\":\"root\",\n\"clickHousePassword\":\"root\",\n\"clickHouseDatabase\":\"event_data\",\n\"clickHouseTableName\":\"event_wos_p1\",\n\"clickHouseCluster\":\"bip_ck_cluster\"\n}"
-  val config:WormholeConfig =WormholeConfig(null,null,SparkConfig(1L,"test","test",0),1,"10.143.131.113:2181,10.143.131.119:2181,10.143.131.119:2181","/wormhole",false,Some(""),Some(""),Some(""),false,Some(false))
+  val config:WormholeConfig =WormholeConfig(null,null,SparkConfig(1L,"test","test",0),1,"10.143.131.113:2181,10.143.131.119:2181,10.143.131.119:2181","/wormhole",false,Some(""),Some(""),Some(""),false,Some(false),None)
   val dataFrame=t.transform(sparkSession,df,null,param,config)
   dataFrame.show(100000)
 

@@ -3,11 +3,12 @@ package edp.wormhole.sparkx.swifts.custom.sensors
 import java.io.Serializable
 import java.util
 
+import edp.wormhole.sparkx.common.WormholeConfig
 
 import scala.collection.JavaConversions._
 import edp.wormhole.sparkx.swifts.custom.sensors.ase.AESUtil
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.{EventEntry, PropertyColumnEntry}
-import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig, WormholeConfig}
+import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._
@@ -23,10 +24,10 @@ import scala.collection.mutable.ArrayBuffer
   *  19/11/14 15:35
   *       To change this template use File | Settings | File Templates.
   */
-class SensorsDataTransform extends SwiftsInterface {
+class SensorsDataTransform {
 
 
-   override def  transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String,streamConfig: WormholeConfig):DataFrame={
+  def  transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String,streamConfig: WormholeConfig):DataFrame={
     import session.sqlContext.implicits._
     if(param==null){
       throw new IllegalArgumentException("param must be not empty");
