@@ -30,7 +30,7 @@ public final class ParamUtils implements Serializable {
         parseParam(json);
         this.zkAddress=zkAddress;
         this.zkPrefixPath=zkPrefixPath;
-        this.zkFullPath=this.zkPrefixPath+"/"+this.getEntry().getClickHouseDatabase()+"/"+this.getEntry().getClickHouseTableName();
+        this.zkFullPath=this.zkPrefixPath+"/"+String.valueOf(this.getEntry().getProjectId());
         this.nameSpace=nameSpace;
     }
 
