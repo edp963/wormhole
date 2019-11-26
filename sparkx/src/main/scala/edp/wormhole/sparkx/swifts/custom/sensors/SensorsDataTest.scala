@@ -1,5 +1,7 @@
 package edp.wormhole.sparkx.swifts.custom.sensors
 
+import java.lang.reflect.Method
+
 import edp.wormhole.sparkx.common.{SparkConfig, WormholeConfig}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.rdd.RDD
@@ -125,5 +127,22 @@ object SensorsDataTest  extends App {
   def  f:Unit={
     println("00000000")
   }
+
+}
+
+
+object MyTest extends App{
+
+  val clazz=Class.forName("edp.wormhole.sparkx.swifts.custom.DiffBU")
+
+ val ms:Array[Method]=clazz.getDeclaredMethods()
+  val tm= ms.filter(x=>x.getName().equals("transform"))
+  for(m<-tm){
+    println(m.getParameterCount)
+    m.getParameterTypes.foreach(x=>println(x.toString))
+    //m.getParameterTypes
+
+  }
+
 
 }

@@ -27,10 +27,10 @@ public final class ParamUtils implements Serializable {
     public ParamUtils (String json,String zkAddress,String zkPrefixPath,String nameSpace){
         Preconditions.checkNotNull(zkAddress,"param [zkAddress] must not be null");
         Preconditions.checkNotNull(zkPrefixPath,"param [zkPath] must not be null");
-        parseParam(json);
+        parseParam(json.replaceAll("\\\\",""));
         this.zkAddress=zkAddress;
         this.zkPrefixPath=zkPrefixPath;
-        this.zkFullPath=this.zkPrefixPath+"/"+this.getEntry().getClickHouseDatabase()+"/"+this.getEntry().getClickHouseTableName();
+        this.zkFullPath=this.zkPrefixPath+"/"+String.valueOf(this.getEntry().getProjectId());
         this.nameSpace=nameSpace;
     }
 
