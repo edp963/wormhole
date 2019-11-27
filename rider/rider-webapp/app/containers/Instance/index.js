@@ -230,7 +230,8 @@ export class Instance extends React.PureComponent {
           case 'edit':
             this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
               desc: values.description,
-              connUrl: values.connectionUrl
+              connUrl: values.connectionUrl,
+              connConfig
             }), () => {
               this.hideForm()
               message.success(modifyFormat, 3)
