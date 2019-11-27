@@ -19,9 +19,9 @@
  */
 
 
-package edp.wormhole.sparkx.common
+package edp.wormhole.sparkxinterface.swifts
 
-import edp.wormhole.sparkx.common.TopicType.TopicType
+import edp.wormhole.sparkxinterface.swifts.TopicType.TopicType
 import edp.wormhole.util.config.KVConfig
 
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,

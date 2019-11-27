@@ -24,9 +24,9 @@ package edp.wormhole.sparkxinterface.swifts
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 abstract class SwiftsInterface {
-  def transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig): DataFrame={df}
+  def transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig, streamConfig: WormholeConfig): DataFrame={df}
 
-  def transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String):DataFrame={df}
+  def transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String, streamConfig: WormholeConfig):DataFrame={df}
 
   //def transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String,streamConfig: WormholeConfig):DataFrame={df}
 }
