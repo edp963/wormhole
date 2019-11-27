@@ -2318,7 +2318,7 @@ export class Workbench extends React.Component {
       if (!err) {
         const specialConfig = values.specialConfig
         if (specialConfig && !isJSON(specialConfig)) {
-          message.error('Special Config Format Error', 3)
+          message.error('Special Config Format Error, Must be JSON', 3)
           return
         }
         switch (streamMode) {

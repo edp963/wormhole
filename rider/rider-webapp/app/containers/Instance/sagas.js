@@ -68,7 +68,8 @@ export function* addInstance ({ payload }) {
         connUrl: payload.instance.connectionUrl,
         desc: payload.instance.description === undefined ? '' : payload.instance.description,
         nsSys: payload.instance.instanceDataSystem,
-        nsInstance: payload.instance.instance
+        nsInstance: payload.instance.instance,
+        connConfig: payload.instance.connConfig
       }
     })
     if (result.code && result.code === 400) {
