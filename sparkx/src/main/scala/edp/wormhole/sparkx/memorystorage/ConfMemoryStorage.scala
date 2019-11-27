@@ -27,11 +27,10 @@ import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
 import edp.wormhole.sparkextension.udf.UdfRegister.convertSparkType
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.hdfs.HdfsFlowConfig
 import edp.wormhole.sparkx.router.RouterFlowConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
@@ -246,41 +245,14 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       val clazz = Class.forName(className.split('$')(0))
       val reflectObject: Any = clazz.newInstance()
 
-      val (method, num) = {
-        val methods = clazz.getMethods
-        var callMethod: Method = null
-        var methodNum = 0
-        for (i <- methods.indices) {
-          val m: Method = methods(i)
-          if (m.getName.equals("transform")) {
-            callMethod = m
-            methodNum = methodNum + 1
-          }
-        }
-        (callMethod, methodNum)
-      }
-
-      val transformMethod = if(num == 1) {
-        val paramCount = method.getParameterCount
-        if(paramCount == 3) {
-          logInfo("No Customer Class param Find, transform has three param")
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
-        } else if(paramCount == 4) {
-          logInfo("Customer Class param :" + param + " the length " + param.length + ",transform has four param")
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String])
-        } else {
-          logInfo("Customer Class param :" + param + " the length " + param.length + ",transform has five param")
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String], classOf[WormholeConfig])
-        }
-      } else {
+      val transformMethod =
         if ("".equals(param)) {
           logInfo("No Customer Class param Find")
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[WormholeConfig])
         } else {
           logInfo("Customer Class param :" + param + " the length " + param.length)
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String])
+          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String], classOf[WormholeConfig])
         }
-      }
 
       swiftsTransformReflectMap += (className -> (reflectObject,transformMethod,param))
     }

@@ -4,13 +4,12 @@ import java.io.Serializable
 import java.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
 
 import scala.collection.JavaConversions._
 import edp.wormhole.sparkx.swifts.custom.sensors.ase.AESUtil
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.{EventEntry, PropertyColumnEntry}
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._

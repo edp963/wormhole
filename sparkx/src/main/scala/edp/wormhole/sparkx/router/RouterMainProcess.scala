@@ -30,6 +30,7 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException

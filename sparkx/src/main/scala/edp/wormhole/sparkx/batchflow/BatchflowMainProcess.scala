@@ -41,7 +41,7 @@ import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, FlowConfig}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.transform.SwiftsTransform
 import edp.wormhole.sparkx.swifts.validity.{ValidityAgainstAction, ValidityCheckRule}
-import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, SwiftsProcessConfig, ValidityConfig, WormholeConfig}
 import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType

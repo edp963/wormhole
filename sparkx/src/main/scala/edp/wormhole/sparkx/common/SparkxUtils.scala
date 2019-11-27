@@ -26,6 +26,7 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{StreamSpecialConfig, WormholeConfig}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils

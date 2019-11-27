@@ -23,11 +23,11 @@ package edp.wormhole.sparkx.swifts.transform
 
 import java.util.UUID
 
-import edp.wormhole.sparkx.common.{SparkxUtils, WormholeConfig}
+import edp.wormhole.sparkx.common.SparkxUtils
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.{LookupHbase, LookupKudu, LookupRedis}
-import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, SwiftsSpecialProcessConfig}
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, SwiftsSpecialProcessConfig, WormholeConfig}
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.JsonUtils
@@ -66,18 +66,18 @@ object SwiftsTransform extends EdpLogging {
             case SqlOptType.CUSTOM_CLASS =>
               val (obj, method,param) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
 
-              currentDf = if(method.getParameterCount == 3) {
+              /*currentDf = if(method.getParameterCount == 3) {
                 method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]
               } else if(method.getParameterCount == 4) {
                 method.invoke(obj, session, currentDf, swiftsLogic,param).asInstanceOf[DataFrame]
               } else {
                 method.invoke(obj, session, currentDf, swiftsLogic,param,config).asInstanceOf[DataFrame]
-              }
+              }*/
 
-              /*currentDf = if(param.isEmpty){method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]}
+              currentDf = if(param.isEmpty){method.invoke(obj, session, currentDf, swiftsLogic, config).asInstanceOf[DataFrame]}
               else {
                 logInfo("Transform get Param :" + param)
-                method.invoke(obj, session, currentDf, swiftsLogic,param).asInstanceOf[DataFrame]}*/
+                method.invoke(obj, session, currentDf, swiftsLogic, param, config).asInstanceOf[DataFrame]}
 
             case SqlOptType.JOIN | SqlOptType.LEFT_JOIN | SqlOptType.RIGHT_JOIN =>
               if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {

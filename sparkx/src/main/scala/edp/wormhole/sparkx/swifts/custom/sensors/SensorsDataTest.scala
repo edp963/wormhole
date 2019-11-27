@@ -2,7 +2,7 @@ package edp.wormhole.sparkx.swifts.custom.sensors
 
 import java.lang.reflect.Method
 
-import edp.wormhole.sparkx.common.{SparkConfig, WormholeConfig}
+import edp.wormhole.sparkxinterface.swifts.{SparkConfig, WormholeConfig}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._

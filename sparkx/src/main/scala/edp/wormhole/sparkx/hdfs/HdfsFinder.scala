@@ -1,8 +1,8 @@
 package edp.wormhole.sparkx.hdfs
 
 import edp.wormhole.externalclient.hadoop.HdfsUtils
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.WormholeConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext

@@ -1,4 +1,4 @@
-package edp.wormhole.sparkx.common
+package edp.wormhole.sparkxinterface.swifts
 
 object TopicType extends Enumeration {
   type TopicType = Value
