@@ -3,7 +3,9 @@ package edp.wormhole.sparkx.swifts.custom.sensors
 import java.io.Serializable
 import java.util
 
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.sparkx.common.WormholeConfig
+import edp.wormhole.sparkx.spark.log.EdpLogging
 
 import scala.collection.JavaConversions._
 import edp.wormhole.sparkx.swifts.custom.sensors.ase.AESUtil
@@ -24,7 +26,7 @@ import scala.collection.mutable.ArrayBuffer
   *  19/11/14 15:35
   *       To change this template use File | Settings | File Templates.
   */
-class SensorsDataTransform {
+class SensorsDataTransform extends EdpLogging{
 
 
   def  transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String,streamConfig: WormholeConfig):DataFrame={
@@ -131,17 +133,21 @@ class SensorsDataTransform {
     rowValue +=AESUtil.decrypt(_distinct)
     fields +=StructField("yx_user_id",StringType,true)
 
-    val proRow:Row=row.getAs[Row](SchemaUtils.KafkaOriginColumn.properties.name())
-    val _arrayValues:Array[Any]=proRow.schema.fieldNames.map( x => {
-      proRow.getAs[Any](x)
-    })
-    val _newValues=_arrayValues.toBuffer
-    _newValues.add(ConvertUtils.getOffset(_trick))
-    _newValues.add(row.getAs[Long](SchemaUtils.KafkaOriginColumn.recv_time.name()))
-    val _newSchema:StructType=proRow.schema.
-      add(StructField("$kafka_offset",LongType,true))
-      .add(StructField("$receive_time",LongType,true))
-    val _newRow=new GenericRowWithSchema(_newValues.toArray,_newSchema)
+//    val proRow:Row=row.getAs[Row](SchemaUtils.KafkaOriginColumn.properties.name())
+//    val _arrayValues:Array[Any]=proRow.schema.fieldNames.map( x => {
+//      proRow.getAs[Any](x)
+//    })
+//    val _newValues=_arrayValues.toBuffer
+//    _newValues.add(ConvertUtils.getOffset(_trick))
+//    _newValues.add(row.getAs[Long](SchemaUtils.KafkaOriginColumn.recv_time.name()))
+//    val _newSchema:StructType=proRow.schema.
+//      add(StructField("$kafka_offset",LongType,true))
+//      .add(StructField("$receive_time",LongType,true))
+//    val _newRow=new GenericRowWithSchema(_newValues.toArray,_newSchema)
+    val json:String=row.getAs[String](SchemaUtils.KafkaOriginColumn.properties.name())
+    val jsonObj: JSONObject=JSON.parseObject(json);
+    jsonObj.put("$kafka_offset",ConvertUtils.getOffset(_trick))
+    jsonObj.put("$receive_time",row.getAs[Long](SchemaUtils.KafkaOriginColumn.recv_time.name()))
     for(key<-sortedList){
       val _col:String=columns.get(key).getColumn_name()
       val _data_type:Int=columns.get(key).getData_type()
@@ -154,10 +160,10 @@ class SensorsDataTransform {
         case 6 =>IntegerType
       }
       fields +=StructField(_col,_type,true)
-      if(!_newRow.schema.fieldNames.contains(key)){
+      if(!jsonObj.keySet().contains(key)){
         rowValue +=null
       }else{
-        val _value:Object=_newRow.getAs[Object](key)
+        val _value:Object=jsonObj.get(key)
         if(_value==null){
           rowValue +=null
         }else{
