@@ -63,11 +63,13 @@ case class KafkaInputBaseConfig(`key.deserializer`: String,
                                 `group.max.session.timeout.ms`: Int,
                                 `auto.offset.reset`: String,
                                 group_id: String,
-                                brokers: String)
+                                brokers: String,
+                                kerberos: Boolean)
 
 
 case class KafkaOutputConfig(feedback_topic_name: String,
                              brokers: String,
+                             kerberos: Boolean,
                              config: Option[Seq[KVConfig]])
 
 case class KafkaTopicConfig(topic_name: String,

@@ -142,7 +142,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     properties.setProperty("enable.auto.commit", config.kafka_input.autoCommit.toString)
     //config.kafka_input.kafka_base_config.`max.partition.fetch.bytes`.toString
     properties.setProperty("max.partition.fetch.bytes", 10485760.toString)
-    if (config.kerberos) {
+    if (config.kafka_input.kafka_base_config.kerberos) {
       properties.put("security.protocol", "SASL_PLAINTEXT")
       properties.put("sasl.kerberos.service.name", "kafka")
     }
@@ -194,7 +194,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     mConfig.setString("metrics.reporter.feedbackState.streamId", streamId.toString)
     mConfig.setString("metrics.reporter.feedbackState.flowId", flowId.toString)
     mConfig.setString("metrics.reporter.feedbackState.topic", config.kafka_output.feedback_topic_name)
-    mConfig.setString("metrics.reporter.feedbackState.kerberos", config.kerberos.toString)
+    mConfig.setString("metrics.reporter.feedbackState.kerberos", config.kafka_output.kerberos.toString)
     mConfig.setString("metrics.reporter.feedbackState.brokers", config.kafka_output.brokers)
     mConfig.setInteger("metrics.reporter.feedbackState.feedbackCount", config.feedback_state_count)
     mConfig
@@ -238,7 +238,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   }
 
   private def doOtherData(row: String): Unit = {
-    WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config, config.kerberos)
+    WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config, config.kafka_output.kerberos)
     val ums = UmsCommonUtils.json2Ums(row)
     if (ums.payload_get.nonEmpty) {
       try {
