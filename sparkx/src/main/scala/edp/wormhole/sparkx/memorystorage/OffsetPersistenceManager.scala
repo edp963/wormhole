@@ -99,7 +99,7 @@ object OffsetPersistenceManager extends EdpLogging {
     topics.foreach((topic: KafkaTopicConfig) =>{
       logInfo("start topics:"+topic)
     })
-    KafkaInputConfig(kafkaBaseConfig, topics, inWatch, config.kerberos)
+    KafkaInputConfig(kafkaBaseConfig, topics, inWatch, config.kafka_input.kerberos)
   }
 
   private def deleteTopics(zookeeperAddress: String, offsetPath: String, topicList: Seq[String]): Unit = {

@@ -41,7 +41,7 @@ object BatchflowStarter extends App with EdpLogging {
   logInfo("swiftsConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
-  WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
+  WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kafka_output.kerberos)
   val sparkConf = new SparkConf()
     .setMaster(config.spark_config.master)
     .set("dfs.client.block.write.replace-datanode-on-failure.policy", "ALWAYS")

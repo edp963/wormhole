@@ -74,11 +74,15 @@ case class SparkConfig(stream_id: Long,
                        master: String,
                        `spark.sql.shuffle.partitions`: Int)
 
-case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, config: Option[Seq[KVConfig]] = None)
+case class KafkaOutputConfig(feedback_topic_name: String,
+                             brokers: String,
+                             kerberos: Boolean,
+                             config: Option[Seq[KVConfig]] = None)
 
 case class KafkaInputBaseConfig(group_id: String,
                                 batch_duration_seconds: Int,
                                 brokers: String,
+                                kerberos: Boolean,
                                 `max.partition.fetch.bytes`: Int = 10485760,
                                 `session.timeout.ms`: Int = 30000,
                                 `group.max.session.timeout.ms`: Int = 60000,
@@ -89,6 +93,7 @@ case class KafkaInputBaseConfig(group_id: String,
 
 case class KafkaBaseConfig(group_id: String,
                            brokers: String,
+                           kerberos: Boolean,
                            `session.timeout.ms`: Int = 30000,
                            `group.max.session.timeout.ms`: Int = 60000,
                            `key.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",

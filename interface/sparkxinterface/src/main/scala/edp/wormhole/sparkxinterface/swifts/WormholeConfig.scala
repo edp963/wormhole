@@ -47,7 +47,10 @@ case class SparkConfig(//batch_duration_seconds: Int,
                        master: String,
                        `spark.sql.shuffle.partitions`: Int)
 
-case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, config: Option[Seq[KVConfig]])
+case class KafkaOutputConfig(feedback_topic_name: String,
+                             brokers: String,
+                             kerberos: Boolean,
+                             config: Option[Seq[KVConfig]])
 
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig],
@@ -80,7 +83,8 @@ case class KafkaInputBaseConfig(`max.partition.fetch.bytes`: Int,
                                 `auto.offset.reset`: String,
                                 group_id: String,
                                 batch_duration_seconds: Int,
-                                brokers: String)
+                                brokers: String,
+                                kerberos: Boolean)
 
 //                                heartbeat_topic_name: String,
 //                                heartbeat_topic_rate: Long,
