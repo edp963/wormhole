@@ -143,7 +143,7 @@ class Data2ClickhouseSink extends SinkProcessor {
         index = index + 1
         val schemaType = schemaTypeMap.getOrElse(index, UmsFieldType.STRING)
         val processedValue = setDefaultValueByType(value, schemaType)
-        logger.info(s"setDefaultValue---value: $value, processedValue: $processedValue, schemaType: $schemaType")
+        //logger.info(s"setDefaultValue---value: $value, processedValue: $processedValue, schemaType: $schemaType")
         processedValue
       })
     })
