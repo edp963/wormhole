@@ -362,7 +362,7 @@ object SparkxUtils extends EdpLogging{
   //    realKey
   //  }
    def getDefaultKeyConfig(specialConfig: Option[StreamSpecialConfig]): Boolean = {
-    log.info(s"stream special config is $specialConfig")
+    //log.info(s"stream special config is $specialConfig")
     try {
       specialConfig match {
         case Some(_) =>
