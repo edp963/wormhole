@@ -306,9 +306,16 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
-      val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, streamGroupIdMap)
-      val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, streamGroupIdMap)
-      (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
+      if(!RiderConfig.riderSpecialConfig.streamIds.contains(id)) {
+        val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, streamGroupIdMap)
+        val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, streamGroupIdMap)
+        (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
+      } else {
+        val udfTopicsResponse = udfTopics.map(topic => {
+          TopicAllOffsets(topic.id, topic.name, topic.rate, topic.partitionOffsets, topic.partitionOffsets, topic.partitionOffsets)
+        })
+        (id, GetTopicsResponse(Seq(), udfTopicsResponse))
+      }
     }).toMap
   }
 

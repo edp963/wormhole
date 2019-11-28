@@ -148,6 +148,9 @@ case class RiderFlink(homePath: String,
                       kafkaSessionTimeOut: Int,
                       kafkaGroupMaxSessionTimeOut: Int)
 
+case class RiderSpecialConfig(flowIds: Set[Long],
+                              streamIds: Set[Long])
+
 case class RiderZookeeper(address: String, path: String)
 
 case class DBusConfig(loginUrl: String,
@@ -213,6 +216,15 @@ object RiderConfig {
   lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 1000000)
 
   lazy val refactor = getIntConfig("kafka.topic.refactor", 3)
+
+  lazy val riderSpecialFlow = getStringConfig("special.flow", "")
+  lazy val riderSpecialStream = getStringConfig("special.stream", "")
+
+  lazy val riderSpecialConfig = RiderSpecialConfig(
+    if(null == riderSpecialFlow && riderSpecialFlow.isEmpty) Set()
+    else riderSpecialFlow.split(",").map(flow => flow.toLong).toSet,
+    if(null == riderSpecialStream && riderSpecialStream.isEmpty) Set()
+    else riderSpecialStream.split(",").map(flow => flow.toLong).toSet)
 
   lazy val consumer = RiderKafka(config.getString("kafka.brokers.url"), config.getString("kafka.zookeeper.url"),
     feedbackTopic,
