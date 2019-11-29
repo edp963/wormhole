@@ -230,8 +230,9 @@ object StreamUtils extends RiderLogger {
 
   def getStreamSpecialConfig(config: Option[String]): Option[StreamSpecialConfig] = {
     config match {
-      case Some(_) =>
-        Option(JsonUtils.json2caseClass[StreamSpecialConfig](config.get))
+      case Some(c) =>
+        if(c.trim.isEmpty) None
+        else Option(JsonUtils.json2caseClass[StreamSpecialConfig](c))
       case None =>
         None
     }
