@@ -2,6 +2,8 @@ package edp.wormhole.sparkx.swifts.custom.sensors
 
 import java.lang.reflect.Method
 
+import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyColumnEntry
 import edp.wormhole.sparkxinterface.swifts.{SparkConfig, WormholeConfig}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.rdd.RDD
@@ -133,7 +135,7 @@ object SensorsDataTest  extends App {
 
 object MyTest extends App{
 
-  val clazz=Class.forName("edp.wormhole.sparkx.swifts.custom.DiffBU")
+  /*val clazz=Class.forName("edp.wormhole.sparkx.swifts.custom.DiffBU")
 
  val ms:Array[Method]=clazz.getDeclaredMethods()
   val tm= ms.filter(x=>x.getName().equals("transform"))
@@ -142,7 +144,19 @@ object MyTest extends App{
     m.getParameterTypes.foreach(x=>println(x.toString))
     //m.getParameterTypes
 
-  }
+  }*/
 
+  val json = "{\"$device_id\":\"6B5F9AD0-B401-4ED0-933A-96B4CFF64BAA\",\"$os_version\":\"13.1.3\",\"$carrier\":\"中国移动\",\"$os\":\"iOS\",\"$screen_height\":896,\"$is_first_day\":false,\"$screen_width\":414,\"$model\":\"iPhone11,8\",\"$lib\":\"iOS\",\"platform_type\":\"APP\",\"$app_version\":\"7.9.1\",\"$manufacturer\":\"Apple\",\"$network_type\":\"WIFI\",\"$wifi\":true,\"$lib_version\":\"1.11.14\",\"$ip\":\"218.247.253.242\",\"$event_duration\":18.43,\"$is_login_id\":true,\"$city\":\"北京\",\"$province\":\"北京\",\"$country\":\"中国\"}"
+  val jsonObj: JSONObject=JSON.parseObject(json)
+  val key = "$event_duration"
+  val _value:Object=jsonObj.get(key)
+  val colunm = new PropertyColumnEntry()
+  colunm.setColumn_name("Int64")
+  colunm.setData_type(1)
+  val rowValue =ConvertUtils.convert(key,colunm,_value)
+  println(rowValue)
 
 }
+
+
+
