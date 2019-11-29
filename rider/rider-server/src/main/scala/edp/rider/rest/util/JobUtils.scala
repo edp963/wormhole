@@ -91,7 +91,8 @@ object JobUtils extends RiderLogger {
             new JSONObject()
           }
         if(!sinkSpecConfig.containsKey("kerberos")) {
-          sinkSpecConfig.fluentPut("kerberos", RiderConfig.kerberos.kafkaEnabled)
+          val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(instance.connConfig.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+          sinkSpecConfig.fluentPut("kerberos", inputKafkaKerberos)
         }
         if(!sinkSpecConfig.containsKey("sink_uid")) {
           sinkSpecConfig.fluentPut("sink_uid", true)

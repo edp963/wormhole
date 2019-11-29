@@ -26,7 +26,11 @@ import java.util.NoSuchElementException
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.ums.UmsDataSystem
 import edp.rider.common.RiderLogger
+import edp.rider.RiderStarter.modules._
+import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils._
 
+import scala.concurrent.Await
 import scala.util.hashing.MurmurHash3._
 
 
@@ -111,4 +115,10 @@ object InstanceUtils extends RiderLogger {
       } else defaultValue
     } else defaultValue
   }
+
+  def getKafkaDetailByInstanceId(id: Long): (String, Option[String]) = {
+    val instance = Await.result(instanceDal.findById(id), minTimeOut)
+    (instance.get.connUrl, instance.get.connConfig)
+  }
+
 }

@@ -192,6 +192,7 @@ public class ConvertUtils implements Serializable {
 //    }
 
     public static  Object convert(String key,PropertyColumnEntry column, Object value){
+        System.out.print("value type:" + value.getClass());
         switch (DataType.indexOf(column.getData_type())){
             case STRING:
                 if(value instanceof String || value instanceof Integer || value instanceof Long || value instanceof Float || value instanceof Double ){
@@ -210,6 +211,8 @@ public class ConvertUtils implements Serializable {
                 } else if (value instanceof Float) {
                     double_ = Double.valueOf(((Float)value).floatValue());
                 } else if (value instanceof String) {
+                    double_ = Double.valueOf(String.valueOf(value));
+                } else if(value instanceof BigDecimal) {
                     double_ = Double.valueOf(String.valueOf(value));
                 } else {
                     throw new IllegalArgumentException("can not cast to NUMBER,key="+key+",value="+value.toString());

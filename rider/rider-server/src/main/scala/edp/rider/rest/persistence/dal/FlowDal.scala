@@ -292,13 +292,13 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     exist
   }
 
-  def getFlowKafkaInfo(flowId: Long): (Long, String) = {
+  def getFlowKafkaInfo(flowId: Long): (Long, String, Option[String]) = {
     Await.result(db.run(
       ((flowQuery.filter(_.id === flowId) join streamQuery on (_.streamId === _.id))
         join instanceQuery on (_._2.instanceId === _.id))
         .map {
-          case ((flow, _), instance) => (flow.id, instance.connUrl)
-        }.result.head).mapTo[(Long, String)], minTimeOut)
+          case ((flow, _), instance) => (flow.id, instance.connUrl, instance.connConfig)
+        }.result.head).mapTo[(Long, String, Option[String])], minTimeOut)
 
   }
 

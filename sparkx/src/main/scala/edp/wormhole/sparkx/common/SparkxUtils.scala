@@ -378,7 +378,7 @@ object SparkxUtils extends EdpLogging{
   }
 
   def getDefaultKey(key: String, namespaces: Set[String], defaultKey: Boolean): String = {
-    /*if(key != null) {
+/*    if(key != null) {
       log.info(s"getDefaultKey: key $key")
     } else {
       log.info(s"getDefaultKey: key null")
@@ -386,13 +386,25 @@ object SparkxUtils extends EdpLogging{
     if(namespaces != null) {
       log.info(s"getDefaultKey: namespaces $namespaces, defaultKey $defaultKey")
     } else {
-      log.info(s"getDefaultKey: namespaces null")
+      log.info(s"getDefaultKey: namespaces null, $defaultKey")
     }*/
-    if(null == key && null != namespaces && namespaces.nonEmpty && defaultKey) {
+    if(!isRightKey(key) && null != namespaces && namespaces.nonEmpty && defaultKey) {
       //log.info(s"getDefaultKey: use default namespace ${namespaces.head} as kafka key, all namespace is $namespaces")
       UmsProtocolType.DATA_INCREMENT_DATA.toString + "." + namespaces.head
     } else {
       key
+    }
+  }
+
+  def isRightKey(key: String): Boolean = {
+    if(null == key || key.isEmpty) {
+      false
+    } else {
+      if(key.split(".").length < 5) {
+        false
+      } else {
+        true
+      }
     }
   }
 
