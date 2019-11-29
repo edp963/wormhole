@@ -431,14 +431,8 @@ object FlowUtils extends RiderLogger {
 
   def startFlow(streamId: Long, streamName: String, functionType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, tableKeys: String, userId: Long): Boolean = {
     try {
-      if(!RiderConfig.riderSpecialConfig.flowIds.contains(flowId)) {
-        autoDeleteTopic(userId, streamId)
-      }
-      val sourceNsDatabase = if(!RiderConfig.riderSpecialConfig.flowIds.contains(flowId)) {
-        autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
-      } else {
-        getAutoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
-      }
+      autoDeleteTopic(userId, streamId)
+      val sourceNsDatabase = autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
       val sourceIncrementTopic = if (sourceNsDatabase.nonEmpty) sourceNsDatabase.head.nsDatabase else ""
       val sourceNsObj = namespaceDal.getNamespaceByNs(sourceNs).get
       val umsInfoOpt =
@@ -954,15 +948,6 @@ object FlowUtils extends RiderLogger {
         riderLogger.error(s"user $userId auto register topic to stream $streamId failed", ex)
         throw new Exception(ex)
     }
-  }
-
-
-  def getAutoRegisterTopic(streamId: Long, streamName: String, sourceNs: String, tranConfig: String, userId: Long) = {
-    val ns: Namespace = namespaceDal.getNamespaceByNs(sourceNs).get
-    val database = Await.result(databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
-    val nsTopics = mutable.ArrayBuffer.empty[NsDatabase]
-    nsTopics += database
-    nsTopics
   }
 
   def flowMatch(projectId: Long, streamId: Long, sourceNs: String): Seq[String] = {
