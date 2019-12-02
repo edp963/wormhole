@@ -248,10 +248,10 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       val transformMethod =
         if ("".equals(param)) {
           logInfo("No Customer Class param Find")
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[WormholeConfig])
+          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[WormholeConfig], classOf[String], classOf[String])
         } else {
           logInfo("Customer Class param :" + param + " the length " + param.length)
-          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String], classOf[WormholeConfig])
+          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String], classOf[WormholeConfig], classOf[String], classOf[String])
         }
 
       swiftsTransformReflectMap += (className -> (reflectObject,transformMethod,param))

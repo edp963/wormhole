@@ -25,7 +25,7 @@ import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig
 import org.apache.spark.sql._
 
 class CustomTemplate extends SwiftsInterface {
-  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig): DataFrame = {
+  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
    df.withColumn("addColumn",functions.lit(0))
   }
 }

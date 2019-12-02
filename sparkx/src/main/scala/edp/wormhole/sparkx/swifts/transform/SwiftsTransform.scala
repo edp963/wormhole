@@ -74,10 +74,10 @@ object SwiftsTransform extends EdpLogging {
                 method.invoke(obj, session, currentDf, swiftsLogic,param,config).asInstanceOf[DataFrame]
               }*/
 
-              currentDf = if(param.isEmpty){method.invoke(obj, session, currentDf, swiftsLogic, config).asInstanceOf[DataFrame]}
+              currentDf = if(param.isEmpty){method.invoke(obj, session, currentDf, swiftsLogic, config, sourceNamespace, sinkNamespace).asInstanceOf[DataFrame]}
               else {
                 logInfo("Transform get Param :" + param)
-                method.invoke(obj, session, currentDf, swiftsLogic, param, config).asInstanceOf[DataFrame]}
+                method.invoke(obj, session, currentDf, swiftsLogic, param, config, sourceNamespace, sinkNamespace).asInstanceOf[DataFrame]}
 
             case SqlOptType.JOIN | SqlOptType.LEFT_JOIN | SqlOptType.RIGHT_JOIN =>
               if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {

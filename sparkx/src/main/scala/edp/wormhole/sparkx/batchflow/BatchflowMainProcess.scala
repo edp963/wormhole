@@ -293,15 +293,21 @@ object BatchflowMainProcess extends EdpLogging {
               flow._2.consumptionDataType(InputDataProtocolBaseType.BATCH.toString)
           }
           if (isProcessed) {
-            session.sessionState.conf.setConfString("original_source_namespace", sourceNamespace)
-            if(session.sessionState.conf.contains("original_source_namespace")) {
-              log.info(s"original_source_namespace is ${session.sessionState.conf.getConfString("original_source_namespace")}")
-            } else {
-              log.info("original_source_namespace not set")
-            }
-
             val sinkNamespace = flow._1
             logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamespace:" + sinkNamespace)
+
+            //set session conf
+            /*val originalNamespace = new JSONObject()
+            originalNamespace.fluentPut("sourceNamespace", sourceNamespace)
+            originalNamespace.fluentPut("sinkNamespace", sinkNamespace)
+            val originalNamespaceString = originalNamespace.toJSONString
+            session.sessionState.conf.setConfString(originalNamespaceString, originalNamespaceString)
+            if(session.sessionState.conf.contains(originalNamespaceString)) {
+              log.info(s"original_namespace is ${session.sessionState.conf.getConfString(originalNamespaceString)}")
+            } else {
+              log.info("original_namespace not set")
+            }*/
+
             val swiftsTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
             ConfMemoryStorage.setEventTs(matchSourceNamespace, sinkNamespace, minTs)
             //            val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
@@ -324,14 +330,24 @@ object BatchflowMainProcess extends EdpLogging {
 
             val sinkTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
 
-            val newSourceNamespace = if(session.sessionState.conf.contains("processed_source_namespace")) {
-              val processedSourceNamespace = session.sessionState.conf.getConfString("processed_source_namespace")
-              if(!processedSourceNamespace.isEmpty) {
-                log.info(s"original source namespace: $sourceNamespace, processed source namespace: $processedSourceNamespace")
-                processedSourceNamespace
+            //get session namespace config
+            val namespaceConfigKey = sourceNamespace + "&" + sinkNamespace
+            val newSourceNamespace = if(session.sessionState.conf.contains(namespaceConfigKey)) {
+              val namespaceConfigValue = session.sessionState.conf.getConfString(namespaceConfigKey)
+              if(!namespaceConfigValue.isEmpty) {
+                val processedSourceNs = JSON.parseObject(namespaceConfigValue).getString("sourceNamespace")
+                log.info(s"namespace Config Key $namespaceConfigKey, namespace Config value $namespaceConfigValue, processed source namespace: $processedSourceNs")
+                processedSourceNs
               }
-              else sourceNamespace
+              else {
+                log.info(s"namespace Config Key $namespaceConfigKey, namespace Config value $namespaceConfigValue")
+                sourceNamespace
+              }
             } else sourceNamespace
+            if(newSourceNamespace != sourceNamespace) {
+              log.info(s"original source namespace is sourceNamespace, new source namespace is $newSourceNamespace")
+            }
+
             if (sinkRDD != null) {
               try {
                 validityAndSinkProcess(protocolType, newSourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)

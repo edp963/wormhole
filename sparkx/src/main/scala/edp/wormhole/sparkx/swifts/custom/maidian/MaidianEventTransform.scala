@@ -14,7 +14,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class MaidianEventTransform extends EdpLogging {
-  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String, streamConfig: WormholeConfig): DataFrame = {
+  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
     val ruleList: mutable.Seq[JSONObject] = getRules(param)
 
     val sourceFieldList = getSourceFields(df)

@@ -28,17 +28,18 @@ import scala.collection.mutable.ArrayBuffer
 class SensorsDataTransform extends EdpLogging{
 
 
-  def  transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String,streamConfig: WormholeConfig):DataFrame={
+  def  transform(session: SparkSession, df: DataFrame, flowConfig: SwiftsProcessConfig,param:String,streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String):DataFrame={
     import session.sqlContext.implicits._
     if(param==null){
       throw new IllegalArgumentException("param must be not empty");
     }
-    val originalSourceNamespace = if(session.sessionState.conf.contains("original_source_namespace")) {
+    /*val originalSourceNamespace = if(session.sessionState.conf.contains("original_source_namespace")) {
       session.sessionState.conf.getConfString("original_source_namespace")
     } else {
       ""
-    }
-    val paramUtil=new ParamUtils(param,streamConfig.zookeeper_address,streamConfig.zookeeper_path+"/sensors/"+streamConfig.spark_config.stream_id,originalSourceNamespace);
+    }*/
+
+    val paramUtil=new ParamUtils(param,streamConfig.zookeeper_address,streamConfig.zookeeper_path+"/sensors/"+streamConfig.spark_config.stream_id,sourceNamespace);
     val dataSet=df.filter(row=>row!=null
       && row.length>0
       && paramUtil.getMyProjectId.equals(row.getAs[Long](SchemaUtils.KafkaOriginColumn.project_id.name()))
@@ -50,10 +51,20 @@ class SensorsDataTransform extends EdpLogging{
     schemaUtils.checkSensorSystemCompleteSchemaChange(paramUtil.getMyProjectId());
     schemaUtils.checkClickHouseSchemaNeedChange(paramUtil.getMyProjectId());
     schemaUtils.destroy();
-    session.sessionState.conf.setConfString("processed_source_namespace",paramUtil.getNameSpace())
+
+    //namespace session config
+    val namespaceConfigKey = sourceNamespace + "&" + sinkNamespace
+    val namespaceConfigValue = new JSONObject()
+    namespaceConfigValue.fluentPut("sourceNamespace",paramUtil.getNameSpace())
+    namespaceConfigValue.fluentPut("sinkNamespace",sinkNamespace)
+    session.sessionState.conf.setConfString(namespaceConfigKey,namespaceConfigValue.toJSONString)
+    logInfo(s"namespaceConfigKey is $namespaceConfigKey,namespaceConfigValue is $namespaceConfigValue")
+
     val proColumnMap:util.Map[String,PropertyColumnEntry]=schemaUtils.getProColumnMap();
     val eventMap:util.Map[String,EventEntry]=schemaUtils.getEventMap();
     val sortedList:util.List[String]=schemaUtils.getPropertiesSortedList();
+    logInfo(s"SensorsDataTransform proColumnMap is $proColumnMap, eventMap is $eventMap, sortedList is $sortedList")
+
     val resultRowSchema=convertSchema(proColumnMap,sortedList);
     val resultRowRdd: RDD[Row] = dataSet.rdd.mapPartitions(it=>{
       val resultList = mutable.ListBuffer.empty[Row]

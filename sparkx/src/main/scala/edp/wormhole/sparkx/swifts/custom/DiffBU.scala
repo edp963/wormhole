@@ -32,7 +32,7 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import scala.collection.mutable
 
 class DiffBU extends SwiftsInterface with EdpLogging {
-  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig): DataFrame = {
+  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
     val originalSchema: StructType = df.schema
     var resultSchema = originalSchema
     originalSchema.foreach(structField => {

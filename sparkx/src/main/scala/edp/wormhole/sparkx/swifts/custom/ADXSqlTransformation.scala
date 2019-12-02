@@ -12,7 +12,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
   * Created by neo_qiang on 2019/5/29.
   */
 class ADXSqlTransformation extends SwiftsInterface{
-    override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig): DataFrame = {
+    override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
       var temp_df:DataFrame = df
       //Get Schema From Transformation
       val schemasFromSwifts = config.swiftsSql match {
