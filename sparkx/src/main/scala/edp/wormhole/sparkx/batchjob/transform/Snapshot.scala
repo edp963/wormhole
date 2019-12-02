@@ -31,7 +31,7 @@ import edp.wormhole.util.DateUtils
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 class Snapshot extends SwiftsInterface with EdpLogging {
-  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig): DataFrame = {
+  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
     val tableName = "increment"
     val specialConfig =
       if (config != null && config.specialConfig.nonEmpty && config.specialConfig.getOrElse("") != "") JSON.parseObject(config.specialConfig.get)
