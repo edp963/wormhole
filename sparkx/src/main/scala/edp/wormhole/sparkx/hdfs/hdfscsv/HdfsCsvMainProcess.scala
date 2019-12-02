@@ -563,7 +563,8 @@ object HdfsCsvMainProcess extends EdpLogging {
   }
 
   def getFormatData(data: String, schemaArray: JSONArray): String = {
-    val contentArray = JSON.parseArray(data)
+    data.substring(1,data.length-1)
+/*    val contentArray = JSON.parseArray(data)
     val dataList = ListBuffer.empty[String]
     for (i <- 0 until contentArray.size()) {
       val umsFieldType = UmsFieldType.umsFieldType(schemaArray.getJSONObject(i).getString("type"))
@@ -577,7 +578,7 @@ object HdfsCsvMainProcess extends EdpLogging {
       }
       dataList += newValue
     }
-    dataList.mkString(",")
+    dataList.mkString(",")*/
   }
 
   private def getFilePrefixShardingSlash(namespace: String, streamHdfsAddress: String, protocol: String): (String, String) = {

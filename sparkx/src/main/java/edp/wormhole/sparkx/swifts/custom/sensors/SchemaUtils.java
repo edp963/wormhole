@@ -134,7 +134,7 @@ public class SchemaUtils implements Serializable {
             throw new IllegalArgumentException("this project has no any property,projectId="+projectId);
         }
         List<Integer> ids=propertyEntryList.stream().map(x->x.getId()).collect(Collectors.toList());
-        List<PropertyColumnEntry>  columnEntries=metaClient.queryAllPropertiesColumnByPropertyId(ids);
+        List<PropertyColumnEntry> columnEntries=metaClient.queryAllPropertiesColumnByPropertyId(ids);
         if(CollectionUtils.isEmpty(columnEntries)){
             throw new IllegalArgumentException("this project has no any property column,projectId="+projectId);
         }
@@ -144,16 +144,20 @@ public class SchemaUtils implements Serializable {
         if(!exist){
             WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(),"1");
         }
+
+        //update namespace
+        byte[] bytes=WormholeZkClient.getData(paramUtils.getZkAddress(),paramUtils.getZkFullPath());
+        Integer ver=Integer.valueOf(new String(bytes));
         if(!needAddColumns.isEmpty()){
             metaClient.changeClickHouseSchema(needAddColumns);
-            byte[] bytes=WormholeZkClient.getData(paramUtils.getZkAddress(),paramUtils.getZkFullPath());
-            Integer ver=Integer.valueOf(new String(bytes));
             ver++;
             WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(),String.valueOf(ver));
-            List<String> ns= Lists.newArrayList(Splitter.on(".").split(paramUtils.getNameSpace()).iterator());
-            ns.set(4,String.valueOf(ver));
-            paramUtils.setNameSpace(Joiner.on(".").join(ns));
+            logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns, ver);
         }
+        List<String> ns= Lists.newArrayList(Splitter.on(".").split(paramUtils.getNameSpace()).iterator());
+        ns.set(3,String.valueOf(ver));
+        paramUtils.setNameSpace(Joiner.on(".").join(ns));
+
         return true;
     }
 
