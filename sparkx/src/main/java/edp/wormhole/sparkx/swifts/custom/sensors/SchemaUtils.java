@@ -155,7 +155,7 @@ public class SchemaUtils implements Serializable {
             logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns, ver);
         }
         List<String> ns= Lists.newArrayList(Splitter.on(".").split(paramUtils.getNameSpace()).iterator());
-        ns.set(3,String.valueOf(ver));
+        ns.set(4,String.valueOf(ver));
         paramUtils.setNameSpace(Joiner.on(".").join(ns));
 
         return true;
