@@ -63,7 +63,7 @@ class SensorsDataTransform extends EdpLogging{
     val proColumnMap:util.Map[String,PropertyColumnEntry]=schemaUtils.getProColumnMap();
     val eventMap:util.Map[String,EventEntry]=schemaUtils.getEventMap();
     val sortedList:util.List[String]=schemaUtils.getPropertiesSortedList();
-    logInfo(s"SensorsDataTransform proColumnMap is $proColumnMap, eventMap is $eventMap, sortedList is $sortedList")
+    logInfo(s"SensorsDataTransform sortedList is $sortedList")
 
     val resultRowSchema=convertSchema(proColumnMap,sortedList);
     val resultRowRdd: RDD[Row] = dataSet.rdd.mapPartitions(it=>{
