@@ -838,12 +838,21 @@ export class Workbench extends React.Component {
       }
       this.props.onQueryFlow(requestData, (result) => {
         resolve(result)
-        const { tranConfig, streamId, streamName, streamType, consumedProtocol, flowName, tableKeys, parallelism } = result
+        const { tranConfig, streamId, streamName, streamType, consumedProtocol, flowName, tableKeys, config } = result
+        let parallelism, checkpoint, isCheckpoint
         let tranConfigParse = {}
+        try {
+          const configParse = JSON.parse(config)
+          parallelism = configParse.parallelism
+          checkpoint = configParse.checkpoint
+          isCheckpoint = checkpoint.enable
+        } catch (error) {
+          console.error('TCL: Workbench -> queryFlowDefault -> error', error)
+        }
         try {
           tranConfigParse = JSON.parse(tranConfig)
         } catch (error) {
-          console.error('warn: tranConfig parse error')
+          console.error('warn: parse error')
         }
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: streamId,
@@ -853,6 +862,7 @@ export class Workbench extends React.Component {
           flowName,
           tableKeys,
           parallelism,
+          checkpoint: isCheckpoint,
           time_characteristic: tranConfigParse.time_characteristic || ''
         })
 
@@ -2142,12 +2152,16 @@ export class Workbench extends React.Component {
         : objectTemp
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
-
+    const isCheckpoint = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.checkpoint : null
+    const checkpoint = { enable: isCheckpoint, checkpoint_interval_ms: 300000, stateBackend: 'hdfs://flink-checkpoint' }
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
       const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
-
+      const config = {
+        parallelism,
+        checkpoint
+      }
       const submitFlowData = {
         projectId: Number(projectId),
         streamId: Number(values.flowStreamId),
@@ -2156,7 +2170,7 @@ export class Workbench extends React.Component {
         consumedProtocol: values.protocol.join(','),
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest,
-        parallelism,
+        config: JSON.stringify(config),
         flowName: values.flowName,
         tableKeys: values.tableKeys,
         desc: null
@@ -2182,7 +2196,12 @@ export class Workbench extends React.Component {
         desc: null
       }
       if (values.parallelism != null) {
-        editData.parallelism = values.parallelism
+        editData.config = {
+          parallelism: values.parallelism
+        }
+      }
+      if (values.checkpoint) {
+        editData.config.checkpoint = checkpoint
       }
       this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
         message.success(locale === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)

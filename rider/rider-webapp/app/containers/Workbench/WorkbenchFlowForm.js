@@ -41,7 +41,7 @@ import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Radio from 'antd/lib/radio'
-import { Checkbox } from 'antd'
+import { Checkbox, Switch } from 'antd'
 const CheckboxGroup = Checkbox.Group
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
@@ -556,6 +556,18 @@ export class WorkbenchFlowForm extends React.Component {
                 </FormItem>
               </Col>
             ) : ''}
+            {flowSubPanelKey === 'flink' ? (
+              <Col span={24}>
+                <FormItem label="Checkpoint" {...itemStyle}>
+                  {getFieldDecorator('checkpoint', {
+                    valuePropName: 'checked',
+                    initialValue: false
+                  })(
+                    <Switch />
+                  )}
+                </FormItem>
+              </Col>
+            ) : ''}
           </Card>
           <Card title="Source" className="ri-workbench-form-card-style source-card">
             <Col span={24}>
@@ -938,7 +950,6 @@ export class WorkbenchFlowForm extends React.Component {
               <FormItem label="Time Characteristic" labelCol={{span: 9}} wrapperCol={{span: 14}}>
                 {getFieldDecorator('time_characteristic', {
                   rules: [{
-                    required: true,
                     message: operateLanguageSelect('Time Characteristic', 'Time Characteristic')
                   }],
                   hidden: stepHiddens[1],
