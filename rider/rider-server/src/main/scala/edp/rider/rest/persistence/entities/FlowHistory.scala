@@ -47,7 +47,7 @@ class FlowHistoryTable(_tableTag: Tag) extends BaseTable[FlowHistory](_tableTag,
   /** Database column sink_ns SqlType(VARCHAR), Length(200,true) */
   val sinkNs: Rep[String] = column[String]("sink_ns", O.Length(200, varying = true))
 
-  val config: Rep[Option[String]] = column[Option[String]]("parallelism")
+  val config: Rep[Option[String]] = column[Option[String]]("config")
   /** Database column consumed_protocol SqlType(VARCHAR), Length(20,true) */
   val consumedProtocol: Rep[String] = column[String]("consumed_protocol", O.Length(20, varying = true))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */

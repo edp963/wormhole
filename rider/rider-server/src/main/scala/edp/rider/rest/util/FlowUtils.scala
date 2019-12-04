@@ -1202,13 +1202,12 @@ object FlowUtils extends RiderLogger {
     val config = WhFlinkConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs),
       KafkaInput(baseConfig, flinkTopic),
       outputConfig,
-      flow.config.getOrElse(RiderConfig.flink.defaultParallelism),
+      "",
       RiderConfig.zk.address,
       udfConfig,
       RiderConfig.flink.feedbackEnabled,
       RiderConfig.flink.feedbackStateCount,
       RiderConfig.flink.feedbackInterval,
-      FlinkConfig(RiderConfig.flinkCheckpoint),
       RiderConfig.kerberos.kafkaEnabled)
     caseClass2json[WhFlinkConfig](config)
   }
@@ -1302,6 +1301,10 @@ object FlowUtils extends RiderLogger {
          |"name": "swifts",
          |"type": "string",
          |"nullable": true
+         |},
+         |"name": "config",
+         |"type": "string",
+         |"nullable": false
          |}
          |]
          |},
@@ -1327,7 +1330,7 @@ object FlowUtils extends RiderLogger {
         base64Tuple(7)
       }", "${
         base64Tuple(8)
-      }"]
+      }","${flow.config.get}"]
          |}
          |]
          |}

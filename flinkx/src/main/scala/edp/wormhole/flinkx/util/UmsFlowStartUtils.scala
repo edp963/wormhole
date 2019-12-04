@@ -23,6 +23,7 @@ package edp.wormhole.flinkx.util
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
+import edp.wormhole.flinkx.common.FlinkCheckpoint
 import edp.wormhole.flinkx.swifts.{FlinkxSwiftsConstants, FlinkxTimeCharacteristicConstants}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
@@ -69,6 +70,26 @@ object UmsFlowStartUtils {
   def extractFlowId(schemas: Seq[UmsField], payloads: UmsTuple): Long = {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "job_id").toString.toLong
   }
+
+  def extractFlowConfig(schemas: Seq[UmsField], payloads: UmsTuple): JSONObject = {
+    val configInString = UmsFieldType.umsFieldValue(payloads.tuple, schemas, "config").toString
+    JSON.parseObject(configInString)
+  }
+
+  def extractParallelism(flowConfig: JSONObject): Int = {
+    if (flowConfig.containsKey("parallelism"))
+      flowConfig.getIntValue("parallelism")
+    else 1
+  }
+
+  def extractCheckpointConfig(flowConfig: JSONObject): FlinkCheckpoint ={
+    val checkpointConfig = flowConfig.getJSONObject("checkpoint")
+    val isEnable = checkpointConfig.getBoolean("is_enable")
+    val interval = checkpointConfig.getIntValue("checkpoint_interval_ms")
+    val stateBackend=checkpointConfig.getString("stateBackend")
+    FlinkCheckpoint(isEnable,interval,stateBackend)
+  }
+
 
   def extractSourceNamespace(umsFlowStart: Ums): String = {
     umsFlowStart.schema.namespace.toLowerCase
@@ -138,5 +159,6 @@ object UmsFlowStartUtils {
       swifts.getJSONObject(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG)
     else null
   }
+
 
 }
