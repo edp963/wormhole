@@ -1,6 +1,6 @@
 package edp.wormhole.sparkx.swifts.custom
 
-import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
+import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StringType
@@ -12,7 +12,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
   * Created by neo_qiang on 2019/5/29.
   */
 class ADXSqlTransformation extends SwiftsInterface{
-    override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame = {
+    override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
       var temp_df:DataFrame = df
       //Get Schema From Transformation
       val schemasFromSwifts = config.swiftsSql match {

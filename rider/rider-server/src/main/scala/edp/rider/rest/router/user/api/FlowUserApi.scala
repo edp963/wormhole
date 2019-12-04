@@ -32,7 +32,7 @@ import edp.rider.rest.persistence.entities.{FlowTable, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, StreamUtils}
+import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, InstanceUtils, StreamUtils}
 import edp.wormhole.ums.UmsProtocolType
 import edp.wormhole.util.{DateUtils, JsonUtils}
 import org.apache.commons.collections.CollectionUtils
@@ -176,7 +176,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                                   val ns = namespaceDal.getNsDetail(flow.sourceNs)
                                   val latestOffset =
                                     try {
-                                      getLatestOffset(ns._1.connUrl, ns._2.nsDatabase, RiderConfig.kerberos.kafkaEnabled)
+                                      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(ns._1.connConfig.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+                                      getLatestOffset(ns._1.connUrl, ns._2.nsDatabase, inputKafkaKerberos)
                                     } catch {
                                       case _: Exception =>
                                         ""
@@ -360,8 +361,9 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = flowDal.getFlowKafkaInfo(flowId)
-      val latestOffset = getLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.kafkaEnabled)
-      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.kafkaEnabled)
+      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(kafkaInfo._3.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+      val latestOffset = getLatestOffset(kafkaInfo._2, topic, inputKafkaKerberos)
+      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, inputKafkaKerberos)
       val consumedOffset = earliestOffset
       SimpleFlowTopicAllOffsets(topic, RiderConfig.flink.defaultRate, consumedOffset, earliestOffset, latestOffset)
     })
@@ -420,8 +422,9 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
     }
     val kafkaInfo = flowDal.getFlowKafkaInfo(flowId)
     // get kafka earliest/latest offset
-    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.kafkaEnabled)
-    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.kafkaEnabled)
+    val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(kafkaInfo._3.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, inputKafkaKerberos)
+    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, inputKafkaKerberos)
 
     // response
     val topicResponse = SimpleFlowTopicAllOffsets(postTopic.name, RiderConfig.flink.defaultRate, earliestOffset, earliestOffset, latestOffset)
@@ -757,7 +760,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                   val flow = Await.result(flowDal.findByFilter(flow => flow.id === feedbackErr.flowId), minTimeOut).headOption.get
                   new SimpleFeedbackErr(feedbackErr.id, feedbackErr.projectId, feedbackErr.batchId, feedbackErr.streamId,
                     flow.flowName, feedbackErr.sourceNamespace, feedbackErr.sinkNamespace, feedbackErr.dataType, feedbackErr.errorPattern,
-                    feedbackErr.topics, feedbackErr.errorCount, feedbackErr.errorMaxWaterMarkTs, feedbackErr.errorMinWaterMarkTs,
+                    feedbackErr.topics.getOrElse(""), feedbackErr.errorCount, feedbackErr.errorMaxWaterMarkTs, feedbackErr.errorMinWaterMarkTs,
                     feedbackErr.errorInfo, feedbackErr.dataInfo, feedbackErr.feedbackTime, feedbackErr.createTime)
                 })
                 complete(OK, ResponseJson[Seq[SimpleFeedbackErr]](getHeader(200, session), response))
@@ -791,12 +794,13 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                     if (feedbackError.nonEmpty) {
                       val stream = Await.result(streamDal.findByFilter(stream => stream.id === feedbackError.get.streamId), minTimeOut).headOption.get
                       val instance = Await.result(instanceDal.findByFilter(instance => instance.id === stream.instanceId), minTimeOut).headOption.get
-                      val topics = JavaConverters.asScalaIteratorConverter(JSON.parseArray(feedbackError.get.topics).iterator()).asScala.toSeq
+                      val topics = JavaConverters.asScalaIteratorConverter(JSON.parseObject(feedbackError.get.topics.getOrElse("{}")).values().iterator()).asScala.toSeq
                       val topicList = topics.map(topic => JsonUtils.json2caseClass[FeedbackErrTopicInfo](topic.toString)).seq
                       var rst = true
                       val partitionResults: ListBuffer[FeedbackPartitionResult] = new ListBuffer[FeedbackPartitionResult]()
-                      WormholeKafkaProducer.init(instance.connUrl, None, RiderConfig.kerberos.kafkaEnabled)
-                      val kafkaConsumer = WormholeKafkaConsumer.initConsumer(instance.connUrl, FlowUtils.getFlowName(feedbackError.get.flowId, feedbackError.get.sourceNamespace, feedbackError.get.sinkNamespace), None, RiderConfig.kerberos.kafkaEnabled)
+                      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(instance.connConfig.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+                      WormholeKafkaProducer.init(instance.connUrl, None, inputKafkaKerberos)
+                      val kafkaConsumer = WormholeKafkaConsumer.initConsumer(instance.connUrl, FlowUtils.getFlowName(feedbackError.get.flowId, feedbackError.get.sourceNamespace, feedbackError.get.sinkNamespace), None, inputKafkaKerberos)
                       topicList.foreach(topicInfo => {
                         topicInfo.partitionOffset.foreach(parOffset => {
                           val startTime = DateUtils.currentyyyyMMddHHmmss

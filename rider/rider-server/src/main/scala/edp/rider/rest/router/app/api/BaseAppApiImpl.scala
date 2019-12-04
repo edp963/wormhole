@@ -202,7 +202,7 @@ class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A])
 
   private def generateEntity(base: BaseEntity, session: SessionClass): BaseEntity = {
     base match {
-      case instance: Instance => Instance(instance.id, instance.nsInstance, Some(instance.desc.getOrElse("")), instance.nsSys, instance.connUrl, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
+      case instance: Instance => Instance(instance.id, instance.nsInstance, Some(instance.desc.getOrElse("")), instance.nsSys, instance.connUrl, instance.connConfig, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
       case user: User => User(user.id, user.email, user.password, user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
     }
   }

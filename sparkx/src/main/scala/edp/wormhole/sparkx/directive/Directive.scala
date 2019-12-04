@@ -21,9 +21,10 @@
 
 package edp.wormhole.sparkx.directive
 
-import edp.wormhole.sparkx.common.{KafkaTopicConfig, PartitionOffsetConfig, TopicType, WormholeConfig}
 import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, OffsetPersistenceManager}
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts
+import edp.wormhole.sparkxinterface.swifts.{KafkaTopicConfig, PartitionOffsetConfig, TopicType, WormholeConfig}
 import edp.wormhole.ums.{Ums, UmsFieldType, UmsSysField}
 import edp.wormhole.util.DateUtils
 import org.apache.spark.streaming.kafka010.WormholeDirectKafkaInputDStream

@@ -29,7 +29,7 @@ import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.rest.util.StreamUtils
+import edp.rider.rest.util.{InstanceUtils, StreamUtils}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.yarn.{ShellUtils, SubmitYarnJob}
 import edp.wormhole.util.DateUtils
@@ -163,8 +163,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
     db.run(streamTable.filter(_.id === putStream.id)
-      .map(stream => (stream.desc, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
-      .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
+      .map(stream => (stream.desc, stream.jvmDriverConfig, stream.jvmExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.specialConfig, stream.updateTime, stream.updateBy))
+      .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, putStream.specialConfig, currentSec, userId)).mapTo[Int]
   }
 
   def updateStatusByStart(streamId: Long, status: String, userId: Long, logPath: String, pid: Option[String]): Future[Int] = {
@@ -187,7 +187,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     streams.map(stream =>
       Await.result(db.run(streamTable.filter(_.id === stream.id)
         .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime))
-        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime)).mapTo[Int], minTimeOut))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.userTimeInfo.updateTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {
@@ -273,11 +273,11 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
 
   // get kafka instance id, url
-  def getKafkaInfo(streamId: Long): (Long, String) = {
+  def getKafkaInfo(streamId: Long): (Long, String, Option[String]) = {
     Await.result(db.run((streamQuery.filter(_.id === streamId) join instanceQuery on (_.instanceId === _.id))
       .map {
-        case (_, instance) => (instance.id, instance.connUrl)
-      }.result.head).mapTo[(Long, String)], minTimeOut)
+        case (_, instance) => (instance.id, instance.connUrl, instance.connConfig)
+      }.result.head).mapTo[(Long, String, Option[String])], minTimeOut)
   }
 
   def getStreamKafkaMap(streamIds: Seq[Long]): Map[Long, String] = {
@@ -325,9 +325,11 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], streamGroupIdMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.kafkaEnabled)
-      val latest = getLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.kafkaEnabled)
-      val consumed = getConsumerOffset(kafkaMap(topic.streamId), streamGroupIdMap(topic.streamId), topic.name, latest.split(",").length, RiderConfig.kerberos.kafkaEnabled)
+      val inputKafkaInstance = getKafkaDetailByStreamId(topic.streamId)
+      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+      val earliest = getEarliestOffset(kafkaMap(topic.streamId), topic.name, inputKafkaKerberos)
+      val latest = getLatestOffset(kafkaMap(topic.streamId), topic.name, inputKafkaKerberos)
+      val consumed = getConsumerOffset(kafkaMap(topic.streamId), streamGroupIdMap(topic.streamId), topic.name, latest.split(",").length, inputKafkaKerberos)
       TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
     })
   }

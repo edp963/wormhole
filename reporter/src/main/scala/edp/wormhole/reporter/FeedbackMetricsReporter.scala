@@ -23,6 +23,7 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
   private lazy val kerberos = new StringBuffer()
   private lazy val brokers = new StringBuffer()
   private lazy val feedbackCount = new ArrayBuffer[Int]()
+  private lazy val feedbackIntervalStr = new StringBuffer()
 
   override def open(config: MetricConfig): Unit = {
     sourceNamespace.append(config.getString("sourceNamespace", ""))
@@ -33,6 +34,7 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
     brokers.append(config.getString("brokers", ""))
     kerberos.append(config.getString("kerberos", ""))
     feedbackCount.append(config.getInteger("feedbackCount", 0))
+    feedbackIntervalStr.append(config.getString("interval", ""))
   }
 
   override def close(): Unit = {
@@ -49,20 +51,31 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
       var payloadSize = 0L
       val counterIterator = this.counters.keySet.iterator
       if (counterIterator.hasNext) payloadSize = counterIterator.next.getCount
-      if (payloadSize.toInt >= feedbackCount.head) {
-        val batchId = UUID.randomUUID().toString
-        Thread.currentThread.setContextClassLoader(null) //当kafkaProducer在单独线程里时，会存在由于classLoader加载问题，导致的StringSerilizer加载异常问题，故这里做此操作
-        WormholeKafkaProducer.init(brokers.toString, None, kerberos.toString.toBoolean)
-        val firtstUmsTsStr = DateUtils.dt2string(firstUmsTs.toLong,DtFormat.TS_DASH_MILLISEC)
-        val lastUmsTsStr = DateUtils.dt2string(lastUmsTs.toLong,DtFormat.TS_DASH_MILLISEC)
-        logger.info(s"firstUms:$firstUmsTs,lastUmsTs:$lastUmsTs")
-        WormholeKafkaProducer.sendMessage(topic.toString, FeedbackPriority.feedbackPriority,
-          UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString, protocolType, DateUtils.currentDateTime, streamId.toString.toLong,
-            batchId, sinkNamespace.toString, topics, payloadSize.toInt, firtstUmsTsStr, firtstUmsTsStr,
-            firtstUmsTsStr, firtstUmsTsStr, lastUmsTsStr, lastUmsTsStr, lastUmsTsStr, flowId.toString.toLong),
-          Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), brokers.toString)
-        this.counters.keySet.iterator.next.dec(payloadSize)
-      }
+      //if (payloadSize.toInt >= feedbackCount.head) {
+      val batchId = UUID.randomUUID().toString
+      Thread.currentThread.setContextClassLoader(null) //当kafkaProducer在单独线程里时，会存在由于classLoader加载问题，导致的StringSerilizer加载异常问题，故这里做此操作
+      WormholeKafkaProducer.initWithoutAcksAll(brokers.toString, None, kerberos.toString.toBoolean)
+      val firtstUmsTsStr = DateUtils.dt2string(firstUmsTs.toLong * 1000, DtFormat.TS_DASH_MILLISEC)
+      val lastUmsTsStr = DateUtils.dt2string(lastUmsTs.toLong * 1000, DtFormat.TS_DASH_MILLISEC)
+
+      logger.info(s"feedbackIntervalStr:$feedbackIntervalStr")
+      val feedbackInterval = if (feedbackIntervalStr.toString != "") {
+        feedbackIntervalStr.toString.split(" ")(0).toInt
+      } else 0
+
+      val curDate = DateUtils.currentDateTime
+      val rddDate = curDate.minusSeconds(feedbackInterval)
+      val curTs = DateUtils.dt2string(curDate, DtFormat.TS_DASH_MILLISEC)
+      val rddTs = DateUtils.dt2string(rddDate, DtFormat.TS_DASH_MILLISEC)
+
+      logger.info(s"firstUms:$firstUmsTs,lastUmsTs:$lastUmsTs,rddTs:$rddTs,curTs:$curTs")
+      WormholeKafkaProducer.sendMessage(topic.toString, FeedbackPriority.feedbackPriority,
+        UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString, protocolType, DateUtils.currentDateTime, streamId.toString.toLong,
+          batchId, sinkNamespace.toString, topics, payloadSize.toInt, lastUmsTsStr, rddTs,
+          rddTs, rddTs, rddTs, curTs, curTs, flowId.toString.toLong),
+        Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), brokers.toString)
+      this.counters.keySet.iterator.next.dec(payloadSize)
+      //}
     }
   }
 

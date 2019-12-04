@@ -41,6 +41,7 @@ import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.kafka.WormholeGetOffsetUtils._
+import edp.wormhole.util.JsonUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
@@ -204,24 +205,37 @@ object StreamUtils extends RiderLogger {
   def getStreamConfig(stream: Stream) = {
     val startConfig = json2caseClass[StartConfig](stream.startConfig)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
-    val kafkaUrl = getKafkaByStreamId(stream.id)
+    val inputKafkaInstance = getKafkaDetailByStreamId(stream.id)
+    val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+
     val config =
       RiderConfig.spark.remoteHdfsRoot match {
         case Some(_) =>
-          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled),
             SparkConfig(stream.id, stream.name, "yarn", startConfig.executorNums * startConfig.perExecutorCores),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
             RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.kafkaEnabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
             RiderConfig.spark.remoteHdfsNamenodeIds, Option(false))
         case None =>
          // val (hdfsNameNodeIds,hdfsNameNodeHosts)=getNameNodeInfoFromLocalHadoop()
-          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled),
             SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled)
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
+            Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled, None, None, None)
       }
     caseClass2json[BatchFlowConfig](config)
+  }
+
+  def getStreamSpecialConfig(config: Option[String]): Option[StreamSpecialConfig] = {
+    config match {
+      case Some(c) =>
+        if(c.trim.isEmpty) None
+        else Option(JsonUtils.json2caseClass[StreamSpecialConfig](c))
+      case None =>
+        None
+    }
   }
 
 /*
@@ -347,8 +361,11 @@ object StreamUtils extends RiderLogger {
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
       if (addDefaultTopic) {
-        val broker = getKafkaByStreamId(streamId)
-        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.kafkaEnabled)
+        //val broker = getKafkaByStreamId(streamId)
+        val inputKafkaInstance = getKafkaDetailByStreamId(streamId)
+        val broker = inputKafkaInstance._1
+        val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, inputKafkaKerberos)
         val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset, "initial").mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }
@@ -638,6 +655,12 @@ object StreamUtils extends RiderLogger {
     Await.result(instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
 
+  def getKafkaDetailByStreamId(id: Long): (String, Option[String]) = {
+    val kakfaId = Await.result(streamDal.findById(id), minTimeOut).get.instanceId
+    val instance = Await.result(instanceDal.findById(kakfaId), minTimeOut)
+    (instance.get.connUrl, instance.get.connConfig)
+  }
+
   def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/streams/$appName-${CommonUtils.currentNodSec}.log"
 
   def getStreamTime(time: Option[String]) = {
@@ -696,9 +719,10 @@ object StreamUtils extends RiderLogger {
 
   def hidePid(stream: Stream): Stream = {
     if (stream != null && stream.status == "starting") {
-      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType, stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
-        stream.launchConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
-        stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
+      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType,
+        stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
+        stream.launchConfig, stream.specialConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
+        stream.active, stream.userTimeInfo)
     } else stream
   }
 

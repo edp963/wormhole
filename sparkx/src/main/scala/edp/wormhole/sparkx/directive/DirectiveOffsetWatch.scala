@@ -22,9 +22,9 @@
 package edp.wormhole.sparkx.directive
 
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.WormholeConfig
 
 object DirectiveOffsetWatch extends EdpLogging {
 

@@ -1,8 +1,8 @@
 package edp.wormhole.sparkx.hdfs
 
 import edp.wormhole.externalclient.hadoop.HdfsUtils
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.WormholeConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
@@ -18,7 +18,7 @@ object HdfsFinder extends EdpLogging{
          new WormholeConfig(config.kafka_input,config.kafka_output,config.spark_config,
            config.rdd_partition_number,config.zookeeper_address,config.zookeeper_path,
            config.kafka_persistence_config_isvalid,config.stream_hdfs_address,
-           Some(nameNodeHosts),Some(nameNodeIds),config.kerberos,config.hdfslog_server_kerberos)
+           Some(nameNodeHosts),Some(nameNodeIds),config.kerberos,config.hdfslog_server_kerberos, config.special_config)
       }
   }
 

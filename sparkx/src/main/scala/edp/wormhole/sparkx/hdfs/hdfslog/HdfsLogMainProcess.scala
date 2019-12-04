@@ -35,15 +35,15 @@ import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFinder, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException
-import org.apache.spark.{HashPartitioner, SparkContext}
+import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.StreamingContext
@@ -53,8 +53,8 @@ import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.control.NonFatal
 
-//fileName:  ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/currentyyyyMMddHHmmss0740（文件编号4位，左补零）
-//metaFile   ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/metadata_currentyyyyMMddHHmmss0740
+//fileName:  ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/min ts 0740（文件编号4位，左补零）
+//metaFile   ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/metadata_min ts 0740
 //metaContent  currentyyyyMMddHHmmss0740_0_20171108181403252_20171106171538333_20171111171538333
 //              文件编号_0/1(写完/未写完)_createtime_minUmsts_maxUmsts
 object HdfsLogMainProcess extends EdpLogging {
@@ -85,14 +85,16 @@ object HdfsLogMainProcess extends EdpLogging {
         val directiveTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
         HdfsDirective.doDirectiveTopic(config, stream)
 
+        val sourceNamespaceSet = ConfMemoryStorage.getHdfslogNamespaceSet
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
-          if (message.key == null || message.key.trim.isEmpty) {
+          val messageKey = SparkxUtils.getDefaultKey(message.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+          if (messageKey == null || messageKey.trim.isEmpty) {
             val namespace = UmsCommonUtils.getFieldContentFromJson(message.value, "namespace")
             var protocolType = UmsCommonUtils.getProtocolTypeFromUms(message.value)
             if (protocolType == null || protocolType.isEmpty) protocolType = UmsProtocolType.DATA_INCREMENT_DATA.toString
             ((protocolType, namespace), message.value)
           } else {
-            val (protocol, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(message.key)
+            val (protocol, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(messageKey)
             ((protocol.toString, namespace), message.value)
           }
         })
@@ -298,15 +300,11 @@ object HdfsLogMainProcess extends EdpLogging {
 
   private def createFile(filePrefixShardingSlash: String, configuration: Configuration, minTs: String,
                          maxTs: String, zookeeperPath: String, index: Int): (String, String) = {
-
-    //    val filePrefixShardingSlashSplit = filePrefixShardingSlash.split("/")
-    //    val length = filePrefixShardingSlashSplit.length
-    //    val nodePath = WormholeConstants.CheckpointRootPath + hdfsLog + filePrefixShardingSlashSplit.slice(length - 5, length).mkString("/")
     val processTime = DateUtils.currentyyyyMMddHHmmssmls
+    val fileTime = if(minTs==null||minTs.isEmpty) processTime else DateUtils.yyyyMMddHHmmssmls(minTs)
     val indexStr = "000" + index
+    val incrementalId = fileTime + indexStr.substring(indexStr.length - 4, indexStr.length)
 
-    val incrementalId = processTime + indexStr.substring(indexStr.length - 4, indexStr.length)
-    //WormholeZkClient.getNextAtomicIncrement(zookeeperPath, nodePath)
     val metaName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + "metadata_" + incrementalId else filePrefixShardingSlash + "right" + "/" + "metadata_" + incrementalId
     val metaContent: String = if (minTs == null) incrementalId + "_" + "0_" + processTime + "_" + processTime else incrementalId + "_" + "0_" + processTime + "_" + minTs + "_" + maxTs
     val dataName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + incrementalId else filePrefixShardingSlash + "right" + "/" + incrementalId
@@ -458,7 +456,7 @@ object HdfsLogMainProcess extends EdpLogging {
           val metaContent = currentErrorMetaContent
           val metaContentSplit = metaContent.split("_")
           val length = metaContentSplit.length
-          val originalProcessTime = metaContentSplit(length - 2)
+          val originalProcessTime = metaContentSplit(length - 3)
           if (DateUtils.dt2timestamp(DateUtils.dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(DateUtils.dt2timestamp(DateUtils.dt2dateTime(DateUtils.currentyyyyMMddHHmmssmls))) < 0) {
             logInfo("获取minTs和maxTs异常，已创建错误文件，但文件已超过创建间隔，需要重新创建")
             setMetaDataFinished(errorMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)

@@ -32,7 +32,7 @@ import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, Ses
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
+import edp.rider.rest.util.{AuthorizationProvider, InstanceUtils, StreamUtils}
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.zookeeper.PushDirective
@@ -75,8 +75,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
           val streamName = genStreamNameByProjectName(projectName, simpleStream.name)
           val insertStream = Stream(0, streamName, simpleStream.desc, projectId,
-            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig,
-            None, None, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
+            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig, simpleStream.specialConfig,
+            None, None, "new", None, None, active = true, UserTimeInfo(currentSec, session.userId, currentSec, session.userId))
           if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
             onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
               case Success(stream) =>
@@ -440,7 +440,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   case StreamType.FLINK =>
                     val currentConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
                     val currentNeededCore = currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
-                    val currentNeededMemory = currentConfig.jobManagerMemoryGB + currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
+                    val currentNeededMemory = currentConfig.jobManagerMemoryGB + currentConfig.taskManagersNumber * currentConfig.perTaskManagerMemoryGB
                     (currentNeededCore, currentNeededMemory)
                 }
 
@@ -736,9 +736,10 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       throw new Exception("stream topic relation already exists.")
     }
     val kafkaInfo = streamDal.getKafkaInfo(streamId)
+    val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(kafkaInfo._3.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
     // get kafka earliest/latest offset
-    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.kafkaEnabled)
-    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.kafkaEnabled)
+    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, inputKafkaKerberos)
+    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, inputKafkaKerberos)
 
     val topicResponse = SimpleTopicAllOffsets(postTopic.name, RiderConfig.spark.topicDefaultRate, earliestOffset, earliestOffset, latestOffset)
 
@@ -793,8 +794,9 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = streamDal.getKafkaInfo(streamId)
-      val latestOffset = getLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.kafkaEnabled)
-      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.kafkaEnabled)
+      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(kafkaInfo._3.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+      val latestOffset = getLatestOffset(kafkaInfo._2, topic, inputKafkaKerberos)
+      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, inputKafkaKerberos)
       val consumedOffset = earliestOffset
       SimpleTopicAllOffsets(topic, RiderConfig.spark.topicDefaultRate, consumedOffset, earliestOffset, latestOffset)
     })

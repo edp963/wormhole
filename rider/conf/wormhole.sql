@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `instance` (
   `desc` VARCHAR(1000) NULL,
   `ns_sys` VARCHAR(30) NOT NULL,
   `conn_url` VARCHAR(200) NOT NULL,
+  `conn_config` VARCHAR(1000) NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS `instance` (
   UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+alter table `instance` add column `conn_config` VARCHAR(1000) NULL after `conn_url`;
 drop index `conn_url` on `instance`;
 
 CREATE TABLE IF NOT EXISTS `ns_database` (
@@ -101,6 +103,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `others_config` VARCHAR(1000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
+  `special_config` VARCHAR(1000) NULL,
   `spark_appid` VARCHAR(200) NULL,
   `log_path` VARCHAR(200) NULL,
   `status` VARCHAR(200) NOT NULL,
@@ -116,6 +119,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `stream` add column `function_type` VARCHAR(100) NOT NULL after `stream_type`;
+alter table `stream` add column `special_config` VARCHAR(1000) NULL after `launch_config`;
 alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) NULL;
 alter table `stream` add column `jvm_driver_config` VARCHAR(1000) NULL;
 alter table `stream` add column `jvm_executor_config` VARCHAR(1000) NULL;
@@ -450,7 +454,7 @@ alter table `feedback_directive` modify column `result_desc` varchar(5000);
 
 CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `batch_id` VARCHAR(32) NOT NULL,
+  `batch_id` VARCHAR(100) NOT NULL,
   `stream_id` bigint(20) NOT NULL,
   `flow_id` bigint(20) NOT NULL,
   `source_ns` varchar(200) NOT NULL,
@@ -480,6 +484,7 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 alter table `feedback_flow_stats` add column `project_id` BIGINT NOT NULL after `id`;
+alter table `feedback_flow_stats` modify column `batch_id` varchar(100);
 
 CREATE TABLE IF NOT EXISTS `feedback_error` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

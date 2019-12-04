@@ -19,9 +19,9 @@
  */
 
 
-package edp.wormhole.sparkx.common
+package edp.wormhole.sparkxinterface.swifts
 
-import edp.wormhole.sparkx.common.TopicType.TopicType
+import edp.wormhole.sparkxinterface.swifts.TopicType.TopicType
 import edp.wormhole.util.config.KVConfig
 
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
@@ -36,7 +36,8 @@ case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           hdfs_namenode_hosts: Option[String],
                           hdfs_namenode_ids: Option[String],
                           kerberos: Boolean,
-                          hdfslog_server_kerberos: Option[Boolean])
+                          hdfslog_server_kerberos: Option[Boolean],
+                          special_config: Option[StreamSpecialConfig])
 
 //for parquet，data is main namespace or join namespace
 
@@ -46,7 +47,10 @@ case class SparkConfig(//batch_duration_seconds: Int,
                        master: String,
                        `spark.sql.shuffle.partitions`: Int)
 
-case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, config: Option[Seq[KVConfig]])
+case class KafkaOutputConfig(feedback_topic_name: String,
+                             brokers: String,
+                             kerberos: Boolean,
+                             config: Option[Seq[KVConfig]])
 
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig],
@@ -79,7 +83,8 @@ case class KafkaInputBaseConfig(`max.partition.fetch.bytes`: Int,
                                 `auto.offset.reset`: String,
                                 group_id: String,
                                 batch_duration_seconds: Int,
-                                brokers: String)
+                                brokers: String,
+                                kerberos: Boolean)
 
 //                                heartbeat_topic_name: String,
 //                                heartbeat_topic_rate: Long,
@@ -92,3 +97,6 @@ case class KafkaTopicConfig(topic_name: String,
 
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
+case class StreamSpecialConfig(
+                                useDefaultKey: Option[Boolean]
+                              )

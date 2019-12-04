@@ -161,7 +161,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         kafka => {
           val instanceSearch = Await.result(instanceDal.findByFilter(_.connUrl === kafka), minTimeOut)
           if (instanceSearch.isEmpty) {
-            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
+            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, None, active = true, currentSec, session.userId, currentSec, session.userId)
             i = i + 1
           }
           else kafkaIdMap.put(kafka, instanceSearch.head.id)

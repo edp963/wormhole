@@ -1337,10 +1337,10 @@ export class Manager extends React.Component {
               <p><strong>   Stream Config：</strong>{detailTemp.streamConfig}</p>
               <p><strong>   Start Config：</strong>{detailTemp.startConfig}</p>
 
-              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
-              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
-              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
-              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
+              <p><strong>   Create Time：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.createTime}</p>
+              <p><strong>   Update Time：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.updateTime}</p>
+              <p><strong>   Create By：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.createBy}</p>
+              <p><strong>   Update By：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.updateBy}</p>
               <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
             </div>
           )

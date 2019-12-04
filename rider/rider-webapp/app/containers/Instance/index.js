@@ -55,7 +55,7 @@ import {
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 
-import { operateLanguageText } from '../../utils/util'
+import { operateLanguageText, isJSON } from '../../utils/util'
 import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class Instance extends React.PureComponent {
@@ -172,7 +172,7 @@ export class Instance extends React.PureComponent {
 
   showEditInstance = (instance) => (e) => {
     this.props.onLoadSingleInstance(instance.id, ({
-      connUrl, active, createBy, createTime, id, nsInstance, nsSys, updateBy, updateTime, desc
+      connUrl, active, createBy, createTime, id, nsInstance, nsSys, updateBy, updateTime, desc, connConfig
                                                   }) => {
       this.setState({
         formVisible: true,
@@ -193,7 +193,8 @@ export class Instance extends React.PureComponent {
           instanceDataSystem: nsSys,
           connectionUrl: connUrl,
           instance: nsInstance,
-          description: desc
+          description: desc,
+          connConfig
         })
       })
     })
@@ -212,6 +213,11 @@ export class Instance extends React.PureComponent {
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
+        const connConfig = values.connConfig
+        if (connConfig && !isJSON(connConfig)) {
+          message.error('Connection Config Format Error, Must be JSON', 3)
+          return
+        }
         switch (instanceFormType) {
           case 'add':
             this.props.onAddInstance(values, () => {
@@ -224,7 +230,8 @@ export class Instance extends React.PureComponent {
           case 'edit':
             this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
               desc: values.description,
-              connUrl: values.connectionUrl
+              connUrl: values.connectionUrl,
+              connConfig
             }), () => {
               this.hideForm()
               message.success(modifyFormat, 3)

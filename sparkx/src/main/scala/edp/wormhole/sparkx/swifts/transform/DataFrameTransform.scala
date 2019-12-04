@@ -401,10 +401,13 @@ object DataFrameTransform extends EdpLogging {
       }
       dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
         val value = rs.getObject(name)
+        //logInfo("getDataMap value:" + value)
         arrayBuf(index) = if (value != null) {
-          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(rs.getBytes(name))
+          //if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
           else value.toString
         } else null
+        //logInfo("getDataMap arrayBuf(index):" + arrayBuf(index))
         tmpMap(name) = arrayBuf(index)
       }
 

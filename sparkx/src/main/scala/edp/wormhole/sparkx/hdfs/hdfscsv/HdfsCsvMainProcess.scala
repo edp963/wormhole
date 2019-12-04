@@ -36,6 +36,7 @@ import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFinder, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
@@ -84,7 +85,7 @@ object HdfsCsvMainProcess extends EdpLogging {
         HdfsDirective.doDirectiveTopic(config, stream)
 
         logInfo(s"config.rdd_partition_number ${config.rdd_partition_number}")
-        val dataParRdd: RDD[((String, String), String)] = formatRDD(config.rdd_partition_number, streamRdd)
+        val dataParRdd: RDD[((String, String), String)] = formatRDD(config, streamRdd)
 
         val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
 
@@ -272,12 +273,15 @@ object HdfsCsvMainProcess extends EdpLogging {
     offsetInfo
   }
 
-  private def formatRDD(partitionNum: Int, streamRdd: RDD[ConsumerRecord[String, String]]): RDD[((String, String), String)] = {
-    val dataParRdd: RDD[((String, String), String)] = if (partitionNum != -1) streamRdd.map(row => {
-      (UmsCommonUtils.checkAndGetProtocolNamespace(row.key, row.value), row.value)
-    }).repartition(partitionNum)
+  private def formatRDD(config: WormholeConfig, streamRdd: RDD[ConsumerRecord[String, String]]): RDD[((String, String), String)] = {
+    val sourceNamespaceSet = ConfMemoryStorage.getHdfscsvNamespaceSet
+    val dataParRdd: RDD[((String, String), String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => {
+      val rowKey = SparkxUtils.getDefaultKey(row.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+      (UmsCommonUtils.checkAndGetProtocolNamespace(rowKey, row.value), row.value)
+    }).repartition(config.rdd_partition_number)
     else streamRdd.map(row => {
-      (UmsCommonUtils.checkAndGetProtocolNamespace(row.key, row.value), row.value)
+      val rowKey = SparkxUtils.getDefaultKey(row.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+      (UmsCommonUtils.checkAndGetProtocolNamespace(rowKey, row.value), row.value)
     })
     dataParRdd
   }
@@ -559,7 +563,8 @@ object HdfsCsvMainProcess extends EdpLogging {
   }
 
   def getFormatData(data: String, schemaArray: JSONArray): String = {
-    val contentArray = JSON.parseArray(data)
+    data.substring(1,data.length-1)
+/*    val contentArray = JSON.parseArray(data)
     val dataList = ListBuffer.empty[String]
     for (i <- 0 until contentArray.size()) {
       val umsFieldType = UmsFieldType.umsFieldType(schemaArray.getJSONObject(i).getString("type"))
@@ -573,7 +578,7 @@ object HdfsCsvMainProcess extends EdpLogging {
       }
       dataList += newValue
     }
-    dataList.mkString(",")
+    dataList.mkString(",")*/
   }
 
   private def getFilePrefixShardingSlash(namespace: String, streamHdfsAddress: String, protocol: String): (String, String) = {
