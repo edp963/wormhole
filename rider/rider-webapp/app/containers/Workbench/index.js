@@ -1042,10 +1042,10 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = classAfterPartTepm
                 tranTypeTepm = 'cep'
                 pushdownConTepm = {}
-                this.workbenchFlowForm.setFieldsValue({
-                  time_characteristic: tranConfigVal.time_characteristic || '',
-                  parallelism: result.parallelism || 0
-                })
+                // this.workbenchFlowForm.setFieldsValue({
+                //   time_characteristic: tranConfigVal.time_characteristic || '',
+                //   parallelism: result.parallelism || 0
+                // })
               }
               tranTableSourceTemp.order = index + 1
               tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
