@@ -950,9 +950,10 @@ export class WorkbenchFlowForm extends React.Component {
               <FormItem label="Time Characteristic" labelCol={{span: 9}} wrapperCol={{span: 14}}>
                 {getFieldDecorator('time_characteristic', {
                   rules: [{
+                    required: true,
                     message: operateLanguageSelect('Time Characteristic', 'Time Characteristic')
                   }],
-                  hidden: stepHiddens[1],
+                  hidden: stepHiddens[1] || transConnectClass === 'hide',
                   initialValue: 'processing_time'
                 })(
                   <RadioGroup className="radio-group-style" size="default">
