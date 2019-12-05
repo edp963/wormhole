@@ -845,7 +845,8 @@ export class Workbench extends React.Component {
           const configParse = JSON.parse(config)
           parallelism = configParse.parallelism
           checkpoint = configParse.checkpoint
-          isCheckpoint = checkpoint.enable
+          const checkpointParse = JSON.parse(checkpoint)
+          isCheckpoint = checkpointParse.enable
         } catch (error) {
           console.error('TCL: Workbench -> queryFlowDefault -> error', error)
         }
@@ -2153,7 +2154,7 @@ export class Workbench extends React.Component {
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
     const isCheckpoint = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.checkpoint : null
-    const checkpoint = { enable: isCheckpoint, checkpoint_interval_ms: 300000, stateBackend: 'hdfs://flink-checkpoint' }
+    const checkpoint = JSON.stringify({ enable: isCheckpoint, checkpoint_interval_ms: 300000, stateBackend: 'hdfs://flink-checkpoint' })
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
