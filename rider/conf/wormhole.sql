@@ -241,6 +241,7 @@ alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(100) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
 alter table `flow` add column `priority_id` BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE `flow` CHANGE COLUMN `parallelism` `config` VARCHAR(1000) NOT NULL ;
 
 CREATE TABLE IF NOT EXISTS `flow_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -267,6 +268,9 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+ALTER TABLE `flow_history`
+CHANGE COLUMN `parallelism` `config` VARCHAR(1000) NOT NULL ;
 
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
