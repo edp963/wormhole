@@ -12,8 +12,9 @@ import edp.wormhole.sparkx.swifts.custom.sensors.entry.{EventEntry, PropertyColu
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Dataset, Encoders, Row, SparkSession}
+import org.apache.spark.sql.functions.lit
+import org.apache.spark.sql.types.{StructType, _}
+import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoders, Row, SaveMode, SparkSession}
 import org.joda.time.DateTime
 
 import scala.collection.mutable
@@ -75,8 +76,31 @@ class SensorsDataTransform extends EdpLogging{
       resultList.iterator;
     })
     val dataFrame=session.createDataFrame(resultRowRdd,resultRowSchema)
-    //dataFrame.show(10000000)
-    dataFrame
+
+    val parquetPath=getParquetFullPath(streamConfig,sourceNamespace,sinkNamespace,String.valueOf(paramUtil.getMyProjectId))
+    var oldFrame=session.read.parquet(parquetPath);
+    if(oldFrame.count()>0){
+      val oldSchema:StructType=oldFrame.schema;
+      val addedSchema=resultRowSchema.fields.filter(x=>(!oldSchema.fieldNames.contains(x.name)))
+      if(addedSchema.length>0){
+        val oldRowRdd: RDD[Row] = oldFrame.rdd.mapPartitions(it=>it.toList.map(x=>fillColumn(x,resultRowSchema,StructType(addedSchema))).iterator);
+        oldFrame=session.createDataFrame(oldRowRdd,resultRowSchema)
+      }
+    }
+    val mergeFrame=dataFrame.union(oldFrame).dropDuplicates(Array("_offset"));
+    val deadTime:Long=mergeFrame.agg("time"->"max").first().getAs[Long](0)-paramUtil.getEntry.getDuration;
+    val wDateFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")>deadTime).iterator})
+    session.createDataFrame(wDateFrame,resultRowSchema).write.mode(SaveMode.Overwrite).parquet(parquetPath);
+
+    val rDataFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")<=deadTime).iterator})
+
+    val returnDataFrame=session.createDataFrame(rDataFrame,resultRowSchema)
+    return returnDataFrame
+
+    //dataFrame.union();
+
+
+    //dataFrame.repartition(new Column("_offset"))
 
     //val jsonList=new util.ArrayList[String]();
     //dataSet.toJSON.foreach(x=>jsonList.add(x));
@@ -215,6 +239,22 @@ class SensorsDataTransform extends EdpLogging{
       fields +=StructField(_col,_type,true)
     }
     StructType(fields)
+  }
+
+  def getParquetFullPath(config: WormholeConfig, sourceNamespace: String, sinkNamespace: String,projectId:String):String={
+    return config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/sensors/" + config.spark_config.stream_id + "/"+projectId
+  }
+
+  def fillColumn(row:Row,resultSchema:StructType,addedSchema:StructType):Row = {
+    val rowValue=ArrayBuffer[Any]();
+    for(f<-resultSchema.fields){
+      if(addedSchema.fieldNames.contains(f.name)){
+        rowValue+=null
+      }else{
+        rowValue+=row.getAs[Any](f.name)
+      }
+    }
+    new GenericRowWithSchema(rowValue.toArray,resultSchema)
   }
 
 }
