@@ -9,6 +9,7 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
+import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -44,19 +45,25 @@ object SensorsDataTest  extends App {
 
   val df=sparkSession.read.json(txt.map(x=>x))
 
-  df.show(10000)
+  val df1=df.withColumn("f1",lit(null).cast(StringType))
+
+  val time=df1.agg("time"->"max").first().getAs[Long](0);
+
+  println(time)
+
+  df1.dropDuplicates(Array("_flush_time")).show(10000)
 
   //val df=sparkSession.read.json("/Users/creditease/Downloads/dataworks/kafka1.json")
-  df.show();
-
-  val t:SensorsDataTransform=new SensorsDataTransform();
-
-  val sourceNs = ""
-  val sinkNs = ""
-  val param:String="{\n\"projectId\":1,\n\"mysqlConnUrl\":\"jdbc:mysql://10.143.252.121:3306/metadata\",\n\"mysqlUser\":\"test121\",\n\"mysqlPassword\":\"dds@test121\",\n\"mysqlDatabase\":\"metadata\",\n\"clickHouseConnUrl\":\"jdbc:clickhouse://10.143.151.220:8123\",\n\"clickHouseUser\":\"root\",\n\"clickHousePassword\":\"root\",\n\"clickHouseDatabase\":\"event_data\",\n\"clickHouseTableName\":\"event_wos_p1\",\n\"clickHouseCluster\":\"bip_ck_cluster\"\n}"
-  val config:WormholeConfig =WormholeConfig(null,null,SparkConfig(1L,"test","test",0),1,"10.143.131.113:2181,10.143.131.119:2181,10.143.131.119:2181","/wormhole",false,Some(""),Some(""),Some(""),false,Some(false),None)
-  val dataFrame=t.transform(sparkSession,df,null,param,config,sourceNs,sinkNs)
-  dataFrame.show(100000)
+//  df.show();
+//
+//  val t:SensorsDataTransform=new SensorsDataTransform();
+//
+//  val sourceNs = ""
+//  val sinkNs = ""
+//  val param:String="{\n\"projectId\":1,\n\"mysqlConnUrl\":\"jdbc:mysql://10.143.252.121:3306/metadata\",\n\"mysqlUser\":\"test121\",\n\"mysqlPassword\":\"dds@test121\",\n\"mysqlDatabase\":\"metadata\",\n\"clickHouseConnUrl\":\"jdbc:clickhouse://10.143.151.220:8123\",\n\"clickHouseUser\":\"root\",\n\"clickHousePassword\":\"root\",\n\"clickHouseDatabase\":\"event_data\",\n\"clickHouseTableName\":\"event_wos_p1\",\n\"clickHouseCluster\":\"bip_ck_cluster\"\n}"
+//  val config:WormholeConfig =WormholeConfig(null,null,SparkConfig(1L,"test","test",0),1,"10.143.131.113:2181,10.143.131.119:2181,10.143.131.119:2181","/wormhole",false,Some(""),Some(""),Some(""),false,Some(false),None)
+//  val dataFrame=t.transform(sparkSession,df,null,param,config,sourceNs,sinkNs)
+//  dataFrame.show(100000)
 
   //val ds = sparkSession.createDataset(Seq(json1, json2))
 

@@ -48,6 +48,8 @@ public final class ParamUtils implements Serializable {
         Preconditions.checkNotNull(entry.getClickHousePassword(),"param [clickHousePassword] must not be null");
         Preconditions.checkNotNull(entry.getClickHouseTableName(),"param [clickHouseTableName] must not be null");
         Preconditions.checkNotNull(entry.getClickHouseCluster(),"param [clickHouseCluster] must not be null");
+        Preconditions.checkNotNull(entry.getDuration(),"param [duration] must not be null");
+
     }
 
     public  Long getMyProjectId(){
@@ -90,6 +92,7 @@ public final class ParamUtils implements Serializable {
         private String clickHouseDatabase;
         private String clickHouseTableName;
         private String clickHouseCluster;
+        private Long   duration;
 
         public String getClickHouseCluster() {
             return clickHouseCluster;
@@ -179,6 +182,14 @@ public final class ParamUtils implements Serializable {
             this.clickHouseDatabase = clickHouseDatabase;
         }
 
+        public Long getDuration() {
+            return duration;
+        }
+
+        public void setDuration(Long duration) {
+            this.duration = duration;
+        }
+
         @Override
         public String toString() {
             return "ParamEntry{" +
@@ -191,6 +202,9 @@ public final class ParamUtils implements Serializable {
                     ", clickHouseUser='" + clickHouseUser + '\'' +
                     ", clickHousePassword='" + clickHousePassword + '\'' +
                     ", clickHouseDatabase='" + clickHouseDatabase + '\'' +
+                    ", clickHouseTableName='" + clickHouseTableName + '\'' +
+                    ", clickHouseCluster='" + clickHouseCluster + '\'' +
+                    ", duration=" + duration +
                     '}';
         }
     }
