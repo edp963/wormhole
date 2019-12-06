@@ -11,6 +11,7 @@ import scala.collection.JavaConversions._
 import edp.wormhole.sparkx.swifts.custom.sensors.ase.AESUtil
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.{EventEntry, PropertyColumnEntry}
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
+import org.apache.hadoop.conf.Configuration
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.functions.lit
@@ -80,7 +81,7 @@ class SensorsDataTransform extends EdpLogging{
 
     val parquetPath=getParquetFullPath(streamConfig,sourceNamespace,sinkNamespace,String.valueOf(paramUtil.getMyProjectId))
     var oldFrame:DataFrame=null
-    if(HdfsUtils.isPathExist(parquetPath)){
+    if(HdfsUtils.isParquetPathReady(new Configuration,parquetPath)){
       oldFrame=session.read.parquet(parquetPath)
     }else{
       oldFrame=session.createDataFrame(session.sparkContext.emptyRDD[Row],resultRowSchema)
