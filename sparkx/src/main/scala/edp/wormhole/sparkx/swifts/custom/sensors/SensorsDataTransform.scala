@@ -4,6 +4,7 @@ import java.io.Serializable
 import java.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 
 import scala.collection.JavaConversions._
@@ -78,7 +79,12 @@ class SensorsDataTransform extends EdpLogging{
     val dataFrame=session.createDataFrame(resultRowRdd,resultRowSchema)
 
     val parquetPath=getParquetFullPath(streamConfig,sourceNamespace,sinkNamespace,String.valueOf(paramUtil.getMyProjectId))
-    var oldFrame=session.read.parquet(parquetPath);
+    var oldFrame:DataFrame=null
+    if(HdfsUtils.isPathExist(parquetPath)){
+      oldFrame=session.read.parquet(parquetPath)
+    }else{
+      oldFrame=session.createDataFrame(session.sparkContext.emptyRDD[Row],resultRowSchema)
+    }
     if(oldFrame.count()>0){
       val oldSchema:StructType=oldFrame.schema;
       val addedSchema=resultRowSchema.fields.filter(x=>(!oldSchema.fieldNames.contains(x.name)))
