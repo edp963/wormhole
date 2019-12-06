@@ -87,15 +87,23 @@ class SensorsDataTransform extends EdpLogging{
         oldFrame=session.createDataFrame(oldRowRdd,resultRowSchema)
       }
     }
-    val mergeFrame=dataFrame.union(oldFrame).dropDuplicates(Array("_offset"));
-    val deadTime:Long=mergeFrame.agg("time"->"max").first().getAs[Long](0)-paramUtil.getEntry.getDuration;
-    val wDateFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")>deadTime).iterator})
-    session.createDataFrame(wDateFrame,resultRowSchema).write.mode(SaveMode.Overwrite).parquet(parquetPath);
+    val mergeFrame=dataFrame.union(oldFrame).dropDuplicates(Array("day","sampling_group","user_id","time","_offset")).cache();
+    try{
+      val deadTime:Long=mergeFrame.agg("time"->"max").first().getAs[Long](0)-paramUtil.getEntry.getDuration;
+      val wDateFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")>deadTime).iterator})
+      session.createDataFrame(wDateFrame,resultRowSchema).write.mode(SaveMode.Overwrite).parquet(parquetPath);
+      val rDataFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")<=deadTime).iterator})
+      val returnDataFrame=session.createDataFrame(rDataFrame,resultRowSchema)
+      return returnDataFrame
+    }catch {
+      case e: Throwable =>
+        logError("", e)
+        throw e
+    }finally {
+      mergeFrame.unpersist()
+    }
 
-    val rDataFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")<=deadTime).iterator})
 
-    val returnDataFrame=session.createDataFrame(rDataFrame,resultRowSchema)
-    return returnDataFrame
 
     //dataFrame.union();
 
