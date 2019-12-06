@@ -114,11 +114,11 @@ object WormholeKafkaProducer extends Serializable {
     if (message != null) {
       try {
         if (key.isDefined) {
-          logger.info("kafka send message with key")
+          //logger.info("kafka send message with key")
           val future = getProducer(brokers).send(new ProducerRecord[String, String](topic, key.get, message))
           future.get()
         } else {
-          logger.info("kafka send message without key")
+          //logger.info("kafka send message without key")
           val future = getProducer(brokers).send(new ProducerRecord[String, String](topic, message))
           future.get()
         }
