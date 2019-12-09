@@ -22,9 +22,10 @@
 package edp.wormhole.kafka
 
 import java.util.Properties
+import java.util.concurrent.Future
 
 import edp.wormhole.util.config.KVConfig
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
@@ -150,10 +151,12 @@ object WormholeKafkaProducer extends Serializable {
       try {
         if (key.isDefined) {
           logger.info("kafka send message with key")
-          getProducer(brokers).send(new ProducerRecord[String, String](topic, key.get, message))
+          val future = getProducer(brokers).send(new ProducerRecord[String, String](topic, key.get, message))
+          future.get()
         } else {
           logger.info("kafka send message without key")
-          getProducer(brokers).send(new ProducerRecord[String, String](topic, message))
+          val future = getProducer(brokers).send(new ProducerRecord[String, String](topic, message))
+          future.get()
         }
       } catch {
         case e: Throwable =>
@@ -172,9 +175,11 @@ object WormholeKafkaProducer extends Serializable {
     if (message != null) {
       try {
         if (key.isDefined) {
-          getProducer(brokers).send(new ProducerRecord[String, String](topic, partition, key.get, message))
+          val future = getProducer(brokers).send(new ProducerRecord[String, String](topic, partition, key.get, message))
+          future.get()
         } else {
-          getProducer(brokers).send(new ProducerRecord[String, String](topic, partition, null, message))
+          val future = getProducer(brokers).send(new ProducerRecord[String, String](topic, partition, null, message))
+          future.get()
         }
       } catch {
         case e: Throwable =>
