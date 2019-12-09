@@ -86,7 +86,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val initialTs = System.currentTimeMillis
     val swiftsSql = getSwiftsSql(swiftsString, UmsFlowStartUtils.extractDataType(flowStartFields, flowStartPayload))
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
-    val flowConfig = UmsFlowStartUtils.extractFlowConfig(flowStartFields, flowStartPayload)
+    val flowConfigString = UmsFlowStartUtils.extractConfig(flowStartFields, flowStartPayload)
+    val flowConfig = JSON.parseObject(flowConfigString)
     val parallelism = UmsFlowStartUtils.extractParallelism(flowConfig)
     env.setParallelism(parallelism)
     manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(flowConfig))

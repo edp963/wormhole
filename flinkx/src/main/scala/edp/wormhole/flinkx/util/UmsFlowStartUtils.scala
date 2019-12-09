@@ -82,12 +82,22 @@ object UmsFlowStartUtils {
     else 1
   }
 
-  def extractCheckpointConfig(flowConfig: JSONObject): FlinkCheckpoint ={
-    val checkpointConfig = flowConfig.getJSONObject("checkpoint")
-    val isEnable = checkpointConfig.getBoolean("is_enable")
-    val interval = checkpointConfig.getIntValue("checkpoint_interval_ms")
-    val stateBackend=checkpointConfig.getString("stateBackend")
-    FlinkCheckpoint(isEnable,interval,stateBackend)
+  def extractCheckpointConfig(flowConfig: JSONObject): FlinkCheckpoint = {
+    val checkpoint = flowConfig.getJSONObject("checkpoint")
+    var isEnable: Boolean =
+      if (checkpoint.containsKey("enable")) checkpoint.getBoolean("enable")
+      else false
+    val interval =
+      if (checkpoint.containsKey("checkpoint_interval_ms")) checkpoint.getIntValue("checkpoint_interval_ms")
+      else 300000
+    val stateBackend =
+      if (checkpoint.containsKey("stateBackend")) checkpoint.getString("stateBackend")
+      else {
+        isEnable = false
+        logger.warn("checkpoint is enable, but no stateBackend is specified!!! So we turn down the checkpoint")
+        ""
+      }
+    FlinkCheckpoint(isEnable, interval, stateBackend)
   }
 
 
@@ -98,6 +108,11 @@ object UmsFlowStartUtils {
   def extractSwifts(schemas: Seq[UmsField], payloads: UmsTuple): String = {
     val swiftsEncoded = UmsFieldType.umsFieldValue(payloads.tuple, schemas, "swifts")
     if (swiftsEncoded != null && !swiftsEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swiftsEncoded.toString)) else null
+  }
+
+  def extractConfig(schemas: Seq[UmsField], payloads: UmsTuple): String = {
+    val configEncoded = UmsFieldType.umsFieldValue(payloads.tuple, schemas, "config")
+    if (configEncoded != null && !configEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(configEncoded.toString)) else null
   }
 
   def extractSinks(schemas: Seq[UmsField], payloads: UmsTuple): String = {

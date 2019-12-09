@@ -1237,7 +1237,7 @@ object FlowUtils extends RiderLogger {
     }
 
     val base64Tuple = Seq(flow.streamId, flow.id, currentNodMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
-      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),base64byte2s(flow.config.get.trim.getBytes))
     val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk.address, currentSec, flow.updateBy)), minTimeOut)
     //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
 
@@ -1302,6 +1302,7 @@ object FlowUtils extends RiderLogger {
          |"type": "string",
          |"nullable": true
          |},
+         |{
          |"name": "config",
          |"type": "string",
          |"nullable": false
@@ -1330,7 +1331,8 @@ object FlowUtils extends RiderLogger {
         base64Tuple(7)
       }", "${
         base64Tuple(8)
-      }","${flow.config.get}"]
+      }", "${
+        base64Tuple(9)}"]
          |}
          |]
          |}
