@@ -73,9 +73,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
   //  private val directiveId = UmsFlowStartUtils.extractDirectiveId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
   private val flowId = UmsFlowStartUtils.extractFlowId(flowStartFields, flowStartPayload)
-
   val swiftsSpecialConfig: JSONObject = UmsFlowStartUtils.extractSwiftsSpecialConfig(swifts)
-
 
   private val exceptionProcessMethod: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swiftsSpecialConfig))
   private val latenessSeconds: Int = UmsFlowStartUtils.latenessSecondsGet(swiftsSpecialConfig)
@@ -88,8 +86,11 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val initialTs = System.currentTimeMillis
     val swiftsSql = getSwiftsSql(swiftsString, UmsFlowStartUtils.extractDataType(flowStartFields, flowStartPayload))
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
-    env.setParallelism(config.parallelism)
-    manageCheckpoint(env)
+    val flowConfigString = UmsFlowStartUtils.extractConfig(flowStartFields, flowStartPayload)
+    val flowConfig = JSON.parseObject(flowConfigString)
+    val parallelism = UmsFlowStartUtils.extractParallelism(flowConfig)
+    env.setParallelism(parallelism)
+    manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(config.commonConfig,flowConfig))
     val tableEnv = TableEnvironment.getTableEnvironment(env)
     tableEnv.config.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
     udfRegister(tableEnv)
@@ -172,10 +173,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     inputStream
   }
 
-  private def manageCheckpoint(env: StreamExecutionEnvironment): Unit = {
-    if (config.flink_config.checkpoint.enable) {
-      env.setStateBackend(new FsStateBackend(config.flink_config.checkpoint.stateBackend).asInstanceOf[StateBackend])
-      env.enableCheckpointing(config.flink_config.checkpoint.`checkpointInterval.ms`)
+  private def manageCheckpoint(env: StreamExecutionEnvironment, flinkCheckpoint: FlinkCheckpoint): Unit = {
+    if (flinkCheckpoint.isEnable) {
+      env.setStateBackend(new FsStateBackend(flinkCheckpoint.stateBackend).asInstanceOf[StateBackend])
+      env.enableCheckpointing(flinkCheckpoint `checkpointInterval.ms`)
       val checkpointConfig = env.getCheckpointConfig
       checkpointConfig.setMinPauseBetweenCheckpoints(500)
       checkpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
