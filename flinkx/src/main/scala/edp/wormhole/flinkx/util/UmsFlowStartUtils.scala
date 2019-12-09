@@ -23,7 +23,7 @@ package edp.wormhole.flinkx.util
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.flinkx.common.FlinkCheckpoint
+import edp.wormhole.flinkx.common.{CommonConfig, FlinkCheckpoint}
 import edp.wormhole.flinkx.swifts.{FlinkxSwiftsConstants, FlinkxTimeCharacteristicConstants}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
@@ -82,22 +82,15 @@ object UmsFlowStartUtils {
     else 1
   }
 
-  def extractCheckpointConfig(flowConfig: JSONObject): FlinkCheckpoint = {
+  def extractCheckpointConfig(commonConfig: CommonConfig, flowConfig: JSONObject): FlinkCheckpoint = {
     val checkpoint = flowConfig.getJSONObject("checkpoint")
-    var isEnable: Boolean =
+    val isEnable: Boolean =
       if (checkpoint.containsKey("enable")) checkpoint.getBoolean("enable")
       else false
     val interval =
       if (checkpoint.containsKey("checkpoint_interval_ms")) checkpoint.getIntValue("checkpoint_interval_ms")
       else 300000
-    val stateBackend =
-      if (checkpoint.containsKey("stateBackend")) checkpoint.getString("stateBackend")
-      else {
-        isEnable = false
-        logger.warn("checkpoint is enable, but no stateBackend is specified!!! So we turn down the checkpoint")
-        ""
-      }
-    FlinkCheckpoint(isEnable, interval, stateBackend)
+    FlinkCheckpoint(isEnable, interval, commonConfig.stateBackend)
   }
 
 

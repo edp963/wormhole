@@ -26,7 +26,7 @@ import edp.wormhole.util.config.KVConfig
 case class WormholeFlinkxConfig(flow_name: String,
                                 kafka_input: KafkaInputConfig,
                                 kafka_output: KafkaOutputConfig,
-                                config: String,
+                                commonConfig: CommonConfig,
                                 zookeeper_address: String,
                                 udf_config: Seq[UdfConfig],
                                 feedback_enabled: Boolean,
@@ -40,6 +40,7 @@ case class FlinkConfig(parallelism: Int, checkpoint: FlinkCheckpoint)
 
 case class FlinkCheckpoint(isEnable: Boolean = false, `checkpointInterval.ms`: Int = 60000, stateBackend: String)
 
+case class CommonConfig(stateBackend: String)
 
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig]) {

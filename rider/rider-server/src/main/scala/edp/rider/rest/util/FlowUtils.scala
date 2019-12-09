@@ -1202,7 +1202,7 @@ object FlowUtils extends RiderLogger {
     val config = WhFlinkConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs),
       KafkaInput(baseConfig, flinkTopic),
       outputConfig,
-      "",
+      RiderConfig.flinkConfig,
       RiderConfig.zk.address,
       udfConfig,
       RiderConfig.flink.feedbackEnabled,
