@@ -29,13 +29,14 @@ import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.swifts.SqlOptType.SqlOptType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.util.config.ConnectionConfig
-import edp.wormhole.util.swifts.SwiftsSql
+import edp.wormhole.util.swifts.{Operator, SqlCondition, SwiftsSql}
 import edp.wormhole.kuduconnection.KuduConnection
 import org.apache.kudu.client.KuduTable
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.util.matching.Regex
 
 object ParseSwiftsSqlInternal {
   private lazy val logger = LoggerFactory.getLogger(this.getClass)
@@ -95,8 +96,11 @@ object ParseSwiftsSqlInternal {
     })
     val lookupFieldsAlias = resetLookupTableFields(lookupFields, selectFieldsList)
 
+    //get sql condition
+    val sqlConditions = if (lookupNSArr(0).startsWith(UmsDataSystem.KUDU.toString)) getConstantConditions(sql, sourceNamespace)
+    else None
 
-    SwiftsSql(SqlOptType.UNION.toString, Some(selectSchema), sqlSecondPart, None, Some(unionNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
+    SwiftsSql(SqlOptType.UNION.toString, Some(selectSchema), sqlSecondPart, None, Some(unionNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias), sqlConditions)
   }
 
 
@@ -210,10 +214,92 @@ object ParseSwiftsSqlInternal {
       fieldsStr = getFieldsWithType(joinNamespace, sql)
     }
 
+    //get sql condition
+    val sqlConditions = if (joinNamespace.startsWith(UmsDataSystem.KUDU.toString)) getConstantConditions(sql, sourceNamespace)
+    else None
+
     //    syntaxCheck(sql, lookupFields)
     val lookupFieldsAlias = getAliasLookupFields(sql, lookupFields)
     //logger.info(s"joinNamespace $joinNamespace, timeout $timeout")
-    SwiftsSql(optType.toString, fieldsStr, sql, timeout, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
+    SwiftsSql(optType.toString, fieldsStr, sql, timeout, Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias), sqlConditions)
+  }
+
+  def getConstantConditions(sql: String, sourceNs: String): Option[Array[SqlCondition]] = {
+    val fourSourceNsList = sourceNs.split("\\.")
+    val fourSourceNs = s"${fourSourceNsList(0)}.${fourSourceNsList(1)}.${fourSourceNsList(2)}.${fourSourceNsList(3)}"
+    if(sql.contains(" where ")) {
+      val constantConditions = sql.substring(sql.toLowerCase.indexOf(" where ") + 6, if (sql.endsWith(";")) sql.length - 1 else sql.length)
+      val conditionSeq = constantConditions.split(" and ")
+      val sqlConditions = ListBuffer.empty[SqlCondition]
+      conditionSeq.foreach(condition => {
+        val sqlCondition = matchCondition(condition, fourSourceNs)
+        if(null != sqlCondition) sqlConditions += sqlCondition
+      })
+      logger.info(s"getConstantConditions sql is $sql, sourceNs is $sourceNs, sqlConditions is $sqlConditions")
+      if(sqlConditions.nonEmpty) Some(sqlConditions.toArray)
+      else None
+    } else {
+      None
+    }
+  }
+
+
+  private def matchCondition(conditionOrg: String, sourceNs: String): SqlCondition = {
+    if(null != conditionOrg && !conditionOrg.isEmpty) {
+      //去空格
+      val spacePattern = new Regex("""\s{1,}""")
+      val conditionTrim = spacePattern.replaceAllIn(conditionOrg, " ").trim.toLowerCase()
+      val condition = deleteParentheses(conditionTrim)
+
+      if(condition.contains(s" ${Operator.IS_NULL.toString} ")) {
+        val conditionSeq = condition.split(s" ${Operator.IS_NULL.toString} ")
+        SqlCondition(conditionSeq.head.trim, Operator.IS_NULL , "", false)
+      } else if(condition.contains(s" ${Operator.IS_NOT_NULL.toString} ")) {
+        val conditionSeq = condition.split(s" ${Operator.IS_NOT_NULL.toString} ")
+        SqlCondition(conditionSeq.head.trim, Operator.IS_NOT_NULL , "", false)
+      }
+      else if(condition.contains(s"${Operator.GREATER_EQUAL.toString}")) {
+        val conditionSeq = condition.split(s"${Operator.GREATER_EQUAL.toString}")
+        SqlCondition(conditionSeq.head.trim, Operator.GREATER_EQUAL , deleteQuotation(conditionSeq.last.trim), false)
+      } else if(condition.contains(s"${Operator.GREATER.toString}") && !condition.contains(s"${Operator.GREATER_EQUAL.toString}")) {
+        val conditionSeq = condition.split(s"${Operator.GREATER.toString}")
+        SqlCondition(conditionSeq.head.trim, Operator.GREATER , deleteQuotation(conditionSeq.last.trim), false)
+      } else if(condition.contains(s"${Operator.LESS_EQUAL.toString}")) {
+        val conditionSeq = condition.split(s"${Operator.LESS_EQUAL.toString}")
+        SqlCondition(conditionSeq.head.trim, Operator.LESS_EQUAL , deleteQuotation(conditionSeq.last.trim), false)
+      } else if(condition.contains(s"${Operator.LESS.toString}") && !condition.contains(s"${Operator.LESS_EQUAL.toString}")) {
+        val conditionSeq = condition.split(s"${Operator.LESS.toString}")
+        SqlCondition(conditionSeq.head.trim, Operator.LESS , deleteQuotation(conditionSeq.last.trim), false)
+      } else if(condition.contains(s"${Operator.EQUAL.toString}") && !condition.contains(s"${Operator.GREATER_EQUAL.toString}") && !condition.contains(s"${Operator.LESS_EQUAL.toString}")) {
+        val conditionSeq = condition.split(s"${Operator.EQUAL.toString}")
+        SqlCondition(conditionSeq.head.trim, Operator.EQUAL , deleteQuotation(conditionSeq.last.trim), false)
+      }
+      else if(condition.contains(s" ${Operator.IN.toString} ") && !condition.contains("${") && !condition.contains(sourceNs)){
+        val conditionSeq = condition.split(s" ${Operator.IN.toString} ")
+        val inConditionValue = deleteParentheses(conditionSeq.last.trim)
+        SqlCondition(conditionSeq.head.trim, Operator.getOperator(Operator.IN.toString), inConditionValue, false)
+      } else {
+        null
+      }
+    } else null
+  }
+
+  private def deleteParentheses(s: String): String = {
+    var result = s
+    //去左括号
+    if(result.startsWith("(")) result = result.substring(1, result.length)
+    //去右括号
+    if(result.endsWith(")")) result = result.substring(0, result.length-1)
+    result
+  }
+
+  private def deleteQuotation(s: String): String = {
+    var result = s
+    //去左括号
+    if(result.startsWith("\"") || result.startsWith("'")) result = result.substring(1, result.length)
+    //去右括号
+    if(result.endsWith("\"") || result.endsWith("'")) result = result.substring(0, result.length-1)
+    result
   }
 
   private def getFieldsAndSqlFromHbaseOrRedis(userSqlStr: String, joinNamespace: String): (String, Array[String], Array[String]) = {
