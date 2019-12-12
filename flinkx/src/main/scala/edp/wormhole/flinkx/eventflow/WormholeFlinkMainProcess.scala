@@ -21,6 +21,7 @@
 package edp.wormhole.flinkx.eventflow
 
 import java.sql.Timestamp
+import java.util.concurrent.TimeUnit
 import java.util.{Properties, TimeZone}
 
 import com.alibaba.fastjson
@@ -42,6 +43,7 @@ import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
+import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.runtime.state.StateBackend
@@ -90,7 +92,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val flowConfig = JSON.parseObject(flowConfigString)
     val parallelism = UmsFlowStartUtils.extractParallelism(flowConfig)
     env.setParallelism(parallelism)
-    manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(config.commonConfig,flowConfig))
+    manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(config.commonConfig, flowConfig))
     val tableEnv = TableEnvironment.getTableEnvironment(env)
     tableEnv.config.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
     udfRegister(tableEnv)
@@ -181,7 +183,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       checkpointConfig.setMinPauseBetweenCheckpoints(500)
       checkpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
       checkpointConfig.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-    }
+    } else env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, org.apache.flink.api.common.time.Time.of(10, TimeUnit.SECONDS)))
   }
 
   private def assignMetricConfig(): Configuration = {
@@ -212,18 +214,19 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME) {
       inputStream
     }
-    else if(latenessSeconds <= 0){
+    else if (latenessSeconds <= 0) {
       inputStream.assignTimestampsAndWatermarks(new FlinkxTimestampExtractor(sourceSchemaMap))
     } else {
       inputStream.assignTimestampsAndWatermarks(
-       new BoundedOutOfOrdernessTimestampExtractor[Row](Time.seconds(latenessSeconds)) {
-         override def extractTimestamp(element: Row): Long = {
-           val umsTs = element.getField(sourceSchemaMap(UmsSysField.TS.toString)._2)
-           logger.info(s"latenessSeconds is $latenessSeconds, umsTs in assignTimestamp $umsTs")
-           val umsTsInLong = DateUtils.dt2long(umsTs.asInstanceOf[Timestamp])
-           logger.info("umsTsInLong " + umsTsInLong)
-           umsTsInLong
-         }}
+        new BoundedOutOfOrdernessTimestampExtractor[Row](Time.seconds(latenessSeconds)) {
+          override def extractTimestamp(element: Row): Long = {
+            val umsTs = element.getField(sourceSchemaMap(UmsSysField.TS.toString)._2)
+            logger.debug(s"latenessSeconds is $latenessSeconds, umsTs in assignTimestamp $umsTs")
+            val umsTsInLong = DateUtils.dt2long(umsTs.asInstanceOf[Timestamp])
+            logger.debug("umsTsInLong " + umsTsInLong)
+            umsTsInLong
+          }
+        }
       )
     }
   }
