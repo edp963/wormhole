@@ -183,7 +183,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       checkpointConfig.setMinPauseBetweenCheckpoints(500)
       checkpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
       checkpointConfig.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-    } else env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, org.apache.flink.api.common.time.Time.of(10, TimeUnit.SECONDS)))
+    } else env.setRestartStrategy(RestartStrategies.fixedDelayRestart(100, org.apache.flink.api.common.time.Time.of(10, TimeUnit.SECONDS)))
   }
 
   private def assignMetricConfig(): Configuration = {
