@@ -4,6 +4,8 @@ import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.swifts.{Operator, SqlCondition}
+import org.apache.kudu.client.KuduPredicate.ComparisonOp
 import org.apache.kudu.{Schema, Type}
 import org.apache.kudu.client._
 import org.apache.log4j.Logger
@@ -142,6 +144,7 @@ object KuduConnection extends Serializable {
     if (database == "default") tableName else database + tableName
   }
 
+  //kudu sink
   def doQueryByKeyList(tableName: String, database: String, url: String, keysName: Seq[String], tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        queryFieldsName: Seq[String]): mutable.HashMap[String, Map[String, (Any, String)]] = {
     logger.info("doQueryByKeyList:" + kuduConfigurationMap(url) + ":::" + tableName)
@@ -172,6 +175,7 @@ object KuduConnection extends Serializable {
     queryResultMap
   }
 
+  //kudu sink
   def doQueryByKeyListInBatch(tableName: String, database: String, url: String, keyName: String, tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                               queryFieldsName: Seq[String], batchSize: Int): mutable.HashMap[String, Map[String, (Any, String)]] = {
     logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
@@ -220,6 +224,7 @@ object KuduConnection extends Serializable {
     queryResultMap
   }
 
+  //kudu sink
   private def queryByKeyInBatch(client: KuduClient, table: KuduTable, queryFieldsName: Seq[String], keyName: String,
                                 dataList: Seq[Any], batchSize: Int): mutable.HashMap[String, Map[String, (Any, String)]] = {
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
@@ -258,6 +263,7 @@ object KuduConnection extends Serializable {
     queryResultMap
   }
 
+  //kudu sink
   private def queryOneRowByOneKey(client: KuduClient, table: KuduTable, queryFieldsName: Seq[String], keyName: String,
                                   dataList: Seq[String], keyType: Type, tableSchema: Schema): mutable.HashMap[String, Map[String, (Any, String)]] = {
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
@@ -303,8 +309,10 @@ object KuduConnection extends Serializable {
     queryResultMap
   }
 
-  def doQueryMultiByKeyListInBatch(tableName: String, database: String, url: String, keyName: String, tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                                   queryFieldsName: Seq[String], batchSize: Int): mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = {
+  //kudu lookup&union
+  def doQueryMultiByKeyListInBatch(tableName: String, database: String, url: String, keyName: String, tupleList: Seq[Seq[String]],
+                                   schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], queryFieldsName: Seq[String], batchSize: Int,
+                                   typeMap: mutable.Map[String, Type], sqlConditions: Option[Array[SqlCondition]] = None): mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = {
     logger.info("doQueryMultiByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
     val queryResultMap = mutable.HashMap.empty[String, mutable.HashSet[Map[String, (Any, String)]]]
     val client: KuduClient = getKuduClient(url)
@@ -337,8 +345,14 @@ object KuduConnection extends Serializable {
         val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
           .setProjectedColumnNames(queryFieldsName) //指定输出列
 
+        //tablekey condition
         val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName), data)
         scannerBuilder.addPredicate(kuduPredicate)
+
+        //constant condition
+        val kuduConstantPredicates = getKuduPredicates(table, sqlConditions, typeMap)
+        kuduConstantPredicates.foreach(kuduConstantPredicate => scannerBuilder.addPredicate(kuduConstantPredicate))
+
         val scanner = scannerBuilder.build()
 
         while (scanner.hasMoreRows) {
@@ -394,6 +408,7 @@ object KuduConnection extends Serializable {
     queryResultMapResult
   }
 
+  //flink look up
   def doQueryByKey(keysName: Seq[String], keysContent: Seq[String], keysTypeMap: mutable.Map[String, Type],
                    client: KuduClient, table: KuduTable, queryFieldsName: Seq[String]): (String, Map[String, (Any, String)]) = {
     val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
@@ -404,26 +419,7 @@ object KuduConnection extends Serializable {
     for (i <- keysName.indices) {
       val keyContent = keysContent(i)
       val keyName = keysName(i)
-      val kuduPredicate = keysTypeMap(keyName) match {
-        case Type.STRING =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent)
-        case Type.INT64 =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toLong)
-        case Type.INT8 | Type.INT16 | Type.INT32 =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toInt)
-        case Type.FLOAT =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toFloat)
-        case Type.DOUBLE =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toDouble)
-        case Type.BOOL =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toBoolean)
-        case Type.DECIMAL =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, new java.math.BigDecimal(keyContent))
-        case Type.BINARY =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.getBytes())
-        case Type.UNIXTIME_MICROS =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, DateUtils.dt2long(keyContent))
-      }
+      val kuduPredicate = getComparisonKuduPredicate(table, keyContent, keyName, keysTypeMap(keyName), KuduPredicate.ComparisonOp.EQUAL)
       scannerBuilder.addPredicate(kuduPredicate)
     }
     val scanner = scannerBuilder.build()
@@ -458,38 +454,26 @@ object KuduConnection extends Serializable {
     (keysStr, map.toMap)
   }
 
+  //lookup union
   def doQueryMultiByKey(keysName: Seq[String], keysContent: Seq[String], keysTypeMap: mutable.Map[String, Type],
-                        client: KuduClient, table: KuduTable, queryFieldsName: Seq[String]): mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = {
+                        client: KuduClient, table: KuduTable, queryFieldsName: Seq[String],
+                        sqlConditions: Option[Array[SqlCondition]] = None): mutable.HashMap[String, ListBuffer[Map[String, (Any, String)]]] = {
     val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
       .setProjectedColumnNames(queryFieldsName) //指定输出列
 
     val queryResultMap = mutable.HashMap.empty[String, ListBuffer[Map[String, (Any, String)]]]
 
+    //tablekey condition
     for (i <- keysName.indices) {
       val keyContent = keysContent(i)
       val keyName = keysName(i)
-      val kuduPredicate = keysTypeMap(keyName) match {
-        case Type.STRING =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent)
-        case Type.INT64 =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toLong)
-        case Type.INT8 | Type.INT16 | Type.INT32 =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toInt)
-        case Type.FLOAT =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toFloat)
-        case Type.DOUBLE =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toDouble)
-        case Type.BOOL =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toBoolean)
-        case Type.DECIMAL =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, new java.math.BigDecimal(keyContent))
-        case Type.BINARY =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.getBytes())
-        case Type.UNIXTIME_MICROS =>
-          KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, DateUtils.dt2long(keyContent))
-      }
+      val kuduPredicate = getComparisonKuduPredicate(table, keyContent, keyName, keysTypeMap(keyName), KuduPredicate.ComparisonOp.EQUAL)
       scannerBuilder.addPredicate(kuduPredicate)
     }
+
+    //constant condition
+    val kuduConstantPredicates = getKuduPredicates(table, sqlConditions, keysTypeMap)
+    kuduConstantPredicates.foreach(kuduConstantPredicate => scannerBuilder.addPredicate(kuduConstantPredicate))
     val scanner = scannerBuilder.build()
 
     val keysStr = keysContent.mkString("_")
@@ -546,7 +530,7 @@ object KuduConnection extends Serializable {
         case UmsFieldType.FLOAT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
         case UmsFieldType.LONG => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, fieldContent.toLong)
         case UmsFieldType.DATETIME => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, DateUtils.dt2long(fieldContent))
-        case _ => row.addString(fieldName, fieldContent)
+        case _ => if (fieldContent == null) row.setNull(fieldName) else row.addString(fieldName, fieldContent)
       }
     })
   }
@@ -598,6 +582,107 @@ object KuduConnection extends Serializable {
       closeClient(client)
     }
     errorsCount
+  }
+
+
+  def getKuduPredicates(table: KuduTable, sqlConditions: Option[Array[SqlCondition]], fieldTypeMap: mutable.Map[String, Type]): Seq[KuduPredicate] = {
+    sqlConditions match {
+      case Some(conditions) =>
+        conditions.map(condition => {
+        getKuduPredicate(table, condition, fieldTypeMap(condition.column))
+      })
+      case None => Seq()
+    }
+  }
+
+  def getKuduPredicate(table: KuduTable, sqlCondition: SqlCondition, fieldType: Type): KuduPredicate = {
+    val fieldValue = sqlCondition.value
+    val fieldName = sqlCondition.column
+    sqlCondition.operator match {
+      case Operator.EQUAL =>
+        getComparisonKuduPredicate(table, fieldValue, fieldName, fieldType, KuduPredicate.ComparisonOp.EQUAL)
+      case Operator.GREATER =>
+        getComparisonKuduPredicate(table, fieldValue, fieldName, fieldType, KuduPredicate.ComparisonOp.GREATER)
+      case Operator.GREATER_EQUAL =>
+        getComparisonKuduPredicate(table, fieldValue, fieldName, fieldType, KuduPredicate.ComparisonOp.GREATER_EQUAL)
+      case Operator.LESS =>
+        getComparisonKuduPredicate(table, fieldValue, fieldName, fieldType, KuduPredicate.ComparisonOp.LESS)
+      case Operator.LESS_EQUAL =>
+        getComparisonKuduPredicate(table, fieldValue, fieldName, fieldType, KuduPredicate.ComparisonOp.LESS_EQUAL)
+      case Operator.IS_NULL =>
+        KuduPredicate.newIsNullPredicate(table.getSchema.getColumn(fieldName))
+      case Operator.IS_NOT_NULL =>
+        KuduPredicate.newIsNotNullPredicate(table.getSchema.getColumn(fieldName))
+      case Operator.IN =>
+        val fieldValueList = fieldValue.split(",").map(value => deleteQuotation(value))
+        getListKuduPredication(table, fieldValueList, fieldName, fieldType)
+    }
+  }
+
+
+  def getComparisonKuduPredicate(table: KuduTable, fieldValue: String, fieldName: String, fieldType: Type, comparisonOp: ComparisonOp): KuduPredicate = {
+    fieldType match {
+      case Type.STRING =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue)
+      case Type.INT64 =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toLong)
+      case Type.INT8 | Type.INT16 | Type.INT32 =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toInt)
+      case Type.FLOAT =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toFloat)
+      case Type.DOUBLE =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toDouble)
+      case Type.BOOL =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toBoolean)
+      case Type.DECIMAL =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, new java.math.BigDecimal(fieldValue))
+      case Type.BINARY =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.getBytes())
+      case Type.UNIXTIME_MICROS =>
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, DateUtils.dt2long(fieldValue))
+    }
+  }
+
+
+  def getListKuduPredication(table: KuduTable, fieldValues: Seq[String], fieldName: String, fieldType: Type): KuduPredicate= {
+    val dataList: Seq[Any] = getKuduDataList(fieldValues, fieldType)
+    KuduPredicate.newInListPredicate(table.getSchema.getColumn(fieldName), dataList)
+  }
+
+  def getKuduDataList(fieldValues: Seq[String], fieldType: Type): Seq[Any] = {
+    fieldValues.map(fieldValue => {
+      fieldType match {
+        case Type.STRING =>
+          fieldValue
+        case Type.INT64 =>
+          fieldValue.toLong
+        case Type.INT8 | Type.INT16 | Type.INT32 =>
+          fieldValue.toInt
+        case Type.FLOAT =>
+          fieldValue.toFloat
+        case Type.DOUBLE =>
+          fieldValue.toDouble
+        case Type.BOOL =>
+          fieldValue.toBoolean
+        case Type.DECIMAL =>
+          new java.math.BigDecimal(fieldValue)
+        case Type.BINARY =>
+          fieldValue.getBytes()
+        case Type.UNIXTIME_MICROS =>
+          DateUtils.dt2long(fieldValue)
+        case _ =>
+          fieldValue
+      }
+    })
+  }
+
+  private def deleteQuotation(s: String): String = {
+    var result = s
+    //去左括号
+    if(result.startsWith("\"") || result.startsWith("'")) result = result.substring(1, result.length)
+    //去右括号
+    if(result.endsWith("\"") || result.endsWith("'")) result = result.substring(0, result.length-1)
+    result
   }
 
 }

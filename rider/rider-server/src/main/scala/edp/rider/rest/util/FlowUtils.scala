@@ -1202,13 +1202,12 @@ object FlowUtils extends RiderLogger {
     val config = WhFlinkConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs),
       KafkaInput(baseConfig, flinkTopic),
       outputConfig,
-      flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism),
+      RiderConfig.flinkConfig,
       RiderConfig.zk.address,
       udfConfig,
       RiderConfig.flink.feedbackEnabled,
       RiderConfig.flink.feedbackStateCount,
       RiderConfig.flink.feedbackInterval,
-      FlinkConfig(RiderConfig.flinkCheckpoint),
       RiderConfig.kerberos.kafkaEnabled)
     caseClass2json[WhFlinkConfig](config)
   }
@@ -1238,7 +1237,7 @@ object FlowUtils extends RiderLogger {
     }
 
     val base64Tuple = Seq(flow.streamId, flow.id, currentNodMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
-      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),base64byte2s(flow.config.get.trim.getBytes))
     val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk.address, currentSec, flow.updateBy)), minTimeOut)
     //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
 
@@ -1302,6 +1301,11 @@ object FlowUtils extends RiderLogger {
          |"name": "swifts",
          |"type": "string",
          |"nullable": true
+         |},
+         |{
+         |"name": "config",
+         |"type": "string",
+         |"nullable": false
          |}
          |]
          |},
@@ -1327,7 +1331,8 @@ object FlowUtils extends RiderLogger {
         base64Tuple(7)
       }", "${
         base64Tuple(8)
-      }"]
+      }", "${
+        base64Tuple(9)}"]
          |}
          |]
          |}
@@ -1386,10 +1391,7 @@ object FlowUtils extends RiderLogger {
   private def getFlowByFlowStream(flowStream: FlowStream): Flow
 
   = {
-    Flow(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, 0L, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-      flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStream.status, flowStream.startedTime, flowStream.stoppedTime,
-      flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-      flowStream.updateBy)
+    Flow(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, 0L, flowStream.sourceNs, flowStream.sinkNs, flowStream.config, flowStream.consumedProtocol, flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
   }
 
   def getFlowStatusByYarn(flowStreams: Seq[FlowStream]): Seq[FlowStream] = {
@@ -1412,11 +1414,7 @@ object FlowUtils extends RiderLogger {
             } else if (flowYarnMap.contains(flowName) && flowStream.startedTime.orNull != null && yyyyMMddHHmmss(flowYarnMap(flowName).startTime) > yyyyMMddHHmmss(flowStream.startedTime.get)) {
               getFlowStatusByYarnAndLog(FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime), flowYarnMap(flowName))
             } else FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime)
-            FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-              flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, yarnFlow.status, yarnFlow.startTime, yarnFlow.stopTime,
-              flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-              flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions,
-              flowStream.topicInfo, flowStream.currentUdf, flowStream.msg)
+            FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.config, flowStream.consumedProtocol, flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, yarnFlow.status, yarnFlow.startTime, yarnFlow.stopTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions, flowStream.topicInfo, flowStream.currentUdf, flowStream.msg)
           } else flowStream
       }
     } catch {
