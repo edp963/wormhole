@@ -19,6 +19,8 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /**
  * Created by IntelliJ IDEA.
@@ -443,6 +445,11 @@ public class ConvertUtils implements Serializable {
                 return o1.compareTo(o2);
             }
         });
+    }
+
+
+    public static Map<String,PropertyColumnEntry> getColumnMap(Map<String,PropertyColumnEntry> proMap){
+        return proMap.values().stream().collect(Collectors.toMap(x->x.getColumn_name(),x->x));
     }
 
 
