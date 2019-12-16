@@ -2,6 +2,7 @@ package edp.wormhole.sparkx.swifts.custom.sensors
 
 import java.io.Serializable
 import java.util
+import java.util.stream.Collectors
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.externalclient.hadoop.HdfsUtils
@@ -64,8 +65,10 @@ class SensorsDataTransform extends EdpLogging{
     logInfo(s"namespaceConfigKey is $namespaceConfigKey,namespaceConfigValue is $namespaceConfigValue")
 
     val proColumnMap:util.Map[String,PropertyColumnEntry]=schemaUtils.getProColumnMap();
+    val columnMap:util.Map[String,PropertyColumnEntry]=ConvertUtils.getColumnMap(proColumnMap);
     val eventMap:util.Map[String,EventEntry]=schemaUtils.getEventMap();
     val sortedList:util.List[String]=schemaUtils.getPropertiesSortedList();
+    val dataTypeConstMap:util.Map[Integer,Object]=paramUtil.getDataTypeConstMap();
     logInfo(s"SensorsDataTransform sortedList is $sortedList")
 
     val resultRowSchema=convertSchema(proColumnMap,sortedList);
@@ -73,42 +76,64 @@ class SensorsDataTransform extends EdpLogging{
       val resultList = mutable.ListBuffer.empty[Row]
       val listRow:List[Row]=it.toList
       listRow.foreach(row=>{
-           resultList+=covertRow(row,proColumnMap,eventMap,sortedList);
+           resultList+=covertRow(row,proColumnMap,eventMap,sortedList,dataTypeConstMap);
       })
       resultList.iterator;
     })
     val dataFrame=session.createDataFrame(resultRowRdd,resultRowSchema)
-
     val parquetPath=getParquetFullPath(streamConfig,sourceNamespace,sinkNamespace,String.valueOf(paramUtil.getMyProjectId))
-    var oldFrame:DataFrame=null
-    if(HdfsUtils.isParquetPathReady(new Configuration,parquetPath)){
-      oldFrame=session.read.parquet(parquetPath)
+    if(paramUtil.getEntry.getDuration<=0){
+      if(!HdfsUtils.isParquetPathReady(new Configuration,parquetPath)){
+        return dataFrame;
+      }else{
+        var oldFrame:DataFrame=session.read.parquet(parquetPath);
+        if(oldFrame.count()>0){
+          val oldSchema:StructType=oldFrame.schema;
+          val addedSchema=resultRowSchema.fields.filter(x=>(!oldSchema.fieldNames.contains(x.name)))
+          if(addedSchema.length>0){
+            val oldRowRdd: RDD[Row] = oldFrame.rdd.mapPartitions(it=>it.toList.map(x=>fillColumn(x,resultRowSchema,StructType(addedSchema),columnMap,dataTypeConstMap)).iterator);
+            oldFrame=session.createDataFrame(oldRowRdd,resultRowSchema)
+          }
+        }
+        val mergeFrame=dataFrame.union(oldFrame).dropDuplicates(Array("day","sampling_group","user_id","time","_offset"));
+        try {
+          return mergeFrame;
+        }finally {
+          HdfsUtils.deletePath(parquetPath);
+        }
+      }
     }else{
-      oldFrame=session.createDataFrame(session.sparkContext.emptyRDD[Row],resultRowSchema)
-    }
-    if(oldFrame.count()>0){
-      val oldSchema:StructType=oldFrame.schema;
-      val addedSchema=resultRowSchema.fields.filter(x=>(!oldSchema.fieldNames.contains(x.name)))
-      if(addedSchema.length>0){
-        val oldRowRdd: RDD[Row] = oldFrame.rdd.mapPartitions(it=>it.toList.map(x=>fillColumn(x,resultRowSchema,StructType(addedSchema))).iterator);
-        oldFrame=session.createDataFrame(oldRowRdd,resultRowSchema)
+      var oldFrame:DataFrame=null
+      if(HdfsUtils.isParquetPathReady(new Configuration,parquetPath)){
+        oldFrame=session.read.parquet(parquetPath)
+      }else{
+        oldFrame=session.createDataFrame(session.sparkContext.emptyRDD[Row],resultRowSchema)
+      }
+      if(oldFrame.count()>0){
+        val oldSchema:StructType=oldFrame.schema;
+        val addedSchema=resultRowSchema.fields.filter(x=>(!oldSchema.fieldNames.contains(x.name)))
+        if(addedSchema.length>0){
+          val oldRowRdd: RDD[Row] = oldFrame.rdd.mapPartitions(it=>it.toList.map(x=>fillColumn(x,resultRowSchema,StructType(addedSchema),columnMap,dataTypeConstMap)).iterator);
+          oldFrame=session.createDataFrame(oldRowRdd,resultRowSchema)
+        }
+      }
+      val mergeFrame=dataFrame.union(oldFrame).dropDuplicates(Array("day","sampling_group","user_id","time","_offset")).cache();
+      try{
+        val deadTime:Long=mergeFrame.agg("time"->"max").first().getAs[Long](0)-paramUtil.getEntry.getDuration;
+        val wDateFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")>deadTime).iterator})
+        session.createDataFrame(wDateFrame,resultRowSchema).write.mode(SaveMode.Overwrite).parquet(parquetPath);
+        val rDataFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")<=deadTime).iterator})
+        val returnDataFrame=session.createDataFrame(rDataFrame,resultRowSchema)
+        return returnDataFrame
+      }catch {
+        case e: Throwable =>
+          logError("", e)
+          throw e
+      }finally {
+        mergeFrame.unpersist()
       }
     }
-    val mergeFrame=dataFrame.union(oldFrame).dropDuplicates(Array("day","sampling_group","user_id","time","_offset")).cache();
-    try{
-      val deadTime:Long=mergeFrame.agg("time"->"max").first().getAs[Long](0)-paramUtil.getEntry.getDuration;
-      val wDateFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")>deadTime).iterator})
-      session.createDataFrame(wDateFrame,resultRowSchema).write.mode(SaveMode.Overwrite).parquet(parquetPath);
-      val rDataFrame=mergeFrame.rdd.mapPartitions(it=>{it.toList.filter(r=>r.getAs[Long]("time")<=deadTime).iterator})
-      val returnDataFrame=session.createDataFrame(rDataFrame,resultRowSchema)
-      return returnDataFrame
-    }catch {
-      case e: Throwable =>
-        logError("", e)
-        throw e
-    }finally {
-      mergeFrame.unpersist()
-    }
+
 
 
 
@@ -145,7 +170,7 @@ class SensorsDataTransform extends EdpLogging{
   }
 
 
-  def covertRow(row:Row,columns:util.Map[String,PropertyColumnEntry],eventMap:util.Map[String,EventEntry],sortedList:util.List[String]):Row={
+  def covertRow(row:Row,columns:util.Map[String,PropertyColumnEntry],eventMap:util.Map[String,EventEntry],sortedList:util.List[String],dataTypeConstMap:util.Map[Integer,Object]):Row={
     val rowValue=ArrayBuffer[Any]();
     val fields=ArrayBuffer[StructField]();
 
@@ -181,18 +206,6 @@ class SensorsDataTransform extends EdpLogging{
     fields +=StructField("event_date",StringType,true)
     rowValue +=AESUtil.decrypt(_distinct)
     fields +=StructField("yx_user_id",StringType,true)
-
-//    val proRow:Row=row.getAs[Row](SchemaUtils.KafkaOriginColumn.properties.name())
-//    val _arrayValues:Array[Any]=proRow.schema.fieldNames.map( x => {
-//      proRow.getAs[Any](x)
-//    })
-//    val _newValues=_arrayValues.toBuffer
-//    _newValues.add(ConvertUtils.getOffset(_trick))
-//    _newValues.add(row.getAs[Long](SchemaUtils.KafkaOriginColumn.recv_time.name()))
-//    val _newSchema:StructType=proRow.schema.
-//      add(StructField("$kafka_offset",LongType,true))
-//      .add(StructField("$receive_time",LongType,true))
-//    val _newRow=new GenericRowWithSchema(_newValues.toArray,_newSchema)
     val json:String=row.getAs[String](SchemaUtils.KafkaOriginColumn.properties.name())
     val jsonObj: JSONObject=JSON.parseObject(json);
     jsonObj.put("$kafka_offset",ConvertUtils.getOffset(_trick))
@@ -207,16 +220,18 @@ class SensorsDataTransform extends EdpLogging{
         case 4 =>LongType
         case 5 =>LongType
         case 6 =>IntegerType
+        case _ =>StringType
       }
       fields +=StructField(_col,_type,true)
       if(!jsonObj.keySet().contains(key)){
-        rowValue +=null
+        rowValue +=dataTypeConstMap.get(_data_type)
       }else{
         val _value:Object=jsonObj.get(key)
         if(_value==null){
-          rowValue +=null
+          rowValue +=dataTypeConstMap.get(_data_type)
         }else{
-          rowValue +=ConvertUtils.convert(key,columns.get(key),_value)
+          val _v=ConvertUtils.convert(key,columns.get(key),_value)
+          if(_v==null) rowValue +=dataTypeConstMap.get(_data_type) else rowValue +=_v
         }
       }
     }
@@ -260,11 +275,11 @@ class SensorsDataTransform extends EdpLogging{
     return config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/sensors/" + config.spark_config.stream_id + "/"+projectId
   }
 
-  def fillColumn(row:Row,resultSchema:StructType,addedSchema:StructType):Row = {
+  def fillColumn(row:Row,resultSchema:StructType,addedSchema:StructType,columnMap:util.Map[String,PropertyColumnEntry],dataTypeConstMap:util.Map[Integer,Object]):Row = {
     val rowValue=ArrayBuffer[Any]();
     for(f<-resultSchema.fields){
       if(addedSchema.fieldNames.contains(f.name)){
-        rowValue+=null
+        rowValue+=dataTypeConstMap.get(columnMap.get(f.name).getData_type)
       }else{
         rowValue+=row.getAs[Any](f.name)
       }
