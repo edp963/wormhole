@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `parallelism` INT NULL,
+  `config` VARCHAR(1000) NULL,
   `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
@@ -268,8 +268,7 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-ALTER TABLE `flow_history`
-CHANGE COLUMN `parallelism` `config` VARCHAR(1000) NOT NULL ;
+alter table `flow_history` add column `config` VARCHAR(1000) NULL after `sink_ns`;
 
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
