@@ -46,6 +46,7 @@ object DbType {
     case "LONGBLOB" => "binary"
     case "BINARY" => "binary"
     case "CHAR" => "string"
+    case "JSON" => "string"
     //kudu
     case "STRING" => "string"
 
