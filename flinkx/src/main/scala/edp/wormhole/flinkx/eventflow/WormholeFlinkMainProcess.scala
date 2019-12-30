@@ -34,7 +34,7 @@ import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.udaf.{AdjacentSub, FirstValue, LastValue}
-import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister}
+import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister, WhMapToString}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -114,6 +114,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     tableEnv.registerFunction(BuiltInFunctions.ADJACENTSUB.toString, new AdjacentSub())
     tableEnv.registerFunction(BuiltInFunctions.FIRSTVALUE.toString, new FirstValue())
     tableEnv.registerFunction(BuiltInFunctions.LASTVALUE.toString, new LastValue())
+    tableEnv.registerFunction(BuiltInFunctions.MAPTOSTRING.toString, new WhMapToString())
 
     config.udf_config.foreach(udf => {
       val udfName = udf.functionName

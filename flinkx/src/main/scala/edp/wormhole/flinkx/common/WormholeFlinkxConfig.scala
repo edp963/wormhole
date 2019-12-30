@@ -105,8 +105,9 @@ object BuiltInFunctions extends Enumeration with Serializable {
   val FIRSTVALUE = Value("firstvalue")
   val LASTVALUE = Value("lastvalue")
   val ADJACENTSUB = Value("adjacentsub")
+  val MAPTOSTRING = Value("WhMapToString")
 
   def builtInFunctions(s: String): BuiltInFunctions = {
-    BuiltInFunctions.withName(s.toLowerCase)
+    BuiltInFunctions.withName(s)
   }
 }
