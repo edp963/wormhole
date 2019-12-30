@@ -409,6 +409,7 @@ object FlowUtils extends RiderLogger {
     var flag = true
     for (i <- nsSeq.indices) {
       if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
+        riderLogger.error(s"namespace not match ${nsSeq(i)}")
         flag = false
     }
     if (!flag) {
