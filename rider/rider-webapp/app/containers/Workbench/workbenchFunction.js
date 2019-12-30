@@ -66,22 +66,22 @@ export function generateSourceSinkNamespaceHierarchy (system, result) {
  * 生成 step1 的 Hdfslog Source/Sink Namespace Cascader 所需数据源
  */
 export function generateHdfslogNamespaceHierarchy (system, result) {
-  const snsHierarchy = result.length === 0
-    ? []
-    : [{
-      value: '*',
-      label: '*',
-      children: [{
-        value: '*',
-        label: '*',
-        children: [{
-          value: '*',
-          label: '*',
-          nsSys: 'log'
-        }]
-      }]
-    }]
-
+  // const snsHierarchy = result.length === 0
+  //   ? []
+  //   : [{
+  //     value: '*',
+  //     label: '*',
+  //     children: [{
+  //       value: '*',
+  //       label: '*',
+  //       children: [{
+  //         value: '*',
+  //         label: '*',
+  //         nsSys: 'log'
+  //       }]
+  //     }]
+  //   }]
+  const snsHierarchy = []
   result.forEach(item => {
     if (item.nsSys.includes(system)) {
       let instance = snsHierarchy.find(i => i.value === item.nsInstance)
@@ -90,14 +90,15 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
           value: item.nsInstance,
           label: item.nsInstance,
           nsSys: item.nsSys,
-          children: [{
-            value: '*',
-            label: '*',
-            children: [{
-              value: '*',
-              label: '*'
-            }]
-          }]
+          children: []
+          // children: [{
+          //   value: '*',
+          //   label: '*',
+          //   children: [{
+          //     value: '*',
+          //     label: '*'
+          //   }]
+          // }]
         }
         snsHierarchy.push(newInstance)
         instance = newInstance
@@ -110,7 +111,8 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
           label: item.nsDatabase,
           children: [{
             value: '*',
-            label: '*'
+            label: '*',
+            nsSys: item.nsSys
           }]
         }
         instance.children.push(newDatabase)
