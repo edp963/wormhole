@@ -243,7 +243,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     }
   }
 
-  def getNamespaceByNsMatch(ns: String): Option[Seq[Namespace]] = {
+/*  def getNamespaceByNsMatch(ns: String): Option[Seq[Namespace]] = {
     try {
       val nsSplit = ns.split("\\.")
       val nsResult: Seq[Namespace] = if(nsSplit(1) == "*") {
@@ -263,7 +263,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         throw ex
     }
 
-  }
+  }*/
 
   def getNamespaceByNs(sys: String, database: String, table: String): Option[Namespace] =
     try {

@@ -230,7 +230,7 @@ object NamespaceUtils extends RiderLogger {
     }
   }
 
-  def namespaceMatch(flowNs: String, matchNsSeq: Seq[String]): Boolean = {
+/*  def namespaceMatch(flowNs: String, matchNsSeq: Seq[String]): Boolean = {
     val sourceNsSeq = flowNs.split("\\.")
     var matchResult = false
     matchNsSeq.foreach(matchNs => {
@@ -246,5 +246,5 @@ object NamespaceUtils extends RiderLogger {
       }
     })
     matchResult
-  }
+  }*/
 }
