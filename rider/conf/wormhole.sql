@@ -499,7 +499,7 @@ CREATE TABLE IF NOT EXISTS `feedback_error` (
   `sink_ns` VARCHAR(1000) NOT NULL,
   `data_type` VARCHAR(60) NOT NULL,
   `error_pattern` VARCHAR(32) NOT NULL,
-  `topics` VARCHAR(2000) NULL,
+  `topics` TEXT NULL,
   `error_count` INT NULL,
   `error_max_watermark_ts` DATETIME NULL,
   `error_min_watermark_ts` DATETIME NULL,
@@ -513,6 +513,7 @@ CREATE TABLE IF NOT EXISTS `feedback_error` (
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_error` add column `project_id` BIGINT NOT NULL after `id`;
+alter table `feedback_error` modify column topics text;
 
 CREATE TABLE IF NOT EXISTS `recharge_result_log` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
