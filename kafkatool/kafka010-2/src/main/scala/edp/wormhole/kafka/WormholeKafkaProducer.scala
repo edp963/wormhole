@@ -143,7 +143,11 @@ object WormholeKafkaProducer extends Serializable {
     }
 
   private def getProducer(brokers: String): KafkaProducer[String, String] = {
-    producerMap(brokers)
+    val kafkaProducer = producerMap(brokers)
+    if(null == kafkaProducer) {
+      logger.error(s"get kafkaProducer failed, producerMap not contain $brokers")
+    }
+    kafkaProducer
   }
 
   private def sendInternal(topic: String, message: String, key: Option[String], brokers: String) =
@@ -164,9 +168,11 @@ object WormholeKafkaProducer extends Serializable {
           try {
             close(brokers)
           } catch {
-            case closeError: Throwable => println("sendInternal - close ERROR,", closeError)
+            case closeError: Throwable =>
+              println("sendInternal - close ERROR,", closeError)
+              producerMap -= brokers
           }
-          producerMap = null
+          //producerMap = null
           throw e
       }
     }
@@ -187,9 +193,11 @@ object WormholeKafkaProducer extends Serializable {
           try {
             close(brokers)
           } catch {
-            case closeError: Throwable => println("sendInternal - close ERROR,", closeError)
+            case closeError: Throwable =>
+              println("sendInternal - close ERROR,", closeError)
+              producerMap -= brokers
           }
-          producerMap = null
+          //producerMap = null
           throw e
       }
     }
