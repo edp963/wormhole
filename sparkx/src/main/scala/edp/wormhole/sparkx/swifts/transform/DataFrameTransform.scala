@@ -100,7 +100,8 @@ object DataFrameTransform extends EdpLogging {
             !keys.contains(null)
           })
           val dataMapFromDb = KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
-            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray, batchSize.get)
+            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray, batchSize.get,
+            tableSchemaInKudu, operate.lookupTableConstantCondition)
 
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
@@ -116,7 +117,7 @@ object DataFrameTransform extends EdpLogging {
             key != null
           })
           val dataMapFromDb = KuduConnection.doQueryMultiByKey(operate.lookupTableFields.get, tuple.toList, tableSchemaInKudu,
-            client, table, selectFieldOriginalNameArray)
+            client, table, selectFieldOriginalNameArray, operate.lookupTableConstantCondition)
 
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })

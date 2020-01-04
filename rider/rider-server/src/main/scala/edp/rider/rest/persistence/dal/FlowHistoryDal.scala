@@ -47,10 +47,7 @@ class FlowHistoryDal(flowHistoryTable: TableQuery[FlowHistoryTable])
   def insert(flows: Seq[Flow], action: String, userId: Long): Unit = {
     try {
       val flowHistories = flows.map(flow => {
-        new FlowHistory(0, flow.id, flow.flowName, flow.projectId, flow.streamId, flow.sourceNs,
-          flow.sinkNs, flow.parallelism, flow.consumedProtocol, flow.sinkConfig, flow.tranConfig,
-          flow.tableKeys, flow.desc, flow.status, flow.startedTime, flow.stoppedTime, flow.logPath,
-          flow.active, flow.createTime, flow.createBy, currentSec, userId)
+        new FlowHistory(0, flow.id, flow.flowName, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.config, flow.consumedProtocol, flow.sinkConfig, flow.tranConfig, flow.tableKeys, flow.desc, flow.status, flow.startedTime, flow.stoppedTime, flow.logPath, flow.active, flow.createTime, flow.createBy, currentSec, userId)
       })
       Await.result(insert(flowHistories), CommonUtils.minTimeOut)
     } catch {

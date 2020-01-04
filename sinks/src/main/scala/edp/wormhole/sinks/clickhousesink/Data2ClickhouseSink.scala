@@ -5,8 +5,8 @@ import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.sinks.SourceMutationType.SourceMutationType
 import edp.wormhole.sinks.dbsink.SqlProcessor
 import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
-import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsSysField}
+import edp.wormhole.ums.UmsFieldType.{UmsFieldType, _}
+import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsOpType, UmsSysField}
 import edp.wormhole.util.DateUtils._
 import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.config.ConnectionConfig
@@ -22,11 +22,14 @@ class Data2ClickhouseSink extends SinkProcessor {
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                       tupleList: Seq[Seq[String]],
+                       tupleListOrig: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
 
-    logger.info(s"process data2chsink, size is ${tupleList.size}")
+    logger.info(s"process data2chsink, size is ${tupleListOrig.size}")
     logger.info("data2chsink sink config: " + sinkProcessConfig)
+
+    val tupleList = setDefaultValue(schemaMap, tupleListOrig)
+
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
 
     val sinkSpecificConfig =
@@ -127,5 +130,40 @@ class Data2ClickhouseSink extends SinkProcessor {
         case _ => (name, (index, umsType, nullable))
       }
     }.toMap
+  }
+
+  def setDefaultValue(schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                      tupleList: Seq[Seq[String]]): Seq[Seq[String]] = {
+    val schemaTypeMap: Map[Int, UmsFieldType] = schemaMap.map{ case (name, (index, umsType, nullable)) =>
+      (index, umsType)
+    }.toMap
+    tupleList.map(tuple => {
+      var index = -1
+      tuple.map(value => {
+        index = index + 1
+        val schemaType = schemaTypeMap.getOrElse(index, UmsFieldType.STRING)
+        val processedValue = setDefaultValueByType(value, schemaType)
+        //logger.info(s"setDefaultValue---value: $value, processedValue: $processedValue, schemaType: $schemaType")
+        processedValue
+      })
+    })
+  }
+
+  def setDefaultValueByType(value: String,
+                      valueType: UmsFieldType): String = {
+    if (value != null) value
+    else valueType match {
+      case UmsFieldType.STRING => ""
+      case UmsFieldType.INT => "0"
+      case UmsFieldType.LONG => "0"
+      case UmsFieldType.FLOAT => "0"
+      case UmsFieldType.DOUBLE => "0"
+      //case UmsFieldType.BINARY => "0"
+      case UmsFieldType.DECIMAL => "0"
+      case UmsFieldType.BOOLEAN => "0"
+      case UmsFieldType.DATE => "0000-00-00"
+      case UmsFieldType.DATETIME => "0000-00-00 00:00:00"
+      case _ => throw new UnsupportedOperationException(s"Unknown Type: $valueType")
+    }
   }
 }

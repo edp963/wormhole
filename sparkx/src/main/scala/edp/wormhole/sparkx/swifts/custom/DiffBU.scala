@@ -22,7 +22,7 @@
 package edp.wormhole.sparkx.swifts.custom
 
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
+import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.ums.UmsSysField
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
@@ -32,7 +32,7 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import scala.collection.mutable
 
 class DiffBU extends SwiftsInterface with EdpLogging {
-  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame = {
+  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
     val originalSchema: StructType = df.schema
     var resultSchema = originalSchema
     originalSchema.foreach(structField => {

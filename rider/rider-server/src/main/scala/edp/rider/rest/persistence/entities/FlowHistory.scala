@@ -26,28 +26,7 @@ import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
 
-case class FlowHistory(id: Long,
-                flowId: Long,
-                flowName: String,
-                projectId: Long,
-                streamId: Long,
-                sourceNs: String,
-                sinkNs: String,
-                parallelism: Option[Int],
-                consumedProtocol: String,
-                sinkConfig: Option[String],
-                tranConfig: Option[String],
-                tableKeys: Option[String],
-                desc: Option[String] = None,
-                status: String,
-                startedTime: Option[String],
-                stoppedTime: Option[String],
-                logPath: Option[String],
-                active: Boolean,
-                createTime: String,
-                createBy: Long,
-                updateTime: String,
-                updateBy: Long) extends BaseEntity {
+case class FlowHistory(id: Long, flowId: Long, flowName: String, projectId: Long, streamId: Long, sourceNs: String, sinkNs: String, config: Option[String], consumedProtocol: String, sinkConfig: Option[String], tranConfig: Option[String], tableKeys: Option[String], desc: Option[String] = None, status: String, startedTime: Option[String], stoppedTime: Option[String], logPath: Option[String], active: Boolean, createTime: String, createBy: Long, updateTime: String, updateBy: Long) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
@@ -55,7 +34,7 @@ case class FlowHistory(id: Long,
 
 
 class FlowHistoryTable(_tableTag: Tag) extends BaseTable[FlowHistory](_tableTag, "flow_history") {
-  def * = (id, flowId, flowName, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (FlowHistory.tupled, FlowHistory.unapply)
+  def * = (id, flowId, flowName, projectId, streamId, sourceNs, sinkNs, config, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (FlowHistory.tupled, FlowHistory.unapply)
 
   val flowId: Rep[Long] = column[Long]("flow_id")
   val flowName: Rep[String] = column[String]("flow_name", O.Length(200, varying = true))
@@ -68,7 +47,7 @@ class FlowHistoryTable(_tableTag: Tag) extends BaseTable[FlowHistory](_tableTag,
   /** Database column sink_ns SqlType(VARCHAR), Length(200,true) */
   val sinkNs: Rep[String] = column[String]("sink_ns", O.Length(200, varying = true))
 
-  val parallelism: Rep[Option[Int]] = column[Option[Int]]("parallelism")
+  val config: Rep[Option[String]] = column[Option[String]]("config")
   /** Database column consumed_protocol SqlType(VARCHAR), Length(20,true) */
   val consumedProtocol: Rep[String] = column[String]("consumed_protocol", O.Length(20, varying = true))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */

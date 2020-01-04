@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.util.httpclient.HttpClientService
 import org.apache.http.entity.ContentType
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -14,7 +14,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class MaidianEventTransform extends EdpLogging {
-  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String): DataFrame = {
+  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
     val ruleList: mutable.Seq[JSONObject] = getRules(param)
 
     val sourceFieldList = getSourceFields(df)

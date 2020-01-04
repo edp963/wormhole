@@ -408,8 +408,10 @@ object FlowUtils extends RiderLogger {
     nsSeq ++= getStreamJoinNamespaces(flow.tranConfig.getOrElse(""))
     var flag = true
     for (i <- nsSeq.indices) {
-      if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
+      if (!projectNsSeq.exists(_.startsWith(nsSeq(i)))) {
+        riderLogger.error(s"namespace not match ${nsSeq(i)}")
         flag = false
+      }
     }
     if (!flag) {
       if (flow.status == "stopped") "modify,start,renew,stopped"
@@ -923,8 +925,9 @@ object FlowUtils extends RiderLogger {
         if (topicSearch.isEmpty) {
           val instance = Await.result(instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
           val database = Await.result(databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
-          val latestKafkaOffset = getLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.kafkaEnabled)
-          val lastConsumedOffset = getConsumerOffset(instance.connUrl, streamName, database.nsDatabase, latestKafkaOffset.split(",").length, RiderConfig.kerberos.kafkaEnabled)
+          val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(instance.connConfig.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+          val latestKafkaOffset = getLatestOffset(instance.connUrl, database.nsDatabase, inputKafkaKerberos)
+          val lastConsumedOffset = getConsumerOffset(instance.connUrl, streamName, database.nsDatabase, latestKafkaOffset.split(",").length, inputKafkaKerberos)
           val offset =
             if (lastConsumedOffset.split(",").exists(_.split(":").length == 1)) latestKafkaOffset
             else lastConsumedOffset
@@ -1189,9 +1192,11 @@ object FlowUtils extends RiderLogger {
   }
 
   def getWhFlinkConfig(flow: Flow) = {
-    val kafkaUrl = StreamUtils.getKafkaByStreamId(flow.streamId)
-    val baseConfig = KafkaBaseConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs), kafkaUrl, RiderConfig.flink.kafkaSessionTimeOut, RiderConfig.flink.kafkaGroupMaxSessionTimeOut)
-    val outputConfig = KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers)
+    val inputKafkaInstance = getKafkaDetailByStreamId(flow.streamId)
+    val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+    //val kafkaUrl = StreamUtils.getKafkaByStreamId(flow.streamId)
+    val baseConfig = KafkaBaseConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs), inputKafkaInstance._1, inputKafkaKerberos, RiderConfig.flink.kafkaSessionTimeOut, RiderConfig.flink.kafkaGroupMaxSessionTimeOut)
+    val outputConfig = KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled)
     val autoRegisteredTopics = flowInTopicDal.getAutoRegisteredTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
@@ -1199,13 +1204,12 @@ object FlowUtils extends RiderLogger {
     val config = WhFlinkConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs),
       KafkaInput(baseConfig, flinkTopic),
       outputConfig,
-      flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism),
+      RiderConfig.flinkConfig,
       RiderConfig.zk.address,
       udfConfig,
       RiderConfig.flink.feedbackEnabled,
       RiderConfig.flink.feedbackStateCount,
       RiderConfig.flink.feedbackInterval,
-      FlinkConfig(RiderConfig.flinkCheckpoint),
       RiderConfig.kerberos.kafkaEnabled)
     caseClass2json[WhFlinkConfig](config)
   }
@@ -1235,7 +1239,7 @@ object FlowUtils extends RiderLogger {
     }
 
     val base64Tuple = Seq(flow.streamId, flow.id, currentNodMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
-      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),base64byte2s(flow.config.get.trim.getBytes))
     val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk.address, currentSec, flow.updateBy)), minTimeOut)
     //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
 
@@ -1299,6 +1303,11 @@ object FlowUtils extends RiderLogger {
          |"name": "swifts",
          |"type": "string",
          |"nullable": true
+         |},
+         |{
+         |"name": "config",
+         |"type": "string",
+         |"nullable": false
          |}
          |]
          |},
@@ -1324,7 +1333,8 @@ object FlowUtils extends RiderLogger {
         base64Tuple(7)
       }", "${
         base64Tuple(8)
-      }"]
+      }", "${
+        base64Tuple(9)}"]
          |}
          |]
          |}
@@ -1383,10 +1393,7 @@ object FlowUtils extends RiderLogger {
   private def getFlowByFlowStream(flowStream: FlowStream): Flow
 
   = {
-    Flow(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, 0L, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-      flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStream.status, flowStream.startedTime, flowStream.stoppedTime,
-      flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-      flowStream.updateBy)
+    Flow(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, 0L, flowStream.sourceNs, flowStream.sinkNs, flowStream.config, flowStream.consumedProtocol, flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
   }
 
   def getFlowStatusByYarn(flowStreams: Seq[FlowStream]): Seq[FlowStream] = {
@@ -1409,11 +1416,7 @@ object FlowUtils extends RiderLogger {
             } else if (flowYarnMap.contains(flowName) && flowStream.startedTime.orNull != null && yyyyMMddHHmmss(flowYarnMap(flowName).startTime) > yyyyMMddHHmmss(flowStream.startedTime.get)) {
               getFlowStatusByYarnAndLog(FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime), flowYarnMap(flowName))
             } else FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime)
-            FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-              flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, yarnFlow.status, yarnFlow.startTime, yarnFlow.stopTime,
-              flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-              flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions,
-              flowStream.topicInfo, flowStream.currentUdf, flowStream.msg)
+            FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.config, flowStream.consumedProtocol, flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, yarnFlow.status, yarnFlow.startTime, yarnFlow.stopTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions, flowStream.topicInfo, flowStream.currentUdf, flowStream.msg)
           } else flowStream
       }
     } catch {
@@ -1520,11 +1523,13 @@ object FlowUtils extends RiderLogger {
 
   def genFlowAllOffsets(topics: Seq[FlowTopicTemp], kafkaMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getEarliestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.kafkaEnabled)
-      val latest = getLatestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.kafkaEnabled)
+      val kafkaInfo = flowDal.getFlowKafkaInfo(topic.flowId)
+      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(kafkaInfo._3.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+      val earliest = getEarliestOffset(kafkaMap(topic.flowId), topic.topicName, inputKafkaKerberos)
+      val latest = getLatestOffset(kafkaMap(topic.flowId), topic.topicName, inputKafkaKerberos)
       val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
       val flowName = FlowUtils.getFlowName(flow.id, flow.sourceNs, flow.sinkNs)
-      val consumedLatestOffset = getConsumerOffset(kafkaMap(topic.flowId), flowName, topic.topicName, latest.split(",").length, RiderConfig.kerberos.kafkaEnabled)
+      val consumedLatestOffset = getConsumerOffset(kafkaMap(topic.flowId), flowName, topic.topicName, latest.split(",").length, inputKafkaKerberos)
       TopicAllOffsets(topic.id, topic.topicName, topic.rate, consumedLatestOffset, earliest, latest)
     })
   }
@@ -1597,7 +1602,8 @@ object FlowUtils extends RiderLogger {
         .filter(_.name == db.nsDatabase).head.consumedLatestOffset
       //      val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
       //      else driftStreamOffset
-      val activeTopicOffset = getEarliestOffset(nsDetail._1.connUrl, db.nsDatabase, RiderConfig.kerberos.kafkaEnabled)
+      val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(nsDetail._1.connConfig.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+      val activeTopicOffset = getEarliestOffset(nsDetail._1.connUrl, db.nsDatabase, inputKafkaKerberos)
       val offset = getMinStreamOffsets(activeTopicOffset, preStreamOffset, driftStreamOffset).toString
       (offset,
         s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset. The final offset depends on the actual operation time!!!")

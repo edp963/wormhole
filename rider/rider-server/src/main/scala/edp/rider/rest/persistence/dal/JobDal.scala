@@ -98,8 +98,8 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       jobs.map(job => {
         val appInfo = JobUtils.mappingSparkJobStatus(job, appInfoMap)
         if((appInfo.appId, appInfo.appState, JobUtils.getJobTime(Option(appInfo.startedTime)) , JobUtils.getJobTime(Option(appInfo.finishedTime))) != (job.sparkAppid.getOrElse(""), job.status, JobUtils.getJobTime(job.startedTime), JobUtils.getJobTime(job.stoppedTime))) {
-          if (job.status == "starting" && (appInfo.appState == "running" || appInfo.appState == "waiting" || appInfo.appState == "failed"))
-            SubmitYarnJob.killPidCommand(job.sparkAppid, job.name)
+          /*if (job.status == "starting" && (appInfo.appState == "running" || appInfo.appState == "waiting" || appInfo.appState == "failed"))
+            SubmitYarnJob.killPidCommand(job.sparkAppid, job.name)*/
           modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
         }
       })

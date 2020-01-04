@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.util.httpclient.HttpClientService
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -13,7 +13,7 @@ import scala.collection.mutable
 
 class MaidianSchemaTransform extends EdpLogging {
   //param:{"httpUrl":"http://ssss","token":"tmp token","dataFlowId":"1"}
-  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String): DataFrame = {
+  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig, param: String, streamConfig: WormholeConfig, sourceNamespace: String, sinkNamespace: String): DataFrame = {
     val ruleMap: mutable.Map[String, JSONArray] = getRules(param)
     logInfo(s"ruleMap.size:${ruleMap.size}")
     //INCLUDE(1,"保留"),EXCLUDE(2,"排除"),FORMAT(3,"格式化/类型转换"),EXPRESSION(4,"表达式"),FILTER(5,"过滤条件");

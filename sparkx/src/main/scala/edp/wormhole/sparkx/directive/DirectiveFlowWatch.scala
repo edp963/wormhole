@@ -24,12 +24,12 @@ package edp.wormhole.sparkx.directive
 import edp.wormhole.common.StreamType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.batchflow.BatchflowDirective
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient._
 import edp.wormhole.sparkx.hdfs.HdfsDirective
 import edp.wormhole.sparkx.router.RouterDirective
+import edp.wormhole.sparkxinterface.swifts.WormholeConfig
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}
 
 object DirectiveFlowWatch extends EdpLogging {

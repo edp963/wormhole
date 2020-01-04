@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `instance` (
   `desc` VARCHAR(1000) NULL,
   `ns_sys` VARCHAR(30) NOT NULL,
   `conn_url` VARCHAR(200) NOT NULL,
+  `conn_config` VARCHAR(1000) NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS `instance` (
   UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+alter table `instance` add column `conn_config` VARCHAR(1000) NULL after `conn_url`;
 drop index `conn_url` on `instance`;
 
 CREATE TABLE IF NOT EXISTS `ns_database` (
@@ -101,6 +103,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `others_config` VARCHAR(1000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
+  `special_config` VARCHAR(1000) NULL,
   `spark_appid` VARCHAR(200) NULL,
   `log_path` VARCHAR(200) NULL,
   `status` VARCHAR(200) NOT NULL,
@@ -116,6 +119,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `stream` add column `function_type` VARCHAR(100) NOT NULL after `stream_type`;
+alter table `stream` add column `special_config` VARCHAR(1000) NULL after `launch_config`;
 alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) NULL;
 alter table `stream` add column `jvm_driver_config` VARCHAR(1000) NULL;
 alter table `stream` add column `jvm_executor_config` VARCHAR(1000) NULL;
@@ -209,7 +213,7 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `parallelism` INT NULL,
+  `config` VARCHAR(1000) NULL,
   `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
@@ -231,12 +235,13 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `flow`  modify column `tran_config` LONGTEXT;
 alter table `flow` modify column `consumed_protocol` VARCHAR(100);
-alter table `flow` add column `parallelism` INT NULL after `sink_ns`;
+alter table `flow` add column `config` VARCHAR(1000) NULL after `sink_ns`;
 alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`;
 alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(100) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
 alter table `flow` add column `priority_id` BIGINT NOT NULL DEFAULT 0;
+alter table `flow` drop column `parallelism`;
 
 CREATE TABLE IF NOT EXISTS `flow_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -246,7 +251,7 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `parallelism` INT NULL,
+  `config` VARCHAR(1000) NULL,
   `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
@@ -263,6 +268,9 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+alter table `flow_history` add column `config` VARCHAR(1000) NULL after `sink_ns`;
+alter table `flow_history` drop column `parallelism`;
 
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

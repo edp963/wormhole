@@ -30,6 +30,7 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.KafkaException
@@ -61,17 +62,22 @@ object RouterMainProcess extends EdpLogging {
         logInfo("start Repartition")
 
         val routerKeys = ConfMemoryStorage.getRouterKeys
-
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => {
-            (UmsCommonUtils.checkAndGetKey(row.key, row.value), row.value)
+            val rowKey = SparkxUtils.getDefaultKey(row.key, routerKeys, SparkxUtils.getDefaultKeyConfig(config.special_config))
+            (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
           }).repartition(config.rdd_partition_number)
-          else streamRdd.map(row => (row.key, row.value))
+          else {
+            streamRdd.map(row => {
+              val rowKey = SparkxUtils.getDefaultKey(row.key, routerKeys, SparkxUtils.getDefaultKeyConfig(config.special_config))
+              (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
+            })
+          }
 
         val errorFlows = dataRepartitionRdd.mapPartitions { partition =>
           routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, routerFlowConfig) =>
-              WormholeKafkaProducer.initWithoutAcksAll(routerFlowConfig.brokers, None, config.kerberos)
+              WormholeKafkaProducer.initWithoutAcksAll(routerFlowConfig.brokers, None, config.kafka_output.kerberos)
             }
           }
 
