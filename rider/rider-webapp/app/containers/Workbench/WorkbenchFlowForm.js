@@ -276,8 +276,8 @@ export class WorkbenchFlowForm extends React.Component {
         'sinkNamespace',
         'sinkConfig'
       ])
-      formDSNSValues.sourceDataSystem = flowSourceNsSys
-      formDSNSValues.sinkDataSystem = flowSourceNsSys
+      // formDSNSValues.sourceDataSystem = flowSourceNsSys
+      // formDSNSValues.sinkDataSystem = flowSourceNsSys
     } else if (streamDiffType === 'routing') {
       formDSNSValues = this.props.form.getFieldsValue([
         'sourceDataSystem'
