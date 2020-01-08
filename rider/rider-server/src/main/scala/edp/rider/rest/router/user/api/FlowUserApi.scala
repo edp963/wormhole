@@ -157,8 +157,9 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                     if (checkFormat._1) {
                       val flowPrioritySeq = Await.result(flowDal.findByFilter(flow => flow.active === true && flow.streamId === simple.streamId), minTimeOut).seq
                       val flowPriority = if (flowPrioritySeq.isEmpty) 1 else flowPrioritySeq.maxBy(flow => flow.priorityId).priorityId + 1
+                      val functionType = Await.result(streamDal.findById(streamId), minTimeOut).head.functionType
                       val flowInsertSeq =
-                        if (Await.result(streamDal.findById(streamId), minTimeOut).head.functionType != "hdfslog")
+                        if (functionType != "hdfslog" && functionType != "hdfscsv")
                           Seq(Flow(0, simple.flowName, simple.projectId, simple.streamId, flowPriority, simple.sourceNs.trim, simple.sinkNs.trim, simple.config, simple.consumedProtocol.trim, simple.sinkConfig, simple.tranConfig, simple.tableKeys, simple.desc, "new", None, None, None, active = true, currentSec, session.userId, currentSec, session.userId))
                         else
                           FlowUtils.flowMatch(projectId, streamId, simple.sourceNs).map(

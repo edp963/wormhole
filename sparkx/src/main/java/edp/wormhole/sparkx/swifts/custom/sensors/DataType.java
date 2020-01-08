@@ -15,7 +15,7 @@ public enum DataType implements Serializable {
     LIST(3,"String"),
     DATE(4,"Int64"),
     DATETIME(5,"Int64"),
-    BOOL(6,"UInt8"),
+    BOOL(6,"Int8"),
     UNKNOWN(-1,"");
 
     private int index;

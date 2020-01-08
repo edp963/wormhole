@@ -408,8 +408,10 @@ object FlowUtils extends RiderLogger {
     nsSeq ++= getStreamJoinNamespaces(flow.tranConfig.getOrElse(""))
     var flag = true
     for (i <- nsSeq.indices) {
-      if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
+      if (!projectNsSeq.exists(_.startsWith(nsSeq(i)))) {
+        riderLogger.error(s"namespace not match ${nsSeq(i)}")
         flag = false
+      }
     }
     if (!flag) {
       if (flow.status == "stopped") "modify,start,renew,stopped"

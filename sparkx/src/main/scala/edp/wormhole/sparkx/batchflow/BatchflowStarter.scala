@@ -48,6 +48,7 @@ object BatchflowStarter extends App with EdpLogging {
     .set("dfs.client.block.write.replace-datanode-on-failure.enable", "true")
     .set("spark.streaming.stopGracefullyOnShutdown","true")
     .set("spark.sql.shuffle.partitions", config.spark_config.`spark.sql.shuffle.partitions`.toString)
+    .set("spark.debug.maxToStringFields", 500.toString)
     .set(if (SparkUtils.isLocalMode(config.spark_config.master)) "spark.sql.warehouse.dir" else "",
       if (SparkUtils.isLocalMode(config.spark_config.master)) "file:///" else "")
     .setAppName(config.spark_config.stream_name)
