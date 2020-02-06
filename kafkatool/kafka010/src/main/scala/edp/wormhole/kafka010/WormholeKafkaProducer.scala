@@ -40,6 +40,7 @@ object WormholeKafkaProducer extends Serializable {
     props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     props.put("acks", "all")
     props.put("compression.type", "lz4")
+    props.put("max.request.size", 10485760.toString)
     props
   }
 
