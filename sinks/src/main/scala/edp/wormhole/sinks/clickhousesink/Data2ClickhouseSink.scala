@@ -151,8 +151,7 @@ class Data2ClickhouseSink extends SinkProcessor {
 
   def setDefaultValueByType(value: String,
                       valueType: UmsFieldType): String = {
-    if (value != null) value
-    else valueType match {
+    if((value == null) || (value.isEmpty && valueType != UmsFieldType.STRING)) valueType match {
       case UmsFieldType.STRING => ""
       case UmsFieldType.INT => "0"
       case UmsFieldType.LONG => "0"
@@ -164,6 +163,8 @@ class Data2ClickhouseSink extends SinkProcessor {
       case UmsFieldType.DATE => "0000-00-00"
       case UmsFieldType.DATETIME => "0000-00-00 00:00:00"
       case _ => throw new UnsupportedOperationException(s"Unknown Type: $valueType")
+    } else {
+      value
     }
   }
 }
