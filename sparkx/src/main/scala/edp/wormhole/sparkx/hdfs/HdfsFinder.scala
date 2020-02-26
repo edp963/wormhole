@@ -18,16 +18,20 @@ object HdfsFinder extends EdpLogging{
          new WormholeConfig(config.kafka_input,config.kafka_output,config.spark_config,
            config.rdd_partition_number,config.zookeeper_address,config.zookeeper_path,
            config.kafka_persistence_config_isvalid,config.stream_hdfs_address,
-           Some(nameNodeHosts),Some(nameNodeIds),config.kerberos,config.hdfslog_server_kerberos, config.special_config)
+           nameNodeHosts,nameNodeIds,config.kerberos,config.hdfslog_server_kerberos, config.special_config)
       }
   }
 
-  private  def getNameNodeInfoFromLocalHadoop(configuration: Configuration)={
-    val nameServiceName=if(configuration.get("dfs.internal.nameservices")!=null)configuration.get("dfs.internal.nameservices") else configuration.get("dfs.nameservices")
-    val nameNodeIds = configuration.get(s"dfs.ha.namenodes.$nameServiceName")
-    val nameNodeHosts = nameNodeIds.split(",").map(nodeId => configuration.get(s"dfs.namenode.rpc-address.$nameServiceName.$nodeId")).mkString(",")
-    logInfo(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
-    (nameNodeIds , nameNodeHosts)
+  private  def getNameNodeInfoFromLocalHadoop(configuration: Configuration)= {
+    val nameServiceName = if (configuration.get("dfs.internal.nameservices") != null) configuration.get("dfs.internal.nameservices") else configuration.get("dfs.nameservices")
+    if (null == nameServiceName) {
+      (None, None)
+    } else {
+      val nameNodeIds = configuration.get(s"dfs.ha.namenodes.$nameServiceName")
+      val nameNodeHosts = nameNodeIds.split(",").map(nodeId => configuration.get(s"dfs.namenode.rpc-address.$nameServiceName.$nodeId")).mkString(",")
+      logInfo(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
+      (Some(nameNodeIds), Some(nameNodeHosts))
+    }
   }
 
   def getHadoopConfiguration(config: WormholeConfig): (Configuration,String,String) = {

@@ -143,7 +143,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
     properties.setProperty("group.id", config.kafka_input.groupId)
     properties.setProperty("session.timeout.ms", config.kafka_input.sessionTimeout)
-    properties.setProperty("enable.auto.commit", config.kafka_input.autoCommit.toString)
+    properties.setProperty("enable.auto.commit", "true")
+    properties.setProperty("auto.commit.interval.ms", 5000.toString)
     //config.kafka_input.kafka_base_config.`max.partition.fetch.bytes`.toString
     properties.setProperty("max.partition.fetch.bytes", 10485760.toString)
     if (config.kafka_input.kafka_base_config.kerberos) {

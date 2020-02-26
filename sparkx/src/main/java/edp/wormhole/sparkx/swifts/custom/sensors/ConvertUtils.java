@@ -252,7 +252,9 @@ public class ConvertUtils implements Serializable {
                 }else if(Set.class.isAssignableFrom(value.getClass())){
                     values.addAll((Set)value);
                 }else {
-                    throw new IllegalArgumentException("can not cast to LIST,key="+key+",value="+value.toString());
+                    logger.warn("can not cast to LIST,key="+key+",value="+value.toString());
+                    //throw new IllegalArgumentException("can not cast to LIST,key="+key+",value="+value.toString());
+                    return value.toString();
                 }
                 List<String> rstList=Lists.newArrayList();
                 Set<String>  rstSet=Sets.newHashSet();

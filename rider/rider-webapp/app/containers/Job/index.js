@@ -539,7 +539,7 @@ export class Job extends React.Component {
       filters: [
         {text: 'new', value: 'new'},
         {text: 'starting', value: 'starting'},
-        {text: 'waiting,', value: 'waiting,'},
+        {text: 'waiting', value: 'waiting'},
         {text: 'running', value: 'running'},
         {text: 'stopping', value: 'stopping'},
         {text: 'stopped', value: 'stopped'},
