@@ -23,6 +23,7 @@ package edp.wormhole.swifts
 
 object SwiftsConstants {
 
+
   val REPLACE_STRING_INSQL = "swifts_join_fields_values"
 
 }
