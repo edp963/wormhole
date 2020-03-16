@@ -41,7 +41,9 @@ object HdfsFinder extends EdpLogging{
       configuration.set("ipc.client.fallback-to-simple-auth-allowed", "true")
     }
 
-    val hdfsRoot=findDefaultFs(configuration,config.hdfs_namenode_hosts.get.split(","))
+    val hdfsRoot=if(config.hdfs_namenode_hosts.nonEmpty) findDefaultFs(configuration, config.hdfs_namenode_hosts.get.split(","))
+                 else config.stream_hdfs_address.get
+
     val hdfsTuple=findActiveStreamHdfsAddress(config,hdfsRoot)
     configuration.set("fs.defaultFS",hdfsRoot)
 

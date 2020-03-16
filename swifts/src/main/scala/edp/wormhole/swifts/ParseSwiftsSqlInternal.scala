@@ -326,11 +326,10 @@ object ParseSwiftsSqlInternal {
   }
 
   private def getRmdbSchema(sql: String, connectionConfig: ConnectionConfig): String = {
-    var testSql = sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
-    if (connectionConfig.connectionUrl.toLowerCase.contains("cassandra")) {
+    val testSql = if (connectionConfig.connectionUrl.toLowerCase.contains("cassandra")) {
       val index = sql.toLowerCase.indexOf(" where ")
-      testSql = sql.substring(0, index) + " limit 1;"
-    }
+      sql.substring(0, index) + " limit 1;"
+    } else getRmdbVerifySql(sql)
     logger.info(connectionConfig.connectionUrl + " in getSchema")
     val conn = DbConnection.getConnection(connectionConfig)
     val statement = conn.createStatement()
@@ -350,6 +349,26 @@ object ParseSwiftsSqlInternal {
     }
     DbConnection.shutdownConnection(connectionConfig.connectionUrl, connectionConfig.username.orNull)
     fieldSchema.toString()
+  }
+
+  private def getRmdbVerifySql(sql: String): String = {
+    if(sql.contains(SwiftsConstants.REPLACE_STRING_INSQL)) {
+      sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+    } else {
+      /*if(sql.trim.endsWith(";")) {
+        sql.substring(0, sql.lastIndexOf(";")) + " limit 1;"
+      } else {
+        sql + " limit 1"
+      }*/
+      if(sql.toLowerCase().contains(" where ")) {
+        val whereIndex = sql.toLowerCase().lastIndexOf(" where ")
+        sql.substring(0, whereIndex + 7) + " 1=2 and " + sql.substring(whereIndex + 7)
+      } else if(sql.trim.endsWith(";")) {
+        sql.substring(0, sql.lastIndexOf(";")) + " where 1=2;"
+      } else {
+        sql + " where 1=2"
+      }
+    }
   }
 
   private def getKuduSchema(sql: String, connectionConfig: ConnectionConfig, joinNamespace: String) = {
@@ -421,10 +440,12 @@ object ParseSwiftsSqlInternal {
       } else
         fieldName.split(" ")(0).toLowerCase
     }).toSet
-    lookupFields.foreach(field => {
-      val name = field.split(" ")(0).toLowerCase
-      if (!selectFieldsSet.contains(name)) throw new Exception("select fields must contains lookup fields(where in fields)  ")
-    })
+    if (lookupFields.nonEmpty) {
+      lookupFields.foreach(field => {
+        val name = field.split(" ")(0).toLowerCase
+        if (!selectFieldsSet.contains(name)) throw new Exception("select fields must contains lookup fields(where in fields)  ")
+      })
+    } else logger.warn(s"lookup sql [$sql] doesn't contain stream fields, will select and join all data-----")
     resetLookupTableFields(lookupFields, selectFieldsList)
   }
 
@@ -540,47 +561,57 @@ object ParseSwiftsSqlInternal {
     val namespaceArray = sourceNamespace.split("\\.")
     val fourDigitNamespace = (for (i <- 0 until 4) yield namespaceArray(i)).mkString(".")
     val joinPosition = if (sqlStr.toLowerCase.indexOf(fourDigitNamespace) > -1) sqlStr.toLowerCase.indexOf(fourDigitNamespace) else sqlStr.toLowerCase.indexOf("${")
-    val temp_inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
-    val inPosition = if (temp_inPosition < 0) sqlStr.toLowerCase.lastIndexOf(" in(", joinPosition) else temp_inPosition
-    val valueLeftPosition = sqlStr.indexOf("(", inPosition)
-    val valueRightPosition = sqlStr.indexOf(")", inPosition)
-    val valueFieldsStr = sqlStr.substring(valueLeftPosition + 1, valueRightPosition).toLowerCase
-    val valuesFields = if (valueFieldsStr.indexOf(sourceNamespace) > -1) {
-      valueFieldsStr.trim.replace(sourceNamespace + ".", "").split(",").map(_.trim)
-    } else if (valueFieldsStr.indexOf("${") > -1) {
-      valueFieldsStr.split(",").map(field => field.replaceAll("\\$\\{", "").replaceAll("\\}", "")).map(_.trim)
-    } else {
-      valueFieldsStr.trim.replaceAll(fourDigitNamespace + "\\.", "").split(",").map(_.trim)
-    }
-    var joinLeftPosition: Int = 0
-    var joinRightPosition: Int = 0
-    var tmpPosition = inPosition - 1
-    var tmpChar = sqlStr.charAt(tmpPosition)
-    while (tmpChar == ' ') {
-      tmpPosition = tmpPosition - 1
-      tmpChar = sqlStr.charAt(tmpPosition)
-    }
-    joinRightPosition = tmpPosition + 1
-    if (tmpChar == ')') {
-      tmpPosition = tmpPosition - 1
-      tmpChar = sqlStr.charAt(tmpPosition)
-      while (tmpChar != '(') {
+    if(joinPosition > -1) {
+      val temp_inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
+      val inPosition = if (temp_inPosition < 0) sqlStr.toLowerCase.lastIndexOf(" in(", joinPosition) else temp_inPosition
+      val valueLeftPosition = sqlStr.indexOf("(", inPosition)
+      val valueRightPosition = sqlStr.indexOf(")", inPosition)
+      val valueFieldsStr = sqlStr.substring(valueLeftPosition + 1, valueRightPosition).toLowerCase
+      val valuesFields = if (valueFieldsStr.indexOf(sourceNamespace) > -1) {
+        valueFieldsStr.trim.replace(sourceNamespace + ".", "").split(",").map(_.trim)
+      } else if (valueFieldsStr.indexOf("${") > -1) {
+        valueFieldsStr.split(",").map(field => field.replaceAll("\\$\\{", "").replaceAll("\\}", "")).map(_.trim)
+      } else if(valueFieldsStr.indexOf(fourDigitNamespace) > -1) {
+        valueFieldsStr.trim.replaceAll(fourDigitNamespace + "\\.", "").split(",").map(_.trim)
+      } else {
+        logger.error(userSqlStr + " lookup fields does not contain ${} or " + fourDigitNamespace)
+        throw new Exception(userSqlStr + " lookup fields does not contain ${} or " + fourDigitNamespace)
+        //Array[String]()
+      }
+      var joinLeftPosition: Int = 0
+      var joinRightPosition: Int = 0
+      var tmpPosition = inPosition - 1
+      var tmpChar = sqlStr.charAt(tmpPosition)
+      while (tmpChar == ' ') {
         tmpPosition = tmpPosition - 1
         tmpChar = sqlStr.charAt(tmpPosition)
       }
-    } else {
-      while (tmpChar != ' ') {
+      joinRightPosition = tmpPosition + 1
+      if (tmpChar == ')') {
         tmpPosition = tmpPosition - 1
         tmpChar = sqlStr.charAt(tmpPosition)
+        while (tmpChar != '(') {
+          tmpPosition = tmpPosition - 1
+          tmpChar = sqlStr.charAt(tmpPosition)
+        }
+      } else {
+        while (tmpChar != ' ') {
+          tmpPosition = tmpPosition - 1
+          tmpChar = sqlStr.charAt(tmpPosition)
+        }
       }
-    }
-    joinLeftPosition = tmpPosition
+      joinLeftPosition = tmpPosition
 
-    val joinFieldsStr = sqlStr.substring(joinLeftPosition + 1, joinRightPosition).replace(")", "").trim.toLowerCase
-    val joinFields = joinFieldsStr.trim.split(",").map(_.trim)
-    val sql = sqlStr.substring(0, joinLeftPosition) + " " +
-      SwiftsConstants.REPLACE_STRING_INSQL + " " +
-      sqlStr.substring(valueRightPosition + 1)
-    (sql, joinFields, valuesFields)
+      val joinFieldsStr = sqlStr.substring(joinLeftPosition + 1, joinRightPosition).replace(")", "").trim.toLowerCase
+      val joinFields = joinFieldsStr.trim.split(",").map(_.trim)
+      val sql = sqlStr.substring(0, joinLeftPosition) + " " +
+        SwiftsConstants.REPLACE_STRING_INSQL + " " +
+        sqlStr.substring(valueRightPosition + 1)
+      logger.info(s"lookup sql sql $sql, joinFields $joinFields, valuesFields $valuesFields")
+      (sql, joinFields, valuesFields)
+    } else {
+      logger.warn(s"----sourceNamespace $sourceNamespace,joinNamespace $joinNamespace, lookup sql [$userSqlStr] doesn't contain stream fields, will select and join all data-----")
+      (sqlStr, Array[String](), Array[String]())
+    }
   }
 }
