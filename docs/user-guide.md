@@ -201,8 +201,8 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 - 替换线上包
 
-- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2-0.6.2-jar-with-dependencies替换到线上wormhole app/目录下的该文件
-  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.2-jar-with-dependencies替换线上文件
+- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2-0.6.3-jar-with-dependencies替换到线上wormhole app/目录下的该文件
+  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.3-jar-with-dependencies替换线上文件
 
 （2）在用户项目中建立customer sink class流程
 
@@ -222,7 +222,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 ​     <artifactId>wormhole-sinks</artifactId>
 
-​     <version>0.6.2</version>
+​     <version>0.6.3</version>
 
   </dependency>
 
@@ -234,7 +234,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 ​            <artifactId>wormhole-ums_1.3-flinkx_1.5.1</artifactId>
 
-​            <version>0.6.2</version>
+​            <version>0.6.3</version>
 
  </dependency>
 
@@ -263,7 +263,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.2</version>
+     <version>0.6.3</version>
   </dependency>
   ```
 
@@ -440,7 +440,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.2</version>
+     <version>0.6.3</version>
   </dependency>
   ```
 
@@ -612,6 +612,8 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 借助 Job 可轻松实现 Lambda 架构和 Kappa 架构。
 
 首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。Job中source端可选择数据的版本信息，将该版本的数据重算。
+
+Job配置中version为namespace的第五层，表示数据的版本。使用 hdfslog Stream 将源数据备份到 Hdfs时，改层需要为数字，配置job时，可根据不同的版本进行数据重算。
 
 Job中Spark SQL表名为“increment”。例如：
 

@@ -32,11 +32,11 @@ mysql-connector-java-{your-db-version}.jar
 
 #### 下载安装包
 
-**下载 wormhole-0.6.2.tar.gz 包 (链接：https://pan.baidu.com/s/1womXy7Ylr1oaO_u3VqeT4g  提取码：nthu)，或者自编译**
+**下载 wormhole-0.6.3.tar.gz 包 (链接：https://pan.baidu.com/s/1womXy7Ylr1oaO_u3VqeT4g  提取码：nthu)，或者自编译**
 
 ```
-下载wormhole-0.6.2.tar.gz安装包
-tar -xvf wormhole-0.6.2.tar.gz
+下载wormhole-0.6.3.tar.gz安装包
+tar -xvf wormhole-0.6.3.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole

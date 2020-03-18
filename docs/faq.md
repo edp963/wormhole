@@ -9,6 +9,10 @@ description: Wormhole Concept page
 {:toc}
 ### Stream 
 
+#### Stream启动时提示resource is not enough
+
+Stream启动时提示resource is not enough，说明project分配的资源不足，需要admin用户登陆后，增大project分配的memory和cpu资源
+
 #### Spark Stream 一直处于 starting 状态
 
 1. 在页面上查看stream日志，根据日志上的错误信息排查问题，一般是spark配置、目录权限、用户权限等问题。如果是权限问题，请按照部署文档说明执行deploy.sh脚本或根据提示手动修复。
@@ -29,6 +33,8 @@ description: Wormhole Concept page
 
 5. 重启wormhole服务，重启stream。
 
+6. 如果yarn上该stream为running状态，wormhole页面显示仍为starting状态，可检查yarn集群的时钟和wormhole部署机器的时钟是否同步，如果时钟不同步，状态更新可能会存在问题。
+
 **若以上步骤仍不能解决问题，请及时反馈~~**
 
 **注意: Flow suspending状态代表挂起状态，标识Flow信息已注册到Stream中，Stream目前处于非running状态。Stream状态正常后Flow状态会自动切换到running或failed状态。具体请查看Stream/Flow部分文档。**
@@ -37,7 +43,7 @@ description: Wormhole Concept page
 #### CDH版Spark消费Kafka报错
 
 1. 错误信息
- 
+
   ```
   Exception in thread "streaming-start" java.lang.NoSuchMethodError: org.apache.kafka.clients.consumer.KafkaConsumer.subscribe(Ljava/util/Collection;)V
 	at org.apache.spark.streaming.kafka010.Subscribe.onStart(ConsumerStrategy.scala:85)
@@ -92,7 +98,7 @@ description: Wormhole Concept page
 
 ### Flow
 
-#### Flow running状态，sink端接收不到数据
+#### Spark Flow running状态，sink端接收不到数据
 
 1. 检查Yarn上对应Stream的driver/executor日志，看有没有错误信息。
 
@@ -102,5 +108,18 @@ description: Wormhole Concept page
 
 4. flow transformation配置后可选择在日志上sample show几条数据，查看是否因为逻辑问题导致。
 
-   
+   备注：sink的数据库需要创建ums_id_ （long型），ums_active_ （int型）和ums_ts_（datetime型）三个系统字段，用来做幂等用。 
 
+#### Flink Flow一直处于starting状态
+
+1. 检查Yarn上对应Stream的job日志，看有没有错误信息，检查是否有task生成，当没有有效数据的时候，不会形成task，flow的状态会一直为starting
+2. 检查是否有有效数据，查看flow消费的offset范围，检查offset范围内的测试数据消息key是否与flow sourcenamespace匹配。若flow sourcenamespace为`kafka.kafka01.source.user.*.*.*`，则生成kafka消息时，key应设置为`data_increment_data.kafka.kafka01.source.user.*.*.*`。key和namespace匹配时数据才为有效数据
+
+### Job
+
+#### Job创建时，version选择失败
+
+1. 检查wormhole application.log中是否有异常
+2. 检查wormhole部署的机器是否配置了HADOOP_HOME环境变量
+3. 检查hdfs上是否有该namespace对应的数据
+4. 检查hdfs上该namespace对应的数据，第五位是否为数字
