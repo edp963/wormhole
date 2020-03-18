@@ -41,6 +41,7 @@ import scala.util.{Failure, Success}
 
 object RiderStarter extends App with RiderLogger {
 
+
   lazy val modules = new ConfigurationModuleImpl
     with ActorModuleImpl
     with PersistenceModuleImpl
