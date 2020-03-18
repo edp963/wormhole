@@ -409,6 +409,33 @@ topic name：wormhole_heartbeat partitions: 1
 
 ## 升级
 
+#### 0.6.1-0.6.2版本升级到0.6.3版本
+
+（1）如果有使用custom class，需要按照新接口修改使用的custom class
+
+（2）数据库操作
+
+```
+#instance表更新：
+alter table `instance` add column `conn_config` VARCHAR(1000) NULL after `conn_url`;
+
+#stream表更新：
+alter table `stream` add column `special_config` VARCHAR(1000) NULL after `launch_config`;
+
+#flow_history表更新：
+alter table `flow_history` add column `config` VARCHAR(1000) NULL after `sink_ns`;
+
+#flow表更新：
+alter table `flow` add column `config` VARCHAR(1000) NULL after `sink_ns`;
+下面的语句需要根据application.conf中自己的系统进行配置
+update flow set config = CONCAT('{"parallelism":', parallelism,',"checkpoint":{"enable":false,"checkpoint_interval_ms":300000,"stateBackend":"hdfs://flink-checkpoint"}}') where parallelism is not null and stream_id in (select id from stream where stream_type='flink');
+enable：代表是否启用checkpoint（true/false）
+checkpoint_interval_ms：代表checkpoint的间隔时间
+stateBackend：代表checkpoint保存的位置
+```
+
+修改完后，重启wormhole服务即可
+
 #### 0.6.0 版本升级到 0.6.1 版本
 
 （1）升级至 0.6.1 版本需要将 flink 升级为 1.7.2 版本
