@@ -50,6 +50,8 @@ instance 相当于为数据系统的物理地址起别名，connUrl 填写规则
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-instance.png" alt="" width="600"/>
 
+备注：如果kafka为Kerberos认证的kafka，则将Connection Config设置为{"kerberos":true}，否则配置为{"kerberos":false}，如果没有配置，默认为application.conf中设置的Kerberos信息（0.6.3及之后版本支持）。
+
 ### Database
 
 database 配置数据库名，用户名，密码及连接配置等信息。

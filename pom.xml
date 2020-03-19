@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>edp.wormhole</groupId>
-    <version>0.6.2</version>
+    <version>0.6.3</version>
     <artifactId>wormhole-parent</artifactId>
     <packaging>pom</packaging>
 
@@ -59,7 +59,7 @@
         <spark.2_3.version>2.3.3</spark.2_3.version>
         <spark.2_4.version>2.4.3</spark.2_4.version>
         <ums.version>1.3</ums.version>
-        <project.version>0.6.2</project.version>
+        <project.version>0.6.3</project.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
@@ -233,7 +233,7 @@
             &lt;!&ndash;<dependency>&ndash;&gt;
             &lt;!&ndash;<groupId>com.holdenkarau</groupId>&ndash;&gt;
             &lt;!&ndash;<artifactId>spark-testing-base_2.11</artifactId>&ndash;&gt;
-            &lt;!&ndash;<version>2.0.0-preview_0.6.2-preview</version>&ndash;&gt;
+            &lt;!&ndash;<version>2.0.0-preview_0.6.3-preview</version>&ndash;&gt;
             &lt;!&ndash;</dependency>&ndash;&gt;
 
             &lt;!&ndash; ======= flink ========= &ndash;&gt;

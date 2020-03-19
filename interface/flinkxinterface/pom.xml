@@ -6,7 +6,7 @@
     <parent>
         <artifactId>wormhole-parent</artifactId>
         <groupId>edp.wormhole</groupId>
-        <version>0.6.2</version>
+        <version>0.6.3</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
