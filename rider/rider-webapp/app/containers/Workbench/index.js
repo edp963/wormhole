@@ -188,7 +188,7 @@ export class Workbench extends React.Component {
       singleFlowResult: {},
       streamDiffType: 'default',
       pipelineStreamId: 0,
-      hdfslogSinkNsValue: '',
+      hdfsSinkNsValue: '',
       routingSinkNsValue: '',
       flowSourceResult: [],
 
@@ -327,7 +327,7 @@ export class Workbench extends React.Component {
 
   initialHdfslogCascader = (value, selectedOptions) => {
     this.setState({
-      hdfslogSinkNsValue: value.join('.'),
+      hdfsSinkNsValue: value.join('.'),
       flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys
     })
   }
@@ -351,11 +351,10 @@ export class Workbench extends React.Component {
     this.setState({jobSourceNsSys})
     if (this.state.jobDiffType === 'backfill') {
       this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys })
-    } else if (this.state.jobDiffType === 'default') {
-      this.setState({singleJobResult: {
-        sourceNs: `${jobSourceNsSys}.${value.join('.')}`
-      }})
     }
+    this.setState({singleJobResult: {
+      sourceNs: `${jobSourceNsSys}.${value.join('.')}`
+    }})
   }
   initialSourceNsVersion = () => {
     const { singleJobResult, sourceNsVersionList } = this.state
@@ -498,7 +497,7 @@ export class Workbench extends React.Component {
 
       this.setState({
         selectStreamKafkaTopicValue: resultFinal,
-        hdfslogSinkNsValue: ''
+        hdfsSinkNsValue: ''
       })
       if (result.length === 0) {
         message.warning(locale === 'en' ? 'Please create a Stream with corresponding type first!' : '请先新建相应类型的 Stream！', 3)
@@ -523,7 +522,7 @@ export class Workbench extends React.Component {
     })
     this.workbenchFlowForm.setFieldsValue({
       sourceDataSystem: '',
-      hdfslogNamespace: undefined
+      hdfsNamespace: undefined
     })
   }
 
@@ -549,13 +548,14 @@ export class Workbench extends React.Component {
         })
         break
       case 'hdfslog':
+      case 'hdfscsv':
         this.setState({
-          hdfslogSinkNsValue: ''
+          hdfsSinkNsValue: ''
         })
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: Number(id),
           sourceDataSystem: '',
-          hdfslogNamespace: undefined
+          hdfsNamespace: undefined
         })
         break
       case 'routing':
@@ -816,6 +816,7 @@ export class Workbench extends React.Component {
             this.queryFlowDefault(flow)
             break
           case 'hdfslog':
+          case 'hdfscsv':
             this.queryFlowHdfslog(flow)
             break
           case 'routing':
@@ -837,12 +838,21 @@ export class Workbench extends React.Component {
       }
       this.props.onQueryFlow(requestData, (result) => {
         resolve(result)
-        const { tranConfig, streamId, streamName, streamType, consumedProtocol, flowName, tableKeys, parallelism } = result
+        const { tranConfig, streamId, streamName, streamType, consumedProtocol, flowName, tableKeys, config } = result
+        let parallelism, checkpoint, isCheckpoint
         let tranConfigParse = {}
+        try {
+          const configParse = JSON.parse(config)
+          parallelism = configParse.parallelism
+          checkpoint = configParse.checkpoint
+          isCheckpoint = checkpoint.enable
+        } catch (error) {
+          console.error('TCL: Workbench -> queryFlowDefault -> error', error)
+        }
         try {
           tranConfigParse = JSON.parse(tranConfig)
         } catch (error) {
-          console.error('warn: tranConfig parse error')
+          console.error('warn: parse error')
         }
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: streamId,
@@ -852,6 +862,7 @@ export class Workbench extends React.Component {
           flowName,
           tableKeys,
           parallelism,
+          checkpoint: isCheckpoint,
           time_characteristic: tranConfigParse.time_characteristic || ''
         })
 
@@ -1031,10 +1042,10 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = classAfterPartTepm
                 tranTypeTepm = 'cep'
                 pushdownConTepm = {}
-                this.workbenchFlowForm.setFieldsValue({
-                  time_characteristic: tranConfigVal.time_characteristic || '',
-                  parallelism: result.parallelism || 0
-                })
+                // this.workbenchFlowForm.setFieldsValue({
+                //   time_characteristic: tranConfigVal.time_characteristic || '',
+                //   parallelism: result.parallelism || 0
+                // })
               }
               tranTableSourceTemp.order = index + 1
               tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
@@ -1159,7 +1170,7 @@ export class Workbench extends React.Component {
         this.setState({
           formStep: 0,
           pipelineStreamId: result.streamId,
-          hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : resultSinkNsFinal,
+          hdfsSinkNsValue: this.state.flowMode === 'copy' ? '' : resultSinkNsFinal,
           flowKafkaInstanceValue: result.kafka,
           flowKafkaTopicValue: result.topics,
           singleFlowResult: {
@@ -1185,7 +1196,7 @@ export class Workbench extends React.Component {
 
         this.workbenchFlowForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
-          hdfslogNamespace: [
+          hdfsNamespace: [
             sourceNsArr[1],
             sourceNsArr[2],
             sourceNsArr[3]
@@ -1383,14 +1394,14 @@ export class Workbench extends React.Component {
         currentUdf: currentUdf,
         usingUdf: usingUdf
       })
-
-      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId } = resultVal
+      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId, specialConfig } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamType,
         streamName: name,
         type: functionType,
         desc: desc,
-        kafka: instance
+        kafka: instance,
+        specialConfig
       })
 
       this.setState({
@@ -1656,7 +1667,7 @@ export class Workbench extends React.Component {
       case 'flow':
         if (streamDiffType === 'default') {
           this.handleForwardDefault()
-        } else if (streamDiffType === 'hdfslog' || streamDiffType === 'routing') {
+        } else if (streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv' || streamDiffType === 'routing') {
           this.handleForwardHdfslogOrRouting()
         }
         break
@@ -1805,11 +1816,11 @@ export class Workbench extends React.Component {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           // 新增flow时验证source to sink 是否存在
-          const sourceInfo = streamDiffType === 'hdfslog'
-            ? [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          const sourceInfo = streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv'
+            ? [flowSourceNsSys, values.hdfsNamespace[0], values.hdfsNamespace[1], values.hdfsNamespace[2], '*', '*', '*'].join('.')
             : [flowSourceNsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
 
-          const sinkInfo = streamDiffType === 'hdfslog'
+          const sinkInfo = streamDiffType === 'hdfslog' || streamDiffType === 'hdfscsv'
             ? sourceInfo
             : ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
 
@@ -2105,6 +2116,7 @@ export class Workbench extends React.Component {
         this.handleSubmitFlowDefault()
         break
       case 'hdfslog':
+      case 'hdfscsv':
         this.handleSubmitFlowHdfslog()
         break
       case 'routing':
@@ -2140,12 +2152,16 @@ export class Workbench extends React.Component {
         : objectTemp
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
-
+    const isCheckpoint = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.checkpoint : null
+    const checkpoint = { enable: isCheckpoint, checkpoint_interval_ms: 300000, stateBackend: 'hdfs://flink-checkpoint' }
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
       const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
-
+      const config = {
+        parallelism,
+        checkpoint
+      }
       const submitFlowData = {
         projectId: Number(projectId),
         streamId: Number(values.flowStreamId),
@@ -2154,7 +2170,7 @@ export class Workbench extends React.Component {
         consumedProtocol: values.protocol.join(','),
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest,
-        parallelism,
+        config: JSON.stringify(config),
         flowName: values.flowName,
         tableKeys: values.tableKeys,
         desc: null
@@ -2179,9 +2195,12 @@ export class Workbench extends React.Component {
         tableKeys: values.tableKeys,
         desc: null
       }
+      const config = {}
       if (values.parallelism != null) {
-        editData.parallelism = values.parallelism
+        config.parallelism = values.parallelism
       }
+      config.checkpoint = checkpoint
+      editData.config = JSON.stringify(config)
       this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
         message.success(locale === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
       }, () => {
@@ -2210,7 +2229,7 @@ export class Workbench extends React.Component {
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
-          const sourceDataInfo = [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          const sourceDataInfo = [flowSourceNsSys, values.hdfsNamespace[0], values.hdfsNamespace[1], values.hdfsNamespace[2], '*', '*', '*'].join('.')
           // const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
 
           const submitFlowData = {
@@ -2314,6 +2333,11 @@ export class Workbench extends React.Component {
 
     this.workbenchStreamForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
+        const specialConfig = values.specialConfig
+        if (specialConfig && !isJSON(specialConfig)) {
+          message.error('Special Config Format Error, Must be JSON', 3)
+          return
+        }
         switch (streamMode) {
           case 'add':
             const requestValues = {
@@ -2321,7 +2345,8 @@ export class Workbench extends React.Component {
               desc: values.desc,
               instanceId: Number(values.kafka),
               functionType: values.type,
-              streamType: values.streamType
+              streamType: values.streamType,
+              specialConfig
             }
 
             this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
@@ -2337,7 +2362,7 @@ export class Workbench extends React.Component {
             })
             break
           case 'edit':
-            const editValues = { desc: values.desc }
+            const editValues = { desc: values.desc, specialConfig }
             const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
 
             this.props.onEditStream(requestEditValues, () => {
@@ -2392,8 +2417,8 @@ export class Workbench extends React.Component {
   loadTransNs () {
     const { projectId, pipelineStreamId } = this.state
     const flowValues = this.workbenchFlowForm.getFieldsValue()
-    const { sourceDataSystem, sourceNamespace } = flowValues
-    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, sourceDataSystem, 'sourceType', (result) => {
+    const { sourceNamespace } = flowValues
+    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, 'kafka', 'instanceType', (result) => {
       const resultFinal = result.filter((i) => {
         const temp = [i.nsInstance, i.nsDatabase, i.nsTable]
         if (temp.join(',') !== sourceNamespace.join(',')) {
@@ -3684,7 +3709,7 @@ export class Workbench extends React.Component {
 
                       transformTableRequestValue={this.state.transformTableRequestValue}
                       streamDiffType={this.state.streamDiffType}
-                      hdfslogSinkNsValue={this.state.hdfslogSinkNsValue}
+                      hdfsSinkNsValue={this.state.hdfsSinkNsValue}
                       routingSourceNsValue={this.state.routingSourceNsValue}
                       routingSinkNsValue={this.state.routingSinkNsValue}
                       initialDefaultCascader={this.initialDefaultCascader}

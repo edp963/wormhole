@@ -24,6 +24,7 @@ package edp.wormhole.sparkx.common
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.spark.kafka010.{WormholeKafkaUtils, WormholePerPartitionConfig}
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.KafkaInputConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.streaming.StreamingContext
@@ -33,9 +34,12 @@ import scala.collection.mutable
 
 object SparkContextUtils extends EdpLogging{
 
-  def checkSparkRestart(zookeeperAddress: String, zookeeperPath: String, streamId: Long, appId: String): Unit = {
+  def checkSparkRestart(zookeeperAddress: String, zookeeperPath: String, streamId: Long, appId: String): Boolean = {
     val appIdPath = zookeeperPath + "/" + streamId + "/" + appId
-    if (WormholeZkClient.checkExist(zookeeperAddress, appIdPath)) logAlert("WormholeStarter restart")
+    if (WormholeZkClient.checkExist(zookeeperAddress, appIdPath)) {
+      logAlert("WormholeStarter restart")
+      true
+    }else false
   }
 
   def setLoggerLevel(): Unit = {

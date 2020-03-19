@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.1</version>
+        <version>0.6.3</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -69,7 +69,7 @@
             <artifactId>wormhole-publicinterface</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
+            <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-flinkxinterface</artifactId>
             <version>${project.version}</version>

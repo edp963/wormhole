@@ -23,7 +23,8 @@ package edp.wormhole.sinks.kafkasink
 
 import java.util.UUID
 
-import com.alibaba.fastjson.JSONObject
+import com.alibaba.fastjson.{JSON, JSONObject}
+import com.alibaba.fastjson.serializer.SerializerFeature
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.WormholeUms._
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -38,13 +39,17 @@ class Data2KafkaSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
 
   override def process(sourceNamespace: String,
-                       sinkNamespace: String,
+                       sinkNamespaceOrg: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
+    val sinkNamespaceSeq = sinkNamespaceOrg.split("\\.")
+    val sourceNamespaceSeq = sourceNamespace.split("\\.")
+    val sinkNamespace = s"${sinkNamespaceSeq(0)}.${sinkNamespaceSeq(1)}.${sinkNamespaceSeq(2)}.${sinkNamespaceSeq(3)}.${sourceNamespaceSeq(4)}.${sourceNamespaceSeq(5)}.${sourceNamespaceSeq(6)}"
+
     if(tupleList.nonEmpty) {
-      logger.info("In Data2KafkaSink" + tupleList.head)
+      logger.info(s"In Data2KafkaSink ${tupleList.head}, size is ${tupleList.size}")
     }
     logger.info("Data2KafkaSink sink config: " + sinkProcessConfig)
     val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None, None, None)
@@ -59,7 +64,7 @@ class Data2KafkaSink extends SinkProcessor {
 
     //for job of feedback
     val kafkaTopic = if (sinkSpecificConfig.topic.nonEmpty && sinkSpecificConfig.topic.get.nonEmpty) sinkSpecificConfig.topic.get else sinkNamespace.split("\\.")(2)
-    logger.info("sink topic: " + kafkaTopic)
+    logger.info("sink topic: " + kafkaTopic + " sink namespace: " + sinkNamespace)
     logger.info("sink protocol: " + protocol.`type`.toString)
 
     val format = sinkSpecificConfig.messageFormat.trim
@@ -93,7 +98,7 @@ class Data2KafkaSink extends SinkProcessor {
       })
       flattenJson.put("namespace", sinkNamespace)
       flattenJson.put("protocol", protocol)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, JSON.toJSONString(flattenJson, SerializerFeature.WriteMapNullValue), Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
@@ -112,16 +117,17 @@ class Data2KafkaSink extends SinkProcessor {
         }
         index += 1
       })
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, JSON.toJSONString(flattenJson, SerializerFeature.WriteMapNullValue), Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
 
 
   private def ums2Kafka(tupleList: Seq[Seq[String]], kafkaLimitNum: Int, protocol: UmsProtocol, schema: UmsSchema, protocolType: UmsProtocolType, sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig): Unit = {
-    logger.info("start write to kafka")
+    logger.info(s"start write to kafka, tupleList size is: ${tupleList.size}")
     tupleList.sliding(kafkaLimitNum, kafkaLimitNum).foreach(tuple => {
       val seqUmsTuple: Seq[UmsTuple] = tuple.map(payload => UmsTuple(payload))
+      //logger.info(s"start write to kafka, seqUmsTuple size is: ${seqUmsTuple.size}")
       val kafkaMessage: String = toJsonCompact(Ums(
         protocol,
         schema,

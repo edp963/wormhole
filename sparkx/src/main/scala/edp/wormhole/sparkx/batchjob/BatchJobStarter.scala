@@ -23,10 +23,12 @@ package edp.wormhole.sparkx.batchjob
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sparkextension.udf.UdfRegister
+import edp.wormhole.sparkx.batchflow.BatchflowMainProcess.logInfo
 import edp.wormhole.sparkx.batchjob.transform.Transform
 import edp.wormhole.sparkx.common.SparkUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkx.udf.UdfRegister
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.util.JsonUtils
@@ -40,22 +42,22 @@ object BatchJobStarter extends App with EdpLogging {
 
   println(args(0))
   val base64Decode = new String(new sun.misc.BASE64Decoder().decodeBuffer(args(0).toString.split(" ").mkString("")))
-
-  logInfo("config: " + base64Decode)
-
+  logInfo(s"config: $base64Decode")
   val batchJobConfig = JsonUtils.json2caseClass[BatchJobConfig](base64Decode)
+  logInfo(s" batchJobConfig $batchJobConfig")
   val sourceConfig = batchJobConfig.sourceConfig
   val transformationConfig = batchJobConfig.transformationConfig
   val sinkConfig = batchJobConfig.sinkConfig
   val transformationList = checkAndGetTransformAction()
   val transformSpecialConfig = parseTransformSpecialConfig()
   val sinkSpecialConfig = parseSinkSpecialConfig()
+  logInfo(s" sinkSpecialConfig $sinkSpecialConfig")
   val sparkSession = configSparkSession()
   registerUdf()
 
   val sourceDf = doSource()
   val transformDf = if (transformationList == null) sourceDf else {
-    Transform.process(sparkSession, sourceDf, transformationList, Some(transformSpecialConfig.toString))
+    Transform.process(sparkSession, sourceConfig.sourceNamespace, sinkConfig.sinkNamespace, sourceDf, transformationList, Some(transformSpecialConfig.toString))
   }
   val projectionFields: Array[String] = getProjectionFields(transformDf).map(column => s"`$column`")
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
@@ -65,13 +67,15 @@ object BatchJobStarter extends App with EdpLogging {
   else writeSink()
 
   def writeSink(): Unit = {
-    val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema)
     val limit = sinkConfig.maxRecordPerPartitionProcessed
     val sinkClassFullName = sinkConfig.classFullName.get
     val sinkNamespace = sinkConfig.sinkNamespace
     val sourceNamespace = sourceConfig.sourceNamespace
     val sinkConnectionConfig = sinkConfig.connectionConfig
     val sinkProcessConfig = SinkProcessConfig("", sinkConfig.tableKeys, sinkSpecialConfig, None, sinkClassFullName, 1, 1) //todo json to replace none
+    val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema, sinkProcessConfig.sinkUid)
+
+    val mutationType = getMutationType(sinkClassFullName)
     outPutTransformDf.foreachPartition(partition => {
       val sendList = ListBuffer.empty[Seq[String]]
       val sinkClazz = Class.forName(sinkClassFullName)
@@ -83,13 +87,37 @@ object BatchJobStarter extends App with EdpLogging {
           sendList += SparkUtils.getRowData(row, schemaMap)
         } else {
           sendList += SparkUtils.getRowData(row, schemaMap)
-          sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, sendList, sinkConnectionConfig)
+          val mergeSendList = mergeTuple(sendList, schemaMap, sinkProcessConfig, mutationType)
+          sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, mergeSendList, sinkConnectionConfig)
           sendList.clear()
           logInfo("do write sink loop")
         }
       }
-      sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, sendList, sinkConnectionConfig)
+
+      val mergeSendListLast = mergeTuple(sendList, schemaMap, sinkProcessConfig, mutationType)
+      sinkTransformMethod.invoke(sinkReflectObject, sourceNamespace, sinkNamespace, sinkProcessConfig, schemaMap, mergeSendListLast, sinkConnectionConfig)
     })
+  }
+
+  def getMutationType(classFullName: String): String = {
+    val specialConfigJson: JSONObject = if (sinkSpecialConfig.isDefined) JSON.parseObject(sinkSpecialConfig.get) else new JSONObject()
+    logInfo(s"specialConfigJson $specialConfigJson")
+    if (specialConfigJson.containsKey("mutation_type"))
+      specialConfigJson.getString("mutation_type").trim
+    else if (classFullName.contains("Kafka"))
+      SourceMutationType.INSERT_ONLY.toString
+    else SourceMutationType.I_U_D.toString
+  }
+
+
+  def mergeTuple(sendList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], sinkProcessConfig: SinkProcessConfig, mutationType: String): Seq[Seq[String]] = {
+   if (SourceMutationType.INSERT_ONLY.toString == mutationType) {
+      logInfo("special config is i, merge not happen")
+      sendList
+    } else {
+      logInfo("special config is not i, merge happen")
+      SparkUtils.mergeTuple(sendList, schemaMap, sinkProcessConfig.tableKeyList)
+    }
   }
 
   def writeParquet(): Unit = {
@@ -109,7 +137,10 @@ object BatchJobStarter extends App with EdpLogging {
   def parseSinkSpecialConfig(): Option[String] = {
     if (sinkConfig.specialConfig.isDefined) {
       val config = new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))
-      Some(JSON.parseObject(config).getString("sink_specific_config"))
+      if(JSON.parseObject(config).containsKey("sink_specific_config"))
+        Some(JSON.parseObject(config).getString("sink_specific_config"))
+      else
+        None
     } else None
   }
 
@@ -160,7 +191,6 @@ object BatchJobStarter extends App with EdpLogging {
     val sourceReflectObject: Any = sourceClazz.newInstance()
     val sourceTransformMethod = sourceClazz.getMethod("process", classOf[SparkSession], classOf[String], classOf[String], classOf[String], classOf[ConnectionConfig], classOf[Option[String]])
     sourceTransformMethod.invoke(sourceReflectObject, sparkSession, sourceConfig.startTime, sourceConfig.endTime, sourceConfig.sourceNamespace, sourceConfig.connectionConfig, sourceConfig.specialConfig).asInstanceOf[DataFrame]
-
   }
 
   def getProjectionFields(transformDf: DataFrame): Array[String] = {

@@ -58,6 +58,18 @@ object NamespaceUtils extends RiderLogger {
             } else s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
           case None => s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
         }
+      case "clickhouse" =>
+        instance.connUrl.split(",").map(url => {
+          db.config match {
+            case Some(conf) =>
+              if (conf != "") {
+                val confStr =
+                  (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
+                s"jdbc:${instance.nsSys}://$url/${db.nsDatabase}?$confStr"
+              } else s"jdbc:${instance.nsSys}://$url/${db.nsDatabase}"
+            case None => s"jdbc:${instance.nsSys}://$url/${db.nsDatabase}"
+          }
+        }).mkString(",")
       case "oracle" =>
         val hostPort = instance.connUrl.split(":")
         val serviceName = db.config match {
@@ -217,4 +229,22 @@ object NamespaceUtils extends RiderLogger {
         throw new Exception(ex)
     }
   }
+
+/*  def namespaceMatch(flowNs: String, matchNsSeq: Seq[String]): Boolean = {
+    val sourceNsSeq = flowNs.split("\\.")
+    var matchResult = false
+    matchNsSeq.foreach(matchNs => {
+      val matchNsSeq = matchNs.split("\\.")
+      if(sourceNsSeq(1) == "*" && sourceNsSeq(0) == matchNsSeq(0)) {
+        matchResult = true
+      } else if(sourceNsSeq(2) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1)) {
+        matchResult = true
+      } else if(sourceNsSeq(3) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2)) {
+        matchResult = true
+      } else if(sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2) && sourceNsSeq(3) == matchNsSeq(3)){
+        matchResult = true
+      }
+    })
+    matchResult
+  }*/
 }

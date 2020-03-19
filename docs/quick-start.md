@@ -43,6 +43,7 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-source-schema.png" alt="" width="600"/>
 
+   **注意：若ums_ts_字段设置为long类型，对应数值应该为时间对应的秒数或毫秒数。**
 **5. Admin 创建 Sink Namespace**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-instance-create.png" alt="" width="600"/>
@@ -58,6 +59,8 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-lookup-ns.png" alt="" width="600"/>
 
 **7. Admin 创建 UDF**
+
+    UDF为可选项，可以省略该步骤，JAR包需要自己编译生成，具体方式参考[User Guide](https://edp963.github.io/wormhole/user-guide.html) 章节
 
    **创建Spark UDF需要将jar包放置到配置文件中HDFS中的udfjars目录下，即spark.wormhole.hdfs.root.path/udfjars**
 
@@ -237,8 +240,6 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
  **（3）提交flow**
 
 **配置完flow的Transformation后，通过点击浮框下方的”下一步”按钮，来进入到Confirmation步骤，对flow进行提交前的最后确认。当确认所有填写内容都没有问题后，就可以点击浮框下方的”提交”按钮来提交刚刚配置好的这个flow。否则，可以通过点击浮框下方的”上一步”按钮来返回之前的步骤，对错误的配置信息进行修改。**
-
-
 
 **启动 Flow， 配置Topic Offset信息**
 

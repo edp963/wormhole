@@ -33,14 +33,17 @@ import edp.rider.rest.util.UdfUtils.sendUdfDirective
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnStatusQuery.{getActiveResourceManager, getAllYarnAppStatus, getAppStatusByRest}
-import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
+import edp.rider.yarn.{ShellUtils, SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
+import edp.rider.kafka.WormholeGetOffsetUtils._
+import edp.wormhole.util.JsonUtils
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -94,7 +97,7 @@ object StreamUtils extends RiderLogger {
       s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/cluster/app/$appId/"
   }
 
-  def getStreamYarnAppStatus(streams: Seq[Stream], appInfoMap: Map[String, AppResult]) = {
+  def getStreamYarnAppStatus(streams: Seq[Stream], appInfoMap: Map[String, AppResult], userId: Long) = {
     streams.map(
       stream => {
         val dbStatus = stream.status
@@ -108,7 +111,10 @@ object StreamUtils extends RiderLogger {
             case "refresh_spark" =>
               getAppStatusByRest(appInfoMap, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
             case "refresh_log" =>
-              val logInfo = YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+              val logInfo = StreamType.withName(stream.streamType) match {
+                case StreamType.SPARK => YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""), stream.sparkAppid.getOrElse(""))
+                case _ => YarnClientLog.getFlinkAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""), stream.sparkAppid.getOrElse(""))
+              }
               logInfo._2 match {
                 case "running" =>
                   getAppStatusByRest(appInfoMap, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
@@ -128,7 +134,7 @@ object StreamUtils extends RiderLogger {
                   case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case _ => AppInfo("", "starting", startedTime, stoppedTime)
+                  case _ => AppInfo(stream.sparkAppid.getOrElse(""), "starting", startedTime, stoppedTime)
                 }
               case "waiting" => sparkStatus.appState.toUpperCase match {
                 case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
@@ -138,14 +144,14 @@ object StreamUtils extends RiderLogger {
               }
               case "running" =>
                 if (List("FAILED", "KILLED", "FINISHED").contains(sparkStatus.appState.toUpperCase)) {
-                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "failed")
+                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "failed", userId)
                   AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
                 } else {
                   AppInfo(sparkStatus.appId, "running", startedTime, stoppedTime)
                 }
               case "stopping" =>
                 if (sparkStatus.appState == "KILLED" || sparkStatus.appState == "FAILED" || sparkStatus.appState == "FINISHED") {
-                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "stopped")
+                  FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "stopped", userId)
                   AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                 }
                 else {
@@ -199,39 +205,67 @@ object StreamUtils extends RiderLogger {
   def getStreamConfig(stream: Stream) = {
     val startConfig = json2caseClass[StartConfig](stream.startConfig)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
-    val kafkaUrl = getKafkaByStreamId(stream.id)
+    val inputKafkaInstance = getKafkaDetailByStreamId(stream.id)
+    val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+
     val config =
       RiderConfig.spark.remoteHdfsRoot match {
         case Some(_) =>
-          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-            SparkConfig(stream.id, stream.name, "yarn-cluster", startConfig.executorNums * startConfig.perExecutorCores),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
-            RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled),
+            SparkConfig(stream.id, stream.name, "yarn", startConfig.executorNums * startConfig.perExecutorCores),
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
+            RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.kafkaEnabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
+            RiderConfig.spark.remoteHdfsNamenodeIds, Option(false))
         case None =>
-          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.enabled)
+         // val (hdfsNameNodeIds,hdfsNameNodeHosts)=getNameNodeInfoFromLocalHadoop()
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled),
+            SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
+            Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled, None, None, None)
       }
     caseClass2json[BatchFlowConfig](config)
   }
 
+  def getStreamSpecialConfig(config: Option[String]): Option[StreamSpecialConfig] = {
+    config match {
+      case Some(c) =>
+        if(c.trim.isEmpty) None
+        else Option(JsonUtils.json2caseClass[StreamSpecialConfig](c))
+      case None =>
+        None
+    }
+  }
 
-  def startStream(stream: Stream, logPath: String) = {
+/*
+  def getNameNodeInfoFromLocalHadoop()={
+    val hadoopHome = System.getenv("HADOOP_HOME")
+    val configuration = new Configuration(false)
+    configuration.addResource(new Path(s"$hadoopHome/conf/hdfs-site.xml"))
+    val nameServiceNameInternal=configuration.get("dfs.internal.nameservices")
+    //val nameServiceNameNoInternal=configuration.get("dfs.nameservices")
+    val nameServiceName = if(null != nameServiceNameInternal && nameServiceNameInternal != "") nameServiceNameInternal else configuration.get("dfs.nameservices")
+
+    val nameNodeIds = configuration.get(s"dfs.ha.namenodes.$nameServiceName")
+    val nameNodeHosts = nameNodeIds.split(",").map(nodeId => configuration.get(s"dfs.namenode.rpc-address.$nameServiceName.$nodeId")).mkString(",")
+    riderLogger.info(s"serviceName:$nameServiceName,nodeIds:$nameNodeIds,nodeHosts:$nameNodeHosts")
+    (nameNodeIds , nameNodeHosts)
+  }
+*/
+
+  def startStream(stream: Stream, logPath: String): (Boolean, Option[String]) = {
     StreamType.withName(stream.streamType) match {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
-        //val jvmConfig = Array(stream.JVMDriverConfig.getOrElse("")) :+ stream.JVMExecutorConfig.getOrElse("")
-        // runShellCommand(s"kinit -kt ${RiderConfig.kerberos.keyTab} ${RiderConfig.kerberos.principal}")
         val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
-        runShellCommand(commandSh)
+        ShellUtils.runShellCommand(commandSh, logPath)
       case StreamType.FLINK =>
         val commandSh = SubmitYarnJob.generateFlinkStreamStartSh(stream)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
-        runShellCommand(commandSh)
+        ShellUtils.runShellCommand(commandSh, logPath)
     }
   }
 
@@ -273,9 +307,14 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics start directive
-        val topics = autoRegisteredTopics ++: userdefinedTopics
-        val addHeartbeatTopic = if (topics.isEmpty) true else false
-        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, addHeartbeatTopic)
+        //val topics = autoRegisteredTopics ++: userdefinedTopics
+        //val addHeartbeatTopic = if (topics.isEmpty) true else false
+        val addDefaultTopicFlag =
+        if (autoRegisteredTopics.nonEmpty || userdefinedTopics.nonEmpty)
+          false
+        else
+          true
+        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, addDefaultTopicFlag)
       case None =>
         // delete all user defined topics by stream id
         Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
@@ -322,8 +361,11 @@ object StreamUtils extends RiderLogger {
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
       if (addDefaultTopic) {
-        val broker = getKafkaByStreamId(streamId)
-        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.enabled)
+        //val broker = getKafkaByStreamId(streamId)
+        val inputKafkaInstance = getKafkaDetailByStreamId(streamId)
+        val broker = inputKafkaInstance._1
+        val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, inputKafkaKerberos)
         val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset, "initial").mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }
@@ -560,25 +602,25 @@ object StreamUtils extends RiderLogger {
     seq
   }
 
-  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String): (String, Boolean) = {
+  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String, userId: Long): (String, Boolean) = {
     if (status == RUNNING.toString || status == WAITING.toString || status == STOPPING.toString) {
       if (sparkAppid.getOrElse("") != "") {
         val cmdStr = "yarn application -kill " + sparkAppid.get
         riderLogger.info(s"stop stream command: $cmdStr")
         val stopSuccess = runYarnKillCommand(cmdStr)
         if (stopSuccess) {
-          FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString)
+          FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString, userId)
           (STOPPING.toString, true)
         } else {
-          FlowUtils.updateStatusByStreamStop(streamId, streamType, status)
+          FlowUtils.updateStatusByStreamStop(streamId, streamType, status, userId)
           (status, false)
         }
       } else {
-        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
+        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString, userId)
         (STOPPED.toString, true)
       }
     } else {
-      FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
+      FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString, userId)
       (STOPPED.toString, true)
     }
   }
@@ -613,7 +655,13 @@ object StreamUtils extends RiderLogger {
     Await.result(instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
 
-  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/$appName-${CommonUtils.currentNodSec}.log"
+  def getKafkaDetailByStreamId(id: Long): (String, Option[String]) = {
+    val kakfaId = Await.result(streamDal.findById(id), minTimeOut).get.instanceId
+    val instance = Await.result(instanceDal.findById(kakfaId), minTimeOut)
+    (instance.get.connUrl, instance.get.connConfig)
+  }
+
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/streams/$appName-${CommonUtils.currentNodSec}.log"
 
   def getStreamTime(time: Option[String]) = {
     val timeValue = time.getOrElse("")
@@ -666,6 +714,24 @@ object StreamUtils extends RiderLogger {
     val streamTopicRel = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === dbId), minTimeOut)
     if (streamTopicRel.nonEmpty) true
     else false
+  }
+
+
+  def hidePid(stream: Stream): Stream = {
+    if (stream != null && stream.status == "starting") {
+      Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.functionType,
+        stream.JVMDriverConfig, stream.JVMExecutorConfig, stream.othersConfig, stream.startConfig,
+        stream.launchConfig, stream.specialConfig, None, stream.logPath, stream.status, stream.startedTime, stream.stoppedTime,
+        stream.active, stream.userTimeInfo)
+    } else stream
+  }
+
+  def hidePid(streams: Seq[Stream]): Seq[Stream] = {
+    if (streams != null && streams.nonEmpty) {
+      streams.map(stream => {
+        hidePid(stream)
+      })
+    } else streams
   }
 
   //  def getConsumedOffset(streamId: Long, dbId: Long, topic: String): String = {

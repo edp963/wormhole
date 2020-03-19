@@ -26,26 +26,24 @@ import edp.wormhole.util.config.KVConfig
 case class WormholeFlinkxConfig(flow_name: String,
                                 kafka_input: KafkaInputConfig,
                                 kafka_output: KafkaOutputConfig,
-                                flink_config: FlinkConfig,
-                                parallelism: Int,
+                                commonConfig: CommonConfig,
                                 zookeeper_address: String,
                                 udf_config: Seq[UdfConfig],
-                                feedback_enabled:Boolean,
-                                feedback_state_count:Int,
-                                feedback_interval:Int,
+                                feedback_enabled: Boolean,
+                                feedback_state_count: Int,
+                                feedback_interval: Int,
                                 kerberos: Boolean)
 
 case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 
-case class FlinkConfig(checkpoint: FlinkCheckpoint)
+case class FlinkConfig(parallelism: Int, checkpoint: FlinkCheckpoint)
 
-case class FlinkCheckpoint(enable: Boolean=false, `checkpointInterval.ms`: Int=60000, stateBackend:String)
+case class FlinkCheckpoint(isEnable: Boolean = false, `checkpointInterval.ms`: Int = 60000, stateBackend: String)
 
-
+case class CommonConfig(stateBackend: String)
 
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
-                            kafka_topics: Seq[KafkaTopicConfig]
-                           ) {
+                            kafka_topics: Seq[KafkaTopicConfig]) {
   lazy val autoCommit = true
   lazy val groupId: String = kafka_base_config.group_id
   lazy val sessionTimeout: String = kafka_base_config.`session.timeout.ms`.toString
@@ -59,18 +57,19 @@ case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
 }
 
 
-case class KafkaInputBaseConfig(
-                                 `key.deserializer`: String,
-                                 `value.deserializer`: String,
-                                 `session.timeout.ms`: Int,
-                                 `group.max.session.timeout.ms`: Int,
-                                 `auto.offset.reset`: String,
-                                 group_id: String,
-                                 brokers: String)
+case class KafkaInputBaseConfig(`key.deserializer`: String,
+                                `value.deserializer`: String,
+                                `session.timeout.ms`: Int,
+                                `group.max.session.timeout.ms`: Int,
+                                `auto.offset.reset`: String,
+                                group_id: String,
+                                brokers: String,
+                                kerberos: Boolean)
 
 
 case class KafkaOutputConfig(feedback_topic_name: String,
                              brokers: String,
+                             kerberos: Boolean,
                              config: Option[Seq[KVConfig]])
 
 case class KafkaTopicConfig(topic_name: String,
@@ -79,13 +78,11 @@ case class KafkaTopicConfig(topic_name: String,
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
 
-
 case class ExceptionConfig(streamId: Long,
                            flowId: Long,
                            sourceNamespace: String,
                            sinkNamespace: String,
-                           exceptionProcessMethod: ExceptionProcessMethod
-                          )
+                           exceptionProcessMethod: ExceptionProcessMethod)
 
 object ExceptionProcessMethod extends Enumeration with Serializable {
   type ExceptionProcessMethod = Value
@@ -99,5 +96,18 @@ object ExceptionProcessMethod extends Enumeration with Serializable {
       UNHANDLE
     else
       ExceptionProcessMethod.withName(s.toLowerCase)
+  }
+}
+
+object BuiltInFunctions extends Enumeration with Serializable {
+  type BuiltInFunctions = Value
+
+  val FIRSTVALUE = Value("firstvalue")
+  val LASTVALUE = Value("lastvalue")
+  val ADJACENTSUB = Value("adjacentsub")
+  val MAPTOSTRING = Value("WhMapToString")
+
+  def builtInFunctions(s: String): BuiltInFunctions = {
+    BuiltInFunctions.withName(s)
   }
 }

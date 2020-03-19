@@ -132,8 +132,8 @@ object FeedbackProcess extends RiderLogger {
             else ""
           val topics =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
-              UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
-            else null
+              Some(UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString)
+            else None
           val feedbackTimeValue =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_") != null)
               DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_SEC)
@@ -232,7 +232,8 @@ object FeedbackProcess extends RiderLogger {
                 val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
                 val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
                 val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
-                val feedbackTime = string2EsDateString(DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_MICROSEC))
+                val feedbackTime = if(RiderConfig.monitor.databaseType.toLowerCase.equals("es")) string2EsDateString(DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_MICROSEC))
+                else DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_SEC)
                 //todo 兼容0.6.0及之前版本stream feedback数据
                 val cdcTsValue: Date =
                   if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts") != null)
@@ -264,12 +265,12 @@ object FeedbackProcess extends RiderLogger {
                   streamIdValue.toString.toLong, flowIdValue.toString.toLong,
                   riderNamespace, riderSinkNamespace, dataTypeValue.toString,
                   rddCountValue.toString.toInt, if (topics == null) "" else topics.toString, throughput,
-                  string2EsDateString(DateUtils.dt2string(cdcTsValue, DtFormat.TS_DASH_MICROSEC)),
-                  string2EsDateString(DateUtils.dt2string(rddTsValue, DtFormat.TS_DASH_MICROSEC)),
-                  string2EsDateString(DateUtils.dt2string(mainDataTsValue, DtFormat.TS_DASH_MICROSEC)),
-                  string2EsDateString(DateUtils.dt2string(swiftsTsValue, DtFormat.TS_DASH_MICROSEC)),
-                  string2EsDateString(DateUtils.dt2string(sinkTsValue, DtFormat.TS_DASH_MICROSEC)),
-                  string2EsDateString(DateUtils.dt2string(doneTsValue, DtFormat.TS_DASH_MICROSEC)),
+                  if(RiderConfig.monitor.databaseType.toLowerCase.equals("es"))string2EsDateString(DateUtils.dt2string(cdcTsValue, DtFormat.TS_DASH_MICROSEC)) else DateUtils.dt2string(cdcTsValue, DtFormat.TS_DASH_SEC),
+                  if(RiderConfig.monitor.databaseType.toLowerCase.equals("es"))string2EsDateString(DateUtils.dt2string(rddTsValue, DtFormat.TS_DASH_MICROSEC)) else DateUtils.dt2string(rddTsValue, DtFormat.TS_DASH_SEC),
+                  if(RiderConfig.monitor.databaseType.toLowerCase.equals("es"))string2EsDateString(DateUtils.dt2string(mainDataTsValue, DtFormat.TS_DASH_MICROSEC)) else DateUtils.dt2string(mainDataTsValue, DtFormat.TS_DASH_SEC),
+                  if(RiderConfig.monitor.databaseType.toLowerCase.equals("es"))string2EsDateString(DateUtils.dt2string(swiftsTsValue, DtFormat.TS_DASH_MICROSEC)) else DateUtils.dt2string(swiftsTsValue, DtFormat.TS_DASH_SEC),
+                  if(RiderConfig.monitor.databaseType.toLowerCase.equals("es"))string2EsDateString(DateUtils.dt2string(sinkTsValue, DtFormat.TS_DASH_MICROSEC)) else DateUtils.dt2string(sinkTsValue, DtFormat.TS_DASH_SEC),
+                  if(RiderConfig.monitor.databaseType.toLowerCase.equals("es"))string2EsDateString(DateUtils.dt2string(doneTsValue, DtFormat.TS_DASH_MICROSEC)) else DateUtils.dt2string(doneTsValue, DtFormat.TS_DASH_SEC),
                   Interval(interval_data_process_dataums, interval_data_process_rdd, interval_rdd_swifts, interval_data_process_done,
                     interval_data_swifts_sink, interval_data_sink_done), feedbackTime)
                 monitorInfo

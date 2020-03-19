@@ -30,10 +30,13 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums._
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.KafkaException
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
 import scala.collection.mutable
@@ -41,7 +44,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object RouterMainProcess extends EdpLogging {
 
-  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig): Unit = {
+  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val batchId = UUID.randomUUID().toString
@@ -59,17 +62,22 @@ object RouterMainProcess extends EdpLogging {
         logInfo("start Repartition")
 
         val routerKeys = ConfMemoryStorage.getRouterKeys
-
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => {
-            (UmsCommonUtils.checkAndGetKey(row.key, row.value), row.value)
+            val rowKey = SparkxUtils.getDefaultKey(row.key, routerKeys, SparkxUtils.getDefaultKeyConfig(config.special_config))
+            (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
           }).repartition(config.rdd_partition_number)
-          else streamRdd.map(row => (row.key, row.value))
+          else {
+            streamRdd.map(row => {
+              val rowKey = SparkxUtils.getDefaultKey(row.key, routerKeys, SparkxUtils.getDefaultKeyConfig(config.special_config))
+              (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
+            })
+          }
 
         val errorFlows = dataRepartitionRdd.mapPartitions { partition =>
           routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, routerFlowConfig) =>
-              WormholeKafkaProducer.init(routerFlowConfig.brokers, None, config.kerberos)
+              WormholeKafkaProducer.initWithoutAcksAll(routerFlowConfig.brokers, None, config.kafka_output.kerberos)
             }
           }
 
@@ -136,7 +144,16 @@ object RouterMainProcess extends EdpLogging {
             }
           })
         }
+
       } catch {
+        case e: KafkaException=>
+          logError("kafka consumer error,"+e.getMessage, e)
+          if(e.getMessage.contains("Failed to construct kafka consumer")){
+            logError("kafka consumer error ,stop spark streaming")
+            stream.stop()
+
+            throw e
+          }
         case e: Throwable =>
           logAlert("batch error", e)
           routerMap.foreach { case (sourceNamespace, outV) =>

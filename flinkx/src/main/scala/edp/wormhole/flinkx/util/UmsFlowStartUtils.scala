@@ -23,6 +23,7 @@ package edp.wormhole.flinkx.util
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
+import edp.wormhole.flinkx.common.{CommonConfig, FlinkCheckpoint}
 import edp.wormhole.flinkx.swifts.{FlinkxSwiftsConstants, FlinkxTimeCharacteristicConstants}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
@@ -70,6 +71,29 @@ object UmsFlowStartUtils {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "job_id").toString.toLong
   }
 
+  def extractFlowConfig(schemas: Seq[UmsField], payloads: UmsTuple): JSONObject = {
+    val configInString = UmsFieldType.umsFieldValue(payloads.tuple, schemas, "config").toString
+    JSON.parseObject(configInString)
+  }
+
+  def extractParallelism(flowConfig: JSONObject): Int = {
+    if (flowConfig.containsKey("parallelism"))
+      flowConfig.getIntValue("parallelism")
+    else 1
+  }
+
+  def extractCheckpointConfig(commonConfig: CommonConfig, flowConfig: JSONObject): FlinkCheckpoint = {
+    val checkpoint = flowConfig.getJSONObject("checkpoint")
+    val isEnable: Boolean =
+      if (checkpoint.containsKey("enable")) checkpoint.getBoolean("enable")
+      else false
+    val interval =
+      if (checkpoint.containsKey("checkpoint_interval_ms")) checkpoint.getIntValue("checkpoint_interval_ms")
+      else 300000
+    FlinkCheckpoint(isEnable, interval, commonConfig.stateBackend)
+  }
+
+
   def extractSourceNamespace(umsFlowStart: Ums): String = {
     umsFlowStart.schema.namespace.toLowerCase
   }
@@ -77,6 +101,11 @@ object UmsFlowStartUtils {
   def extractSwifts(schemas: Seq[UmsField], payloads: UmsTuple): String = {
     val swiftsEncoded = UmsFieldType.umsFieldValue(payloads.tuple, schemas, "swifts")
     if (swiftsEncoded != null && !swiftsEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swiftsEncoded.toString)) else null
+  }
+
+  def extractConfig(schemas: Seq[UmsField], payloads: UmsTuple): String = {
+    val configEncoded = UmsFieldType.umsFieldValue(payloads.tuple, schemas, "config")
+    if (configEncoded != null && !configEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(configEncoded.toString)) else null
   }
 
   def extractSinks(schemas: Seq[UmsField], payloads: UmsTuple): String = {
@@ -121,11 +150,23 @@ object UmsFlowStartUtils {
     else null
   }
 
+  def latenessSecondsGet(swiftsSpecificConfig: JSONObject): Int = {
+    try {
+      if (null != swiftsSpecificConfig && swiftsSpecificConfig.containsKey(FlinkxSwiftsConstants.LATENESS_SECONDS) && swiftsSpecificConfig.getString(FlinkxSwiftsConstants.LATENESS_SECONDS).nonEmpty) {
+        swiftsSpecificConfig.getIntValue(FlinkxSwiftsConstants.LATENESS_SECONDS)
+      } else 0
+    } catch {
+      case e: Throwable =>
+        logger.error("get lateness seconds error:", e)
+        0
+    }
+  }
 
   def extractSwiftsSpecialConfig(swifts: JSONObject): JSONObject = {
     if (swifts.containsKey(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG) && (swifts.getJSONObject(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG) != null))
       swifts.getJSONObject(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG)
     else null
   }
+
 
 }

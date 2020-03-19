@@ -87,7 +87,7 @@ Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
-Please download the latest RELEASE(链接:https://pan.baidu.com/s/1qQQMfHyTEiq6QaMA-IKxaQ  密码:skc0).
+Please download the latest RELEASE(链接:https://pan.baidu.com/s/1nDzcHYKIVCT6atq9wAuK9Q  密码:5cqn).
 
 ## Get Help
 

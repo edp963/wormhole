@@ -161,7 +161,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         kafka => {
           val instanceSearch = Await.result(instanceDal.findByFilter(_.connUrl === kafka), minTimeOut)
           if (instanceSearch.isEmpty) {
-            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
+            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, None, active = true, currentSec, session.userId, currentSec, session.userId)
             i = i + 1
           }
           else kafkaIdMap.put(kafka, instanceSearch.head.id)
@@ -185,13 +185,16 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       dbSeq.foreach(db => topicIdMap.put(db.nsDatabase, db.id))
 
       val dbusSearch = Await.result(dbusDal.findAll, minTimeOut)
+
       syncDbusSeq.foreach(simple => {
-        val dbusExist = dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
+        val dbusExist =
+          dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
         if (dbusExist.isEmpty) {
-          riderLogger.info("simple: " + simple)
-          dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
-        }
-        else {
+          //          riderLogger.info("simple: " + simple)
+          if (!dbusSeq.exists(insert => insert.namespace == simple.namespace)) {
+            dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
+          }
+        } else {
           val dbusUpdate = dbusExist.filter(dbus => dbus.kafka == simple.kafka && dbus.topic == simple.topic && dbus.namespace == simple.namespace)
           if (dbusUpdate.isEmpty)
             dbusUpdateSeq += Dbus(dbusExist.head.id, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
@@ -199,9 +202,10 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       })
 
       riderLogger.info("dbus insert size: " + dbusSeq.size)
-      val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq), maxTimeOut)
+      val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq.sortBy(_.dbusId)), maxTimeOut)
       riderLogger.info("dbus update size: " + dbusUpdateSeq.size)
       Await.result(dbusDal.update(dbusUpdateSeq), minTimeOut)
+      riderLogger.info(s"user ${session.userId} insertOrUpdate dbus table success.")
       Future(dbusInsertSeq ++ dbusUpdateSeq)
     } catch {
       case ex: Exception =>
@@ -215,7 +219,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     val namespace = Await.result(super.findAll, minTimeOut)
     val insertSeq = new ArrayBuffer[Namespace]()
     val updateSeq = new ArrayBuffer[Namespace]()
-    dbusSeq.map(dbus => {
+    dbusSeq.foreach(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
       val nsSearch = namespace.filter(ns => ns.nsSys == nsSplit(0) && ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2) && ns.nsTable == nsSplit(3))
       if (nsSearch.isEmpty)
@@ -237,8 +241,29 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         riderLogger.error(s"get namespace object by $ns failed", ex)
         throw ex
     }
-
   }
+
+/*  def getNamespaceByNsMatch(ns: String): Option[Seq[Namespace]] = {
+    try {
+      val nsSplit = ns.split("\\.")
+      val nsResult: Seq[Namespace] = if(nsSplit(1) == "*") {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0)), minTimeOut)
+      } else if(nsSplit(2) == "*") {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1)), minTimeOut)
+      } else if(nsSplit(3) == "*") {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2)), minTimeOut)
+      } else  {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2) && ns.nsTable === nsSplit(3)), minTimeOut)
+      }
+      if(null == nsResult || nsResult.isEmpty) None
+      else Some(nsResult)
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get namespace object by $ns failed", ex)
+        throw ex
+    }
+
+  }*/
 
   def getNamespaceByNs(sys: String, database: String, table: String): Option[Namespace] =
     try {

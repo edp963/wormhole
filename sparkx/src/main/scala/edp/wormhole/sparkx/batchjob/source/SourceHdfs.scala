@@ -44,6 +44,8 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     val configuration = getConfiguration(connectionConfig)
     val protocolTypeSet = getProtocolTypeSet(specialConfig)
 
+    val repartitionFlag = getRepartitionSet(specialConfig)
+
     val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(configuration, connectionConfig.connectionUrl, sourceNamespace.toLowerCase, protocolTypeSet.toSet)
     val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(configuration, hdfsPathList)
     logInfo("dataPathList.length=" + dataPathList.length + ",namespace=" + sourceNamespace)
@@ -57,25 +59,25 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     logInfo("ums:" + ums.toString + ",namespace=" + sourceNamespace)
 
     if (filteredPathList.nonEmpty) {
-      val strDS = session.read.textFile(filteredPathList: _*)
-        .repartition(session.sqlContext.getConf("spark.sql.shuffle.partitions").toInt)
+
+      var strDS = session.read.textFile(filteredPathList: _*)
+
+      if (repartitionFlag) {
+        strDS = strDS.repartition(session.sqlContext.getConf("spark.sql.shuffle.partitions").toInt)
+      }
       val umsStrRDD: RDD[String] = strDS.rdd.mapPartitions { lineIt =>
-        var tmpContent = ""
-        lineIt.map(line => {
-          var rowContent = line.trim
-          val umsStrTuple = getUmsString(rowContent, tmpContent)
-          tmpContent = umsStrTuple._2
-          rowContent = umsStrTuple._1
-          rowContent
+        lineIt.filter(line => {
+          val rowContent = line.trim
+          rowContent.startsWith("{") && rowContent.endsWith("}")
         })
-      }.filter(_ != "N/A")
+      }
 
       val rowRdd: RDD[Row] = umsStrRDD.mapPartitions(lineIt => {
         lineIt.flatMap(umsStr => {
           toUms(umsStr: String)
         })
       })
-      logInfo("!!!!!!!umsRDD.getNumPartitions:" + rowRdd.getNumPartitions)
+      //      logInfo("!!!!!!!umsRDD.getNumPartitions:" + rowRdd.getNumPartitions)
 
       val fields = ums.schema.fields_get
       val allData: DataFrame = SparkSchemaUtils.createDf(session, fields, rowRdd)
@@ -120,6 +122,16 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     if (initial) protocolTypeSet += UmsProtocolType.DATA_INITIAL_DATA.toString
     if (increment) protocolTypeSet += UmsProtocolType.DATA_INCREMENT_DATA.toString
     protocolTypeSet
+  }
+
+  def getRepartitionSet(specialConfig: Option[String]): Boolean = {
+    val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString.split(" ").mkString("")))
+    val specialConfigObject = JSON.parseObject(specialConfigStr)
+    if (specialConfigObject.containsKey("repartition")) {
+      specialConfigObject.getBoolean("repartition")
+    } else {
+      true
+    }
   }
 
   def checkAndGetUms(filteredPathList: Seq[String], configuration: Configuration): Ums = {

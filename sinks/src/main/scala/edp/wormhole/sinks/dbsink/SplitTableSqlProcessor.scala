@@ -202,6 +202,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         throw e
       case e: Throwable =>
         logger.error("execute select failed", e)
+        conn.rollback()
         throw e
     } finally {
       if (masterResultSet != null)
@@ -272,7 +273,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
 
     val errorTupleList = specialExecuteSql(tupleList, masterSql, subSql)
     val errorTuple2List = specialExecuteSql(errorTupleList, masterSql, subSql, 1)
-    if (errorTuple2List.nonEmpty) errorTuple2List.foreach(data => logger.error("opType:" + opType + ",data:" + data))
+    if (errorTuple2List.nonEmpty) logger.error("opType:" + opType + ",data:" + errorTuple2List.head)
     errorTuple2List
   }
 
@@ -341,6 +342,7 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
       conn.setAutoCommit(false)
       logger.info(s"@write list.size:${tupleList.length} masterSql $masterSql")
       logger.info(s"@write list.size:${tupleList.length} subSql $subSql")
+
       tupleList.foreach(tuples => {
         try {
           psMaster = conn.prepareStatement(masterSql)
@@ -371,6 +373,18 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         } finally {
           psMaster.clearBatch()
           psSub.clearBatch()
+          if (psMaster != null)
+            try {
+              psMaster.close()
+            } catch {
+              case e: Throwable => logger.error("psMaster.close", e)
+            }
+          if (psSub != null)
+            try {
+              psSub.close()
+            } catch {
+              case e: Throwable => logger.error("psSub.close", e)
+            }
         }
       })
     } catch {
@@ -382,18 +396,6 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
         errorTupleList ++= tupleList
 
     } finally {
-      if (psMaster != null)
-        try {
-          psMaster.close()
-        } catch {
-          case e: Throwable => logger.error("psMaster.close", e)
-        }
-      if (psSub != null)
-        try {
-          psSub.close()
-        } catch {
-          case e: Throwable => logger.error("psSub.close", e)
-        }
       if (null != conn)
         try {
           conn.close()

@@ -21,28 +21,29 @@
 
 package edp.rider.rest.util
 
-import java.net.URI
-
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
+import edp.rider.common.StreamStatus.STARTING
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConfig}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
+import edp.rider.yarn.ShellUtils
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog.getAppStatusByLog
 import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
-import edp.wormhole.ums.UmsDataSystem
-import edp.wormhole.util.JsonUtils._
-import edp.wormhole.util.CommonUtils._
 import edp.wormhole.externalclient.hadoop.HdfsUtils._
+import edp.wormhole.ums.UmsDataSystem
+import edp.wormhole.util.CommonUtils._
+import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import edp.wormhole.util.{DateUtils, FileUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.security.UserGroupInformation
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -79,13 +80,29 @@ object JobUtils extends RiderLogger {
 
     val specialConfig =
       if (jobType != JobType.BACKFILL.toString) {
-        if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
-          Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
+        if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config")) {
+          val sinkSpecConfig = JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config")
+          val sinkConfigRe = new JSONObject().fluentPut("sink_specific_config", sinkSpecConfig)
+          Some(base64byte2s(sinkConfigRe.toString.trim.getBytes()))
+        }
         else None
       } else {
-        val topicConfig = new JSONObject().fluentPut("topic", db.nsDatabase)
-        val sinkSpecConfig = new JSONObject().fluentPut("sink_specific_config", topicConfig)
-        Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
+        val sinkSpecConfig =
+          if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config")) {
+            JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config")
+          } else {
+            new JSONObject()
+          }
+        if(!sinkSpecConfig.containsKey("kerberos")) {
+          val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(instance.connConfig.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+          sinkSpecConfig.fluentPut("kerberos", inputKafkaKerberos)
+        }
+        if(!sinkSpecConfig.containsKey("sink_uid")) {
+          sinkSpecConfig.fluentPut("sink_uid", true)
+        }
+        sinkSpecConfig.fluentPut("topic", db.nsDatabase)
+        val sinkConfigRe = new JSONObject().fluentPut("sink_specific_config", sinkSpecConfig)
+        Some(base64byte2s(sinkConfigRe.toString.trim.getBytes))
       }
 
     val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
@@ -203,7 +220,7 @@ object JobUtils extends RiderLogger {
     ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
-  def startJob(job: Job, logPath: String) = {
+  def startJob(job: Job, logPath: String): (Boolean, Option[String]) = {
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
@@ -213,8 +230,10 @@ object JobUtils extends RiderLogger {
       "job"
     )
     riderLogger.info(s"start job ${job.id} command: $command")
-    runShellCommand(command)
+    ShellUtils.runShellCommand(command, logPath)
   }
+
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/jobs/$appName-${CommonUtils.currentNodSec}.log"
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
     val projectName = Await.result(modules.projectDal.findById(projectId), minTimeOut).head.name
@@ -239,7 +258,7 @@ object JobUtils extends RiderLogger {
           val command = s"yarn application -kill ${job.sparkAppid.get}"
           riderLogger.info(s"stop job command: $command")
           val stopSuccess = runYarnKillCommand(command)
-          if(stopSuccess) {
+          if (stopSuccess) {
             modules.jobDal.updateJobStatus(job.id, "stopping")
             ("stopping", true)
           } else {
@@ -267,8 +286,9 @@ object JobUtils extends RiderLogger {
     val projectNsSeq = modules.relProjectNsDal.getNsByProjectId(job.projectId)
     val nsSeq = new ListBuffer[String]
     val sorceNsSeq = job.sourceNs.split("\\.")
+    val sinkNsSeq = job.sinkNs.split("\\.")
     nsSeq += sorceNsSeq(0) + "." + sorceNsSeq(1) + "." + sorceNsSeq(2) + "." + sorceNsSeq(3) + ".*" + ".*" + ".*"
-    nsSeq += job.sinkNs
+    nsSeq += sinkNsSeq(0) + "." + sinkNsSeq(1) + "." + sinkNsSeq(2) + "." + sinkNsSeq(3) + ".*" + ".*" + ".*"
     var flag = true
     for (i <- nsSeq.indices) {
       if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
@@ -310,26 +330,34 @@ object JobUtils extends RiderLogger {
     }
     val configuration = setConfiguration(hdfsRoot, None)
     val names = namespace.split("\\.")
-    val hdfsPath = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
+    val hdfsPath = hdfsRoot + "/hdfslog/" + names(0).toLowerCase + "." + names(1).toLowerCase + "." + names(2).toLowerCase + "/" + names(3).toLowerCase
     val hdfsFileList = getHdfsFileList(configuration, hdfsPath)
     if (hdfsFileList != null) hdfsFileList.map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).mkString(",")
     else ""
   }
 
-  def getHdfsFileList(config:Configuration, hdfsPath: String): Seq[String] = {
+  def getHdfsFileList(config: Configuration, hdfsPath: String): Seq[String] = {
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
-    if(isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
-    else null
+
+//    if(RiderConfig.kerberos.kafkaEnabled) {
+//      UserGroupInformation.setConfiguration(config)
+//      UserGroupInformation.loginUserFromKeytab(RiderConfig.kerberos.sparkPrincipal, RiderConfig.kerberos.sparkKeyTab)
+//    }
+    val fileList =
+      if (isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+      else null
+    fileSystem.close()
+    fileList
   }
 
   def setConfiguration(hdfsPath: String, connectionConfig: Option[Seq[KVConfig]]): Configuration = {
     var sourceNamenodeHosts = null.asInstanceOf[String]
     var sourceNamenodeIds = null.asInstanceOf[String]
-    if(connectionConfig.nonEmpty) connectionConfig.get.foreach(param=>{
-      if(param.key=="hdfs_namenode_hosts") sourceNamenodeHosts = param.value
-      if(param.key=="hdfs_namenode_ids") sourceNamenodeIds = param.value
+    if (connectionConfig.nonEmpty) connectionConfig.get.foreach(param => {
+      if (param.key == "hdfs_namenode_hosts") sourceNamenodeHosts = param.value
+      if (param.key == "hdfs_namenode_ids") sourceNamenodeIds = param.value
     })
 
     val hadoopHome = System.getenv("HADOOP_HOME")
@@ -337,24 +365,29 @@ object JobUtils extends RiderLogger {
     configuration.addResource(new Path(s"$hadoopHome/conf/core-site.xml"))
     configuration.addResource(new Path(s"$hadoopHome/conf/hdfs-site.xml"))
 
-    val defaultFS =  configuration.get("fs.defaultFS")
+    val defaultFS = configuration.get("fs.defaultFS")
     riderLogger.info(s"hadoopHome is $hadoopHome, defaultFS is $defaultFS")
 
     val hdfsPathGrp = hdfsPath.split("//")
     val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
     configuration.set("fs.defaultFS", hdfsRoot)
+
+//    if(RiderConfig.kerberos.kafkaEnabled) {
+//      configuration.set("hadoop.security.authentication", "kerberos")
+//    }
+
     configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
     //configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
-    if(sourceNamenodeHosts != null) {
+    if (sourceNamenodeHosts != null) {
       val clusterName = hdfsRoot.split("//")(1)
       configuration.set("dfs.nameservices", clusterName)
       configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
       val namenodeAddressSeq = sourceNamenodeHosts.split(",")
       val namenodeIdSeq = sourceNamenodeIds.split(",")
-      for (i <- 0 until namenodeAddressSeq.length){
+      for (i <- 0 until namenodeAddressSeq.length) {
         configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
       }
-      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
     }
     configuration
   }
@@ -362,11 +395,32 @@ object JobUtils extends RiderLogger {
   def mappingSparkJobStatus(job: Job, sparkList: Map[String, AppResult]) = {
     val startedTime = job.startedTime.orNull
     val stoppedTime = job.stoppedTime.orNull
-    val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
+    val appStatus = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
+
+    val endAction=if (job.status == STARTING.toString) "refresh_log"
+    else "refresh_spark"
+
+    val appInfo= endAction match {
+      case "refresh_log" =>
+          val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""), job.sparkAppid.getOrElse(""))
+          logInfo._2 match {
+            case "starting" => getAppStatusByRest(sparkList, logInfo._1, job.name, logInfo._2, startedTime, stoppedTime)
+            case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
+          }
+      case "refresh_spark" =>
+          appStatus
+    }
+
     val result = job.status match {
       case "starting" =>
-        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""))
-        AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
+        appInfo.appState.toUpperCase match {
+          case "STARTING" => AppInfo(appInfo.appId, "starting", appInfo.startedTime, appInfo.finishedTime)
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "WAITING" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        }
       case "waiting" =>
         appInfo.appState.toUpperCase match {
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
@@ -396,11 +450,24 @@ object JobUtils extends RiderLogger {
         }
       case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
     }
-      result
+    result
   }
 
   def getJobTime(time: Option[String]) = {
     val timeValue = time.getOrElse("")
     if (timeValue.nonEmpty) timeValue.split("\\.")(0) else null
+  }
+
+  def hidePid(job: Job): Job = {
+    if(job != null && job.status == "starting") {
+      Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+        job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, job.status, None, job.logPath, job.startedTime, job.stoppedTime, job.userTimeInfo)
+    } else job
+  }
+
+  def hidePid(jobs: Seq[Job]): Seq[Job] = {
+    if(jobs != null && jobs.nonEmpty) {
+      jobs.map(job => hidePid(job))
+    } else jobs
   }
 }

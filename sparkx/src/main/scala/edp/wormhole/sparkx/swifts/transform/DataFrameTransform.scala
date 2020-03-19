@@ -54,7 +54,7 @@ object DataFrameTransform extends EdpLogging {
                      schemaStr: String,
                      operate: SwiftsSql,
                      batchSize: Option[Int] = None): DataFrame = {
-    logInfo("getKUDUUnionDf,batchSize="+batchSize)
+    logInfo("getKUDUUnionDf,batchSize=" + batchSize)
     val database = operate.lookupNamespace.get.split("\\.")(2)
     val fromIndex = operate.sql.indexOf(" from ")
     val afterFromSql = operate.sql.substring(fromIndex + 6).trim
@@ -64,23 +64,21 @@ object DataFrameTransform extends EdpLogging {
     val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
     val table: KuduTable = client.openTable(tableName)
     val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
+    logInfo(s"query data from table $tableName success")
     KuduConnection.closeClient(client)
 
     val resultSchema = currentDf.schema
 
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
-
       KuduConnection.initKuduConfig(connectionConfig)
-      val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
-      val table: KuduTable = client.openTable(tableName)
 
       val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
-      logInfo("getKUDUUnionDf,originalDatas.size="+originalDatas.size)
+      logInfo("getKUDUUnionDf,originalDatas.size=" + originalDatas.size)
       val resultDatas: ListBuffer[Row] = ListBuffer.empty[Row]
       originalDatas.foreach(resultDatas.append(_))
       val fieldsNameArray = getFieldsArray(operate.fields.get)
       val selectFieldOriginalNameArray: Seq[String] = fieldsNameArray.map(_._1).toList
-      val original2AsNameMap: Map[String, String] = fieldsNameArray.map(tuple=>(tuple._2,tuple._1)).toMap
+      val original2AsNameMap: Map[String, String] = fieldsNameArray.map(tuple => (tuple._2, tuple._1)).toMap
 
       val sourceFieldNameArray = operate.sourceTableFields.get
       val lookupFieldNameArray = operate.lookupTableFields.get
@@ -90,7 +88,7 @@ object DataFrameTransform extends EdpLogging {
         keySchemaMap(lookupFieldNameArray.head) = (0, keyType, true)
 
         originalDatas.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
-          logInfo("getKUDUUnionDf,originalDatas.grouped(batchSize.get).foreach,subList.size="+subList.size)
+          logInfo("getKUDUUnionDf,originalDatas.grouped(batchSize.get).foreach,subList.size=" + subList.size)
           val tupleList: mutable.Seq[List[String]] = subList.map(row => {
             sourceFieldNameArray.toList.map(field => {
               val tmpKey = row.get(row.fieldIndex(field))
@@ -102,11 +100,14 @@ object DataFrameTransform extends EdpLogging {
             !keys.contains(null)
           })
           val dataMapFromDb = KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
-            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray, batchSize.get)
+            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray, batchSize.get,
+            tableSchemaInKudu, operate.lookupTableConstantCondition)
 
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
       } else {
+        val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+        val table: KuduTable = client.openTable(tableName)
         originalDatas.map(row => {
           val tuple: Array[String] = sourceFieldNameArray.map(field => {
             val tmpKey = row.get(row.fieldIndex(field))
@@ -116,10 +117,12 @@ object DataFrameTransform extends EdpLogging {
             key != null
           })
           val dataMapFromDb = KuduConnection.doQueryMultiByKey(operate.lookupTableFields.get, tuple.toList, tableSchemaInKudu,
-            client, table, selectFieldOriginalNameArray)
+            client, table, selectFieldOriginalNameArray, operate.lookupTableConstantCondition)
 
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
+        logInfo(s"query data from table $tableName success")
+        KuduConnection.closeClient(client)
       }
       resultDatas.toIterator
     })
@@ -177,7 +180,7 @@ object DataFrameTransform extends EdpLogging {
       sqlType match {
         case UmsDataSystem.ORACLE =>
           SqlBinding.getSlidingUnionSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
-        case UmsDataSystem.MYSQL | UmsDataSystem.ES | UmsDataSystem.MONGODB | UmsDataSystem.H2 | UmsDataSystem.PHOENIX | UmsDataSystem.VERTICA | UmsDataSystem.POSTGRESQL | UmsDataSystem.GREENPLUM =>
+        case UmsDataSystem.MYSQL | UmsDataSystem.ES | UmsDataSystem.MONGODB | UmsDataSystem.H2 | UmsDataSystem.PHOENIX | UmsDataSystem.VERTICA | UmsDataSystem.POSTGRESQL | UmsDataSystem.GREENPLUM | UmsDataSystem.CLICKHOUSE =>
           SqlBinding.getMysqlSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
         case UmsDataSystem.CASSANDRA =>
           if (sourceJoinFieldsContent.nonEmpty) {
@@ -273,14 +276,14 @@ object DataFrameTransform extends EdpLogging {
   }
 
   def getKuduUnionResult(originalData: ListBuffer[Row],
-                     dataMapFromDb: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]],
-                     sourceTableFields: Array[String],
-                     resultSchema: StructType,
-                     original2AsNameMap:Map[String,String]) = {
-    logInfo("getKuduUnionResult,dataMapFromDb.size="+dataMapFromDb.size+",originalData.size"+originalData.size)
-//    val resultData: ListBuffer[Row] = originalData
+                         dataMapFromDb: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]],
+                         sourceTableFields: Array[String],
+                         resultSchema: StructType,
+                         original2AsNameMap: Map[String, String]) = {
+    logInfo("getKuduUnionResult,dataMapFromDb.size=" + dataMapFromDb.size + ",originalData.size" + originalData.size)
+    //    val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr: Array[(String, DataType)] = resultSchema.fieldNames.map(name => (name.toLowerCase, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
-    if (dataMapFromDb != null)
+    if (dataMapFromDb != null && dataMapFromDb.nonEmpty)
       dataMapFromDb.foreach { case (_, tupleLists) =>
         tupleLists.foreach(tupleMap => {
           val outputArray = ListBuffer.empty[Any]
@@ -288,31 +291,31 @@ object DataFrameTransform extends EdpLogging {
             if (UmsSysField.OP.toString == name)
               outputArray.append(
                 SparkSchemaUtils.s2sparkValue(UmsOpType.INSERT.toString, UmsFieldType.STRING))
-            else{
+            else {
               val asName = original2AsNameMap(name)
               val tmpValue: (Any, String) = tupleMap(asName)
-//              logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
-              val newTmpValue=umsFieldType(tmpValue._2) match {
-                case STRING => if(tmpValue._1==null) "" else tmpValue._1.toString
-                case INT | LONG |  FLOAT | DOUBLE | DECIMAL | BINARY => if(tmpValue._1==null) "0" else tmpValue._1.toString
-                case DATE| DATETIME =>if(tmpValue._1==null) DateUtils.currentyyyyMMddHHmmss else tmpValue._1.toString
-                case BOOLEAN => if(tmpValue._1==null) "false" else tmpValue._1.toString
+              //              logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
+              val newTmpValue = umsFieldType(tmpValue._2) match {
+                case STRING => if (tmpValue._1 == null) "" else tmpValue._1.toString
+                case INT | LONG | FLOAT | DOUBLE | DECIMAL | BINARY => if (tmpValue._1 == null) "0" else tmpValue._1.toString
+                case DATE | DATETIME => if (tmpValue._1 == null) DateUtils.currentyyyyMMddHHmmss else tmpValue._1.toString
+                case BOOLEAN => if (tmpValue._1 == null) "false" else tmpValue._1.toString
               }
 
-              val (fieldValue, fieldType )= if(originalType.toString=="DateTimeType" ||originalType.toString=="TimestampType"){
+              val (fieldValue, fieldType) = if (originalType.toString == "DateTimeType" || originalType.toString == "TimestampType") {
                 val v = newTmpValue
-                val newValue = if(v.length==13){
-                  v.toLong*1000
-                }else if(v.length==19){
-                  v.toLong*1000*1000
-                }else{
+                val newValue = if (v.length == 13) {
+                  v.toLong * 1000
+                } else if (v.length == 19) {
+                  v.toLong * 1000 * 1000
+                } else {
                   v.toLong
                 }
-                (DateUtils.yyyyMMddHHmmss(newValue),UmsFieldType.DATETIME)
-              }else{
-                (newTmpValue,umsFieldType(tmpValue._2))
+                (DateUtils.yyyyMMddHHmmss(newValue), UmsFieldType.DATETIME)
+              } else {
+                (newTmpValue, umsFieldType(tmpValue._2))
               }
-              logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
+              //              logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
               outputArray.append(
                 SparkSchemaUtils.s2sparkValue(if (tmpValue._1 == null) null else fieldValue, fieldType))
             }
@@ -321,22 +324,25 @@ object DataFrameTransform extends EdpLogging {
           originalData.append(new GenericRowWithSchema(outputArray.toArray, resultSchema))
         })
       }
-//    originalData
+    //    originalData
   }
 
   def getLeftJoinResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
     val resultData = ListBuffer.empty[Row]
+    val originalDataSize = originalData.size
     originalData.foreach(iter => {
       val sch: Array[StructField] = iter.schema.fields
-      val originalJoinFields = sourceTableFields.map(joinFields => {
-        val dataType = sch.filter(t => t.name == joinFields).head.dataType.toString
-        val field = iter.get(iter.fieldIndex(joinFields)) //.toString
-        if (field != null) {
-          if (dataType != "StringType") {
-            field.toString.split("\\.")(0)
-          } else field.toString
-        } else "N/A" // source flow is empty in some fields
-      }).mkString("_")
+      val originalJoinFields = if (sourceTableFields.nonEmpty) {
+        sourceTableFields.map(joinFields => {
+          val dataType = sch.filter(t => t.name == joinFields).head.dataType.toString
+          val field = iter.get(iter.fieldIndex(joinFields)) //.toString
+          if (field != null) {
+            if (dataType != "StringType") {
+              field.toString.split("\\.")(0)
+            } else field.toString
+          } else "N/A" // source flow is empty in some fields
+        }).mkString("_")
+      } else "all"
       if (dataMapFromDb == null || !dataMapFromDb.contains(originalJoinFields)) {
         val originalArray: Array[Any] = iter.schema.fieldNames.map(name => iter.get(iter.fieldIndex(name)))
         val dbOutputArray: Array[Any] = new Array[Any](dbOutPutSchemaMap.size)
@@ -354,6 +360,8 @@ object DataFrameTransform extends EdpLogging {
       }
     })
     // orignialData.clear
+    val resultDataSize = resultData.size
+    logInfo(s"getLeftJoinResult,originalDataSize:$originalDataSize,resultDataSize:$resultDataSize")
     resultData.toIterator
   }
 
@@ -361,16 +369,18 @@ object DataFrameTransform extends EdpLogging {
     val resultData = ListBuffer.empty[Row]
     if (dataMapFromDb != null)
       orignialData.foreach(iter => {
-        val originalJoinFields = sourceTableFields.map(joinFields => {
-          val field = iter.get(iter.fieldIndex(joinFields))
-          if (field != null) field.toString
-          else {
-            logWarning("Inner join, join fields " + joinFields + " is null ")
-            val information = iter.schema.fieldNames.map(name => (name, iter.get(iter.fieldIndex(name))))
-            information.foreach { case (name, value) => logWarning(name + "          " + value) }
-            "N/A"
-          } // source flow is empty in some fields
-        }).mkString("_")
+        val originalJoinFields = if (sourceTableFields.nonEmpty) {
+          sourceTableFields.map(joinFields => {
+            val field = iter.get(iter.fieldIndex(joinFields))
+            if (field != null) field.toString
+            else {
+              logWarning("Inner join, join fields " + joinFields + " is null ")
+              val information = iter.schema.fieldNames.map(name => (name, iter.get(iter.fieldIndex(name))))
+              information.foreach { case (name, value) => logWarning(name + "          " + value) }
+              "N/A"
+            } // source flow is empty in some fields
+          }).mkString("_")
+        } else "all"
         if (dataMapFromDb.contains(originalJoinFields)) {
           val originalArray: Array[Any] = iter.schema.fieldNames.map(name => iter.get(iter.fieldIndex(name)))
           dataMapFromDb(originalJoinFields).foreach { tupleList =>
@@ -396,22 +406,31 @@ object DataFrameTransform extends EdpLogging {
       }
       dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
         val value = rs.getObject(name)
+        //logInfo("getDataMap value:" + value)
         arrayBuf(index) = if (value != null) {
-          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+          if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(rs.getBytes(name))
+          //if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
           else value.toString
         } else null
+        //logInfo("getDataMap arrayBuf(index):" + arrayBuf(index))
         tmpMap(name) = arrayBuf(index)
       }
 
-      val joinFieldsAsKey = lookupTableFieldsAlias.map(name => {
-        if (tmpMap.contains(name)) tmpMap(name) else rs.getObject(name).toString
-      }).mkString("_")
+      if(lookupTableFieldsAlias.nonEmpty) {
+        val joinFieldsAsKey = lookupTableFieldsAlias.map(name => {
+          if (tmpMap.contains(name)) tmpMap(name) else rs.getObject(name).toString
+        }).mkString("_")
 
-      if (!dataTupleMap.contains(joinFieldsAsKey)) {
-        dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[String]]
+        if (!dataTupleMap.contains(joinFieldsAsKey)) {
+          dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[String]]
+        }
+        dataTupleMap(joinFieldsAsKey) += arrayBuf
+      } else {
+        if(!dataTupleMap.contains("all")) {
+          dataTupleMap("all") = ListBuffer.empty[Array[String]]
+        }
+        dataTupleMap("all") += arrayBuf
       }
-
-      dataTupleMap(joinFieldsAsKey) += arrayBuf
     }
     dataTupleMap
   }

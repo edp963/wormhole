@@ -22,6 +22,8 @@
 
 package edp.wormhole.util.swifts
 
+import edp.wormhole.util.swifts.Operator.Operator
+
 
 case class SwiftsSql(optType: String, // MAP, UNION, FILTER, JOIN... //can add key word "code" for wh3 to reflect
                      fields: Option[String], //fields get from database (join)
@@ -30,7 +32,35 @@ case class SwiftsSql(optType: String, // MAP, UNION, FILTER, JOIN... //can add k
                      lookupNamespace: Option[String], // string after "from" before "=" in sql
                      sourceTableFields: Option[Array[String]], //where () in (@@@) @@@ --> sourceTableFields
                      lookupTableFields: Option[Array[String]], // where (@@@) in ... @@@ --> lookupTableFields
-                     lookupTableFieldsAlias: Option[Array[String]]) {// final fileds name get from database ,e.g. select a as b, c from... --> get b,c
+                     lookupTableFieldsAlias: Option[Array[String]],
+                     lookupTableConstantCondition: Option[Array[SqlCondition]] = None//constant condition where field1 = value1 and field2 = value2；
+                    ) {// final fileds name get from database ,e.g. select a as b, c from... --> get b,c
 }
+
+case class SqlCondition(column: String,
+                        operator: Operator,
+                        value: String,
+                        isSourceField: Boolean = false) {
+}
+
+
+object Operator extends Enumeration {
+  //kudu support operator,not support filed in (value1,value2)
+  type Operator = Value
+
+  val EQUAL = Value("=")
+  val GREATER = Value(">")
+  val GREATER_EQUAL = Value(">=")
+  val LESS = Value("<")
+  val LESS_EQUAL = Value("<=")
+  val IN = Value("in")
+  val IS_NULL = Value("is null") //空格处理
+  val IS_NOT_NULL = Value("is not null") //空格处理
+
+  def getValue(operator: Operator) = Operator.toString
+
+  def getOperator(s: String) = Operator.withName(s.toLowerCase)
+}
+
 
 

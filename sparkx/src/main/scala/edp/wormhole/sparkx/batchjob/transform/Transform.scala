@@ -22,32 +22,42 @@
 package edp.wormhole.sparkx.batchjob.transform
 
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object Transform extends EdpLogging {
-  def process(session: SparkSession, inputDf: DataFrame, actions: Array[String], specialConfig: Option[String]): DataFrame = {
-    val tableName = "increment"
-    var currentDf = inputDf
 
-    actions.foreach {  action =>
+  def process(session: SparkSession, sourceNs: String, sinkNs: String, inputDf: DataFrame, actions: Array[String], specialConfig: Option[String]): DataFrame = {
+    val tmpTable = "increment"
+    var currentDf = inputDf
+    val tableName = sourceNs.split("\\.")(3)
+    actions.foreach { action =>
       val equalMarkPosition = action.indexOf("=")
       val processingType = action.substring(0, equalMarkPosition).trim
       val content = action.substring(equalMarkPosition + 1).trim
       processingType match {
         case "spark_sql" =>
-          currentDf.createOrReplaceTempView(tableName)
-          currentDf = session.sql(content)
-          session.sqlContext.dropTempTable(tableName)
+          val mapSql = replaceTable(content, tableName, tmpTable)
+          currentDf.createOrReplaceTempView(tmpTable)
+          currentDf = session.sql(mapSql)
+          session.sqlContext.dropTempTable(tmpTable)
         case "custom_class" =>
           val clazz = Class.forName(content)
           val reflectObject: Any = clazz.newInstance()
-          val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+          val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[WormholeConfig], classOf[String], classOf[String])
 
-          currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig)).asInstanceOf[DataFrame]
+          currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig), null, sourceNs, sinkNs).asInstanceOf[DataFrame]
         case _ => logInfo("unsupported processing type, e.g. spark_sql, custom_class.")
       }
     }
     currentDf
   }
+
+  private def replaceTable(sql: String, tableName: String, tmpTable: String): String = {
+    val tableNameIndentifyRegex = "(\\s+" + tableName + "\\.\\S+)|(\\s+" + tableName + "(\\s*;|\\s*))|(\\s+" + tableName + "$)"
+    tableNameIndentifyRegex.r.replaceSomeIn(sql, (matcher) => {
+      Option(matcher.group(0).replaceAll(tableName, tmpTable))
+    })
+  }
+
 }

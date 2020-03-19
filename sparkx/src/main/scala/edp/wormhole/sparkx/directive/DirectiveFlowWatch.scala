@@ -24,12 +24,12 @@ package edp.wormhole.sparkx.directive
 import edp.wormhole.common.StreamType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.batchflow.BatchflowDirective
-import edp.wormhole.sparkx.common.WormholeConfig
-import edp.wormhole.sparkx.hdfslog.{HdfsDirective, HdfsMainProcess}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
-import edp.wormhole.sparkx.router.{RouterDirective, RouterMainProcess}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient._
+import edp.wormhole.sparkx.hdfs.HdfsDirective
+import edp.wormhole.sparkx.router.RouterDirective
+import edp.wormhole.sparkxinterface.swifts.WormholeConfig
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}
 
 object DirectiveFlowWatch extends EdpLogging {
@@ -71,6 +71,9 @@ object DirectiveFlowWatch extends EdpLogging {
               val feedbackMes = RouterDirective.flowStartProcess(ums)
               createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
             case UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_STOP =>
+              val feedbackMes = HdfsDirective.flowStartProcess(ums) //todo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
+              createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
+            case UmsProtocolType.DIRECTIVE_HDFSCSV_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSCSV_FLOW_STOP =>
               val feedbackMes = HdfsDirective.flowStartProcess(ums) //todo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
               createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
             case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")

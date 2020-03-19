@@ -95,7 +95,10 @@ object JsonParseHelper {
         case UmsFieldType.DECIMAL => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toDouble)
         case UmsFieldType.BOOLEAN => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toBoolean)
         case UmsFieldType.DATE => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim)
-        case UmsFieldType.DATETIME => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim)
+        case UmsFieldType.DATETIME => if (isNull(field) || field.isEmpty) (name, null) else (name, if(field.trim.indexOf(".")>0 && field.trim.length()-field.indexOf(".")<=3) {
+          val len= field.trim.indexOf(".") + 4 - field.trim.length
+          (0 until len).foldLeft(field)((soFar, i) => soFar + "0")
+        } else field.trim)
         case _ => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim)
       }
     }

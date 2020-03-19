@@ -112,6 +112,16 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (NamespaceInfo.tupled, NamespaceInfo.unapply)
       }.result).mapTo[Seq[NamespaceInfo]]
 
+  def getFlowInstanceNamespaceByProjectId(projectId: Long, streamId: Long, nsSys: String) =
+    db.run(((((streamTable.filter(_.id === streamId) join instanceTable on (_.instanceId === _.id))
+      join instanceTable.filter(_.nsSys.startsWith(nsSys)) on (_._2.connUrl === _.connUrl))
+      join namespaceTable on (_._2.id === _.nsInstanceId))
+      join relProjectNsTable.filter(_.projectId === projectId) on (_._2.id === _.nsId))
+      .map {
+        case (((_, ns)), _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
+          ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (NamespaceInfo.tupled, NamespaceInfo.unapply)
+      }.result).mapTo[Seq[NamespaceInfo]]
+
   def getJobSourceNamespaceByProjectId(projectId: Long, nsSys: String) =
     db.run((namespaceTable.filter(ns => ns.nsSys.startsWith(nsSys) && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))

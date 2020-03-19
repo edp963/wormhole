@@ -23,9 +23,10 @@ package edp.wormhole.sparkx.common
 
 import com.alibaba.fastjson.{JSONArray, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums
-import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
+import edp.wormhole.ums.{UmsField, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.CommonUtils
 import org.apache.spark.sql.Row
@@ -62,7 +63,7 @@ object SparkUtils extends EdpLogging {
     }
   }
 
-  def getSchemaMap(schema: StructType): Map[String, (Int, UmsFieldType, Boolean)] = {
+  def getSchemaMap(schema: StructType, sinkUid: Boolean): Map[String, (Int, UmsFieldType, Boolean)] = {
     var index = -1
     val schemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
     schema.fields.foreach(field => {
@@ -76,17 +77,20 @@ object SparkUtils extends EdpLogging {
     //    val r = schemaMap.toMap.filter(_._1 != UmsSysField.UID.toString)
     //    schemaMap.remove(UmsSysField.UID.toString)
     logInfo("schemaMap:" + schemaMap)
-    if (schemaMap.contains(UmsSysField.UID.toString)) {
-      val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
-      schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
-      schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+    if(sinkUid) {
+      logInfo("sink uid, schemaMap:" + schemaMap)
+      schemaMap.toMap
+    } else {
+      if (schemaMap.contains(UmsSysField.UID.toString)) {
+        val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
+        schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
+        schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+      }
+      logInfo("swap schemaMap:" + schemaMap)
+      schemaMap.remove(UmsSysField.UID.toString)
+      logInfo("not sink uid, remove schemaMap:" + schemaMap)
+      schemaMap.toMap
     }
-    logInfo("swap schemaMap:" + schemaMap)
-    schemaMap.remove(UmsSysField.UID.toString)
-    logInfo("remove schemaMap:" + schemaMap)
-    schemaMap.toMap
-    //    r
-
   }
 
   def getSchemaMap(sinkFields: Seq[UmsField], sinkProcessConfig: SinkProcessConfig):
@@ -121,11 +125,10 @@ object SparkUtils extends EdpLogging {
         (t._1, (index, t._2._2, t._2._3))
       }).toMap, tmpSchema, if (renameMap.isEmpty) None else Some(renameMap.toMap))
     } else {
-      val sinkUid:Boolean = if(sinkProcessConfig.specialConfigJson!=null&&sinkProcessConfig.specialConfigJson.containsKey("sinkUid"))
-        sinkProcessConfig.specialConfigJson.getBoolean("sinkUid")
-      else false
-      val tmpSchemaArr = if(sinkUid) schemaArr.filter(_._1 != UmsSysField.UID.toString)
+      val sinkUid:Boolean = sinkProcessConfig.sinkUid
+      val tmpSchemaArr = if(!sinkUid) schemaArr.filter(_._1 != UmsSysField.UID.toString)
       else schemaArr
+      logInfo("tmpSchemaArr:"+tmpSchemaArr)
       var index = -1
       (tmpSchemaArr.map(t => {
         index += 1
@@ -234,5 +237,20 @@ object SparkUtils extends EdpLogging {
     })
 
     startTopicPartitionOffsetJson
+  }
+
+  def mergeTuple(dataSeq: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tableKeyList: List[String]): Seq[Seq[String]] = {
+    val keys2TupleMap = new mutable.HashMap[String, Seq[String]] //[keys,tuple]
+    dataSeq.foreach(dataArray => {
+      val opValue = SinkCommonUtils.fieldValue(UmsSysField.OP.toString, schemaMap, dataArray)
+      if (UmsOpType.BEFORE_UPDATE.toString != opValue) {
+        val keyValues = SinkCommonUtils.keyList2values(tableKeyList, schemaMap, dataArray)
+        val idInTuple = dataArray(schemaMap(UmsSysField.ID.toString)._1).toLong
+        if (!keys2TupleMap.contains(keyValues) || (idInTuple > keys2TupleMap(keyValues)(schemaMap(UmsSysField.ID.toString)._1).toLong)) {
+          keys2TupleMap(keyValues) = dataArray
+        }
+      }
+    })
+    keys2TupleMap.values.toList
   }
 }

@@ -32,7 +32,8 @@ object ParseSwiftsSql extends EdpLogging {
             sourceNamespace: String, //sourceNamespace is rule
             sinkNamespace: String,
             validity: Boolean,
-            dataType: String): Option[Array[SwiftsSql]] = {
+            dataType: String,
+            mutation: String): Option[Array[SwiftsSql]] = {
     if (sqlStr.trim.nonEmpty) {
       val sqlStrArray = sqlStr.trim.replaceAll("\r", " ").replaceAll("\n", " ").replaceAll("\t", " ").split(";").map(str => {
         val trimStr = str.trim
@@ -40,7 +41,7 @@ object ParseSwiftsSql extends EdpLogging {
         else if (trimStr.startsWith(SqlOptType.PARQUET_SQL.toString)) trimStr.substring(11).trim
         else trimStr
       })
-      val swiftsSqlArr = getSwiftsSql(sqlStrArray, sourceNamespace, sinkNamespace, validity, dataType) //sourcenamespace is rule
+      val swiftsSqlArr = getSwiftsSql(sqlStrArray, sourceNamespace, sinkNamespace, validity, dataType, mutation) //sourcenamespace is rule
       swiftsSqlArr
     } else {
       None
@@ -51,7 +52,8 @@ object ParseSwiftsSql extends EdpLogging {
                            sourceNamespace: String, //sourcenamespace is rule
                            sinkNamespace: String,
                            validity: Boolean,
-                           dataType: String): Option[Array[SwiftsSql]] = {
+                           dataType: String,
+                           mutation: String): Option[Array[SwiftsSql]] = {
     val swiftsSqlList = Some(sqlStrArray.map(sqlStrEle => {
       val sqlStrEleTrim = sqlStrEle.trim + " " //to fix no where clause bug, e.g select a, b from table;
       logInfo("sqlStrEle:::" + sqlStrEleTrim)
@@ -62,9 +64,9 @@ object ParseSwiftsSql extends EdpLogging {
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.RIGHT_JOIN.toString)) {
         ParseSwiftsSqlInternal.getJoin(SqlOptType.RIGHT_JOIN, sqlStrEleTrim, sourceNamespace, sinkNamespace)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.UNION.toString)) {
-        ParseSwiftsSqlInternal.getUnion(sqlStrEleTrim, sourceNamespace, sinkNamespace, validity, dataType)
+        ParseSwiftsSqlInternal.getUnion(sqlStrEleTrim, sourceNamespace, sinkNamespace, validity, dataType, mutation)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.SPARK_SQL.toString)) {
-        ParseSwiftsSqlInternal.getSparkSql(sqlStrEleTrim, sourceNamespace, validity, dataType)
+        ParseSwiftsSqlInternal.getSparkSql(sqlStrEleTrim, sourceNamespace, validity, dataType, mutation)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.CUSTOM_CLASS.toString)) {
         getCustomClass(sqlStrEleTrim)
       } else {

@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.1</version>
+        <version>0.6.3</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -39,6 +39,11 @@
                     <artifactId>calcite-avatica-server</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-kafka-010</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
@@ -192,8 +197,8 @@
 
         <dependency>
             <groupId>org.json4s</groupId>
-            <artifactId>json4s-jackson_2.11</artifactId>
-            <version>3.2.11</version>
+            <artifactId>json4s-jackson_${scala.binary.version}</artifactId>
+            <version>${json4s.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
@@ -217,15 +222,15 @@
 
         <!--kafka dependencies-->
         <!--<dependency>-->
-            <!--<groupId>org.apache.kafka</groupId>-->
-            <!--<artifactId>kafka_${scala.binary.version}</artifactId>-->
-            <!--<version>0.10.2.2</version>-->
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>junit</groupId>-->
-                    <!--<artifactId>junit</artifactId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
+        <!--<groupId>org.apache.kafka</groupId>-->
+        <!--<artifactId>kafka_${scala.binary.version}</artifactId>-->
+        <!--<version>0.10.2.2</version>-->
+        <!--<exclusions>-->
+        <!--<exclusion>-->
+        <!--<groupId>junit</groupId>-->
+        <!--<artifactId>junit</artifactId>-->
+        <!--</exclusion>-->
+        <!--</exclusions>-->
         <!--</dependency>-->
 
         <!--es http dependencies-->

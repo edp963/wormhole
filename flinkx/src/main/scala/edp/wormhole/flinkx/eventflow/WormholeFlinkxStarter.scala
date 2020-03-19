@@ -33,7 +33,7 @@ object WormholeFlinkxStarter extends App {
   println(args(1) + " --------------flow start")
   val config: WormholeFlinkxConfig = JsonUtils.json2caseClass[WormholeFlinkxConfig](args(0))
   val umsFlowStart: Ums = UmsSchemaUtils.toUms(args(1))
-  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
+  WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kafka_output.kerberos)
 
   WormholeFlinkxFlowDirective.initFlow(umsFlowStart,config)
 

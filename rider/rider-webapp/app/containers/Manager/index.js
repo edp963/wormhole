@@ -1062,7 +1062,8 @@ export class Manager extends React.Component {
       filters: [
         {text: 'default', value: 'default'},
         {text: 'hdfslog', value: 'hdfslog'},
-        {text: 'routing', value: 'routing'}
+        {text: 'routing', value: 'routing'},
+        {text: 'hdfscsv', value: 'hdfscsv'}
       ],
       filteredValue: filteredInfo.functionType,
       onFilter: (value, record) => record.functionType.includes(value)
@@ -1336,10 +1337,10 @@ export class Manager extends React.Component {
               <p><strong>   Stream Config：</strong>{detailTemp.streamConfig}</p>
               <p><strong>   Start Config：</strong>{detailTemp.startConfig}</p>
 
-              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
-              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
-              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
-              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
+              <p><strong>   Create Time：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.createTime}</p>
+              <p><strong>   Update Time：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.updateTime}</p>
+              <p><strong>   Create By：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.createBy}</p>
+              <p><strong>   Update By：</strong>{detailTemp.userTimeInfo && detailTemp.userTimeInfo.updateBy}</p>
               <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
             </div>
           )
@@ -1429,7 +1430,7 @@ export class Manager extends React.Component {
 
     const priorityTitle = <FormattedMessage {...messages.streamSetPriority} />
 
-    const SortableItem = SortableElement(({value}) => <div className="sort-item">{value.flowName}</div>)
+    const SortableItem = SortableElement(({value}) => <div className="sort-item">{value.id}：{value.flowName}</div>)
 
     const SortableList = SortableContainer(({items}) => (
       <div className="set-priority">

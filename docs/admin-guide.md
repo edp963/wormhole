@@ -32,6 +32,8 @@ Admin 配置好 User，Namespace，UDF 和 Project 的访问权限后，User 类
 
 ## Namespace 管理
 
+Source/Sink/Lookup Namespace管理，其中Source Namespace有两种来源：DBus已接Namespace资源同步，参考[DBus对接](https://edp963.github.io/wormhole/how-to.html#dbus%E7%B3%BB%E7%BB%9F%E5%AF%B9%E6%8E%A5)，Kafka类型的数据源。
+
 目前只须在 Wormhole 上配置前四部分，Table Version/Database Partition/Table Partition 默认为 “*”。
 
 数据源系统只支持 Kafka，目标端系统支持 Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB/Kudu等。
@@ -47,6 +49,8 @@ instance 相当于为数据系统的物理地址起别名，connUrl 填写规则
 新建 instance 后，instance 值不可以修改，connUrl 可以修改。
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-instance.png" alt="" width="600"/>
+
+备注：如果kafka为Kerberos认证的kafka，则将Connection Config设置为{"kerberos":true}，否则配置为{"kerberos":false}，如果没有配置，默认为application.conf中设置的Kerberos信息（0.6.3及之后版本支持）。
 
 ### Database
 
@@ -74,7 +78,7 @@ namespace 系统类型为 Kafka/MongoDb/Es 时，若其作为 Sink Namespace，�
 
 支持联合主键配置，中间使用逗号分隔。Key 区分大小写，若数据来源为 Dbus，主键须配置为小写。
 
-#### Source Schema
+#### Source Schema 
 
 点击 namespace source schema 配置按钮，见下图，粘贴一条完整的数据样例至左侧文本框中，点击中间的按钮，生成右侧的配置表格。
 
@@ -89,7 +93,7 @@ UMS_Extension 格式支持的字段类型如下。
 
 **注意事项：**
 
-> - **ums_ts_ 对应字段必须配置，且数据类型须为 long/datetime/longarray/datetimearray，若为datetime/datetimearray 类型，数据格式须为 yyyy/MM/dd HH:mm:ss[.SSS000/SSS] 或 yyyy-MM-dd HH:mm:ss[.SSS000/SSS] 或 yyyyMMddHHmmss[SSS000/SSS]**
+> - **ums_ts_ 对应字段必须配置，且数据类型须为 long/datetime/longarray/datetimearray，若为datetime/datetimearray 类型，数据格式须为 yyyy/MM/dd HH:mm:ss[.SSS000/SSS] 或 yyyy-MM-dd HH:mm:ss[.SSS000/SSS] 或 yyyyMMddHHmmss[SSS000/SSS]。若ums_ts_字段设置为long类型，对应数值应该为时间对应的秒数或毫秒数**
 > - **ums_id_ 对应字段的数据类型须为 int/long/intarray/longarray**
 > - **ums_op_ 对应字段的数据类型须为 int/long/string/intarray/longarray/stringarray，配置 insert 操作，update 操作，delete 操作对应的值**
 > - **如果向 sink 端写数据时只有插入操作，可不配置 ums_id_ 和 ums_op_ 系统字段；如果有增删改操作，必须配置**

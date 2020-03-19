@@ -25,12 +25,12 @@ import edp.wormhole.util.config.ConnectionConfig
 
 
 case class BatchJobConfig(sourceConfig: SourceConfig,
-                            transformationConfig: Option[TransformationConfig],
-                            sinkConfig: SinkConfig,
-                            jobConfig: JobConfig,
-                          udfConfig:Option[List[UdfConfig]])
+                          transformationConfig: Option[TransformationConfig],
+                          sinkConfig: SinkConfig,
+                          jobConfig: JobConfig,
+                          udfConfig: Option[List[UdfConfig]])
 
-case class UdfConfig(udfName:String,udfClassFullname:String)
+case class UdfConfig(udfName: String, udfClassFullname: String)
 
 case class SourceConfig(startTime: String,
                         endTime: String,
@@ -44,14 +44,15 @@ case class TransformationConfig(action: Option[String],
 
 case class SinkConfig(sinkNamespace: String,
                       connectionConfig: ConnectionConfig,
-                      maxRecordPerPartitionProcessed:Int,
+                      maxRecordPerPartitionProcessed: Int,
                       classFullName: Option[String],
                       specialConfig: Option[String],
                       tableKeys: Option[String],
-                      projection:Option[String])
+                      projection: Option[String])
 
 case class JobConfig(appName: String,
                      master: String,
                      `spark.sql.shuffle.partitions`: Option[Int])
-              //       `spark.default.parallelism`: Int)
+
+//       `spark.default.parallelism`: Int)
 

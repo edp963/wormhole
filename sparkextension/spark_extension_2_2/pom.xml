@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>edp.wormhole</groupId>
+        <artifactId>wormhole-parent</artifactId>
+        <version>0.6.3</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+
+    <artifactId>wormhole-spark-extension_2.2</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <current.spark.version>${spark.2_2.version}</current.spark.version>
+        <main.basedir>${project.parent.basedir}</main.basedir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-hadoop</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>${current.spark.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>oro</groupId>
+                    <artifactId>oro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.iharder</groupId>
+                    <artifactId>base64</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.code.findbugs</groupId>
+                    <artifactId>jsr305</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_2.11</artifactId>
+            <version>${current.spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.11</artifactId>
+            <version>${current.spark.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming-kafka-0-10_2.11</artifactId>
+            <version>${current.spark.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

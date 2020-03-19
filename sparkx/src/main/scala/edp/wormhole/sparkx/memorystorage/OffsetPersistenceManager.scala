@@ -28,6 +28,8 @@ import edp.wormhole.sparkx
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.directive.DirectiveOffsetWatch
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts
+import edp.wormhole.sparkxinterface.swifts._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.ums._
 import edp.wormhole.util.JsonUtils
@@ -92,7 +94,12 @@ object OffsetPersistenceManager extends EdpLogging {
     if (topicConfigMap == null) throw new Exception("do not config kafka any topic,include heardbeat topic")
 
     DirectiveOffsetWatch.offsetWatch(config, appId)
-    KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList, inWatch, config.kerberos)
+    val topics = topicConfigMap.values.toList
+
+    topics.foreach((topic: KafkaTopicConfig) =>{
+      logInfo("start topics:"+topic)
+    })
+    KafkaInputConfig(kafkaBaseConfig, topics, inWatch, config.kafka_input.kerberos)
   }
 
   private def deleteTopics(zookeeperAddress: String, offsetPath: String, topicList: Seq[String]): Unit = {
@@ -118,7 +125,7 @@ object OffsetPersistenceManager extends EdpLogging {
         val tpo = tp.split(":")
         PartitionOffsetConfig(tpo(0).toInt, tpo(1).toLong)
       })
-      sparkx.common.KafkaTopicConfig(topicName, topicRate.toInt, poc, TopicType.topicType(topicType))
+      KafkaTopicConfig(topicName, topicRate.toInt, poc, TopicType.topicType(topicType))
     })
   }
 
@@ -167,7 +174,7 @@ object OffsetPersistenceManager extends EdpLogging {
     })
   }
 
-  def doTopicPersistence(config: WormholeConfig, addTopicList: ListBuffer[(KafkaTopicConfig, Long)], delTopicList: mutable.ListBuffer[(String, Long)]): Unit = {
+  def doTopicPersistence(config: WormholeConfig, addTopicList: ListBuffer[(KafkaTopicConfig, Long,Long)], delTopicList: mutable.ListBuffer[(String, Long,Long)]): Unit = {
     if (addTopicList.nonEmpty) {
       val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
       OffsetPersistenceManager.persistTopic(addTopicList.map(_._1), offsetPath, config.zookeeper_path)

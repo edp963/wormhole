@@ -161,6 +161,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   <RadioButton value="default" className="radio-btn-style radio-btn-extra">Default</RadioButton>
                   <RadioButton value="hdfslog" className={`radio-btn-style radio-btn-extra ${streamSubPanelKey === 'flink' ? 'hide' : ''}`}>Hdfslog</RadioButton>
                   <RadioButton value="routing" className={`radio-btn-style radio-btn-extra ${streamSubPanelKey === 'flink' ? 'hide' : ''}`}>Routing</RadioButton>
+                  <RadioButton value="hdfscsv" className={`radio-btn-style radio-btn-extra ${streamSubPanelKey === 'flink' ? 'hide' : ''}`}>Hdfscsv</RadioButton>
                 </RadioGroup>
               )}
             </FormItem>
@@ -205,6 +206,18 @@ export class WorkbenchStreamForm extends React.PureComponent {
               </div>
             </div>
           </Col>
+          <Col span={24}>
+            <FormItem label="Special Config" {...itemStyle}>
+              {getFieldDecorator('specialConfig', {})(
+                <textarea
+                  placeholder="Paste your Sink Config JSON here."
+                  className="ant-input ant-input-extra"
+                  rows="5">
+                </textarea>
+              )}
+            </FormItem>
+          </Col>
+
           <Col span={24} className="hide">
             <FormItem>
               {getFieldDecorator('config', {})(<Input />)}

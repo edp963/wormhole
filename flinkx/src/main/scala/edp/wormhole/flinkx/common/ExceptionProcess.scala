@@ -16,7 +16,7 @@ class ExceptionProcess(exceptionProcessMethod: ExceptionProcessMethod, config: W
       case ExceptionProcessMethod.INTERRUPT =>
         throw new Throwable("process error")
       case ExceptionProcessMethod.FEEDBACK =>
-        WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
+        WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config, config.kafka_output.kerberos)
         FlinkxUtils.sendFlowErrorMessage(feedbackFlowFlinkxError,  config, exceptionConfig.flowId)
       case _ =>
         logger.info("exception process method is: " + exceptionProcessMethod)

@@ -57,6 +57,17 @@ class FeedbackErrDal(feedbackErrTable: TableQuery[FeedbackErrTable])
   def deleteHistory(pastNdays: String) = {
     val deleteMaxId = Await.result(
       db.run(feedbackErrTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
-    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
+    //if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
+
+    if (deleteMaxId.isDefined && deleteMaxId.nonEmpty) {
+      val deleteBatchSize = 5000
+      val deleteMinId = Await.result(db.run(feedbackErrTable.withFilter(_.id <= deleteMaxId).map(_.id).min.result).mapTo[Option[Long]], minTimeOut)
+      var curDeleteId = deleteMinId.get + deleteBatchSize
+      while(curDeleteId < deleteMaxId.get) {
+        Await.result(super.deleteByFilter(error => {error.id <= curDeleteId && error.id >= (curDeleteId - deleteBatchSize)}), maxTimeOut)
+        curDeleteId = curDeleteId + deleteBatchSize
+      }
+      Await.result(super.deleteByFilter(error => {error.id <= deleteMaxId && error.id >= (curDeleteId - deleteBatchSize)}), maxTimeOut)
+    }
   }
 }

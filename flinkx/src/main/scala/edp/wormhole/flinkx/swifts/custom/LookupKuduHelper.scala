@@ -78,7 +78,7 @@ object LookupKuduHelper extends java.io.Serializable {
       //value
       val sourceTableFields: Array[String] = if (swiftsSql.sourceTableFields.isDefined) swiftsSql.sourceTableFields.get else null
       val lookupTableFields = if (swiftsSql.lookupTableFields.isDefined) swiftsSql.lookupTableFields.get else null
-      val joinFieldsValueArray: Array[Any] = LookupHelper.joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap)
+      val joinFieldsValueArray: Array[Any] = LookupHelper.joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap, false)
       val joinFieldsValueString: Array[String] = joinFieldsValueArray.map(value => value.toString)
       val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
       val queryResult: (String, Map[String, (Any, String)]) = KuduConnection.doQueryByKey(lookupTableFields, joinFieldsValueString.toList, tableSchemaInKudu, client, table, selectFields)
@@ -92,7 +92,7 @@ object LookupKuduHelper extends java.io.Serializable {
         ""
       }
       dbOutPutSchemaMap.foreach { case (name, (_, dataType, index)) =>
-        val value = if (queryFieldsResultMap.contains(name)) queryFieldsResultMap(name)._1 else null.asInstanceOf[String]
+        val value = if (queryFieldsResultMap.nonEmpty && queryFieldsResultMap.contains(name)) queryFieldsResultMap(name)._1 else null.asInstanceOf[String]
         //val value = queryFieldsResultMap(name)._1
         arrayBuf(index) = if (value != null) {
           if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
@@ -104,12 +104,12 @@ object LookupKuduHelper extends java.io.Serializable {
         dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[Any]]
       }
       dataTupleMap(joinFieldsAsKey) += arrayBuf
-
+      logger.info(s"query data from table $tableName success")
     } catch {
       case ex: Throwable =>
         ex.printStackTrace()
         throw ex
-    } finally{
+    } finally {
       KuduConnection.closeClient(client)
     }
     dataTupleMap

@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.1</version>
+        <version>0.6.3</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.29</version>
+            <version>${fastjson.version}</version>
         </dependency>
 
         <!-- joda time -->
@@ -52,6 +52,18 @@
             <groupId>org.joda</groupId>
             <artifactId>joda-convert</artifactId>
             <version>1.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.4.6</version>
         </dependency>
 
 <!--        <dependency>
