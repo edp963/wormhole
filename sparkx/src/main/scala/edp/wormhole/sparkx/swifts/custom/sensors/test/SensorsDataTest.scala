@@ -1,21 +1,13 @@
-package edp.wormhole.sparkx.swifts.custom.sensors
-
-import java.lang.reflect.Method
+package edp.wormhole.sparkx.swifts.custom.sensors.test
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.sparkx.swifts.custom.sensors.ConvertUtils
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyColumnEntry
-import edp.wormhole.sparkxinterface.swifts.{SparkConfig, WormholeConfig}
-import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.functions.lit
-import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.StringType
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
-
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by IntelliJ IDEA.
@@ -39,7 +31,7 @@ object SensorsDataTest  extends App {
   val json1 = """{"a":1, "b": "23.1", "c": 1,"d":{"x":1,"y":"b"}}"""
   val json2 = """{"a":2, "b": "hello", "c": 1.2,"d":{"x":2,"y":"m"}}"""
 
-  val txt= sparkSession.read.text("/Users/creditease/Downloads/dataworks/kafka.json").as[String](Encoders.STRING);
+  val txt: Dataset[String] = sparkSession.read.text("/Users/creditease/Downloads/dataworks/kafka.json").as[String](Encoders.STRING);
   txt.show(10000)
   //val jsonList=mutable.ListBuffer[String];
 
