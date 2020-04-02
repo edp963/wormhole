@@ -1,12 +1,11 @@
-package edp.wormhole.sparkx.swifts.custom.sensors;
+package edp.wormhole.sparkx.swifts.custom.sensors.updatecolumn;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.EventEntry;
+import edp.wormhole.sparkx.swifts.custom.sensors.DataTypeSensorToCK;
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyColumnEntry;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyEntry;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +15,6 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.*;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
@@ -28,32 +25,16 @@ import java.util.Map;
  * @Date 19/11/15 11:15
  * To change this template use File | Settings | File Templates.
  */
-public class SensorsMetaClient implements Serializable {
-
-    private Connection mysqlConn;
+public class SensorsCkMetaClient implements Serializable {
 
     private List<Connection> clickHouseConn;
 
     private ParamUtils paramUtils;
 
+    private static final Logger logger=LoggerFactory.getLogger(SensorsCkMetaClient.class);
 
-    private static final Logger logger=LoggerFactory.getLogger(SensorsMetaClient.class);
-
-
-    public SensorsMetaClient(ParamUtils paramUtils) throws  Exception{
+    public SensorsCkMetaClient(ParamUtils paramUtils) throws  Exception{
         this.paramUtils=paramUtils;
-        Class.forName("com.mysql.jdbc.Driver");
-        Enumeration<Driver> drivers = DriverManager.getDrivers();
-        if (drivers.hasMoreElements()) {
-            while (true) {
-                DriverManager.deregisterDriver(drivers.nextElement());
-                if (!drivers.hasMoreElements()) {
-                    break;
-                }
-            }
-        }
-        DriverManager.registerDriver(new com.mysql.jdbc.Driver());
-        mysqlConn = DriverManager.getConnection(paramUtils.getEntry().getMysqlConnUrl(),paramUtils.getEntry().getMysqlUser(),paramUtils.getEntry().getMysqlPassword());
         ClickHouseDriver driver=new ClickHouseDriver();
         ClickHouseProperties properties = new ClickHouseProperties();
         properties.setUser(paramUtils.getEntry().getClickHouseUser());
@@ -66,63 +47,7 @@ public class SensorsMetaClient implements Serializable {
         }
     }
 
-    public List<PropertyEntry> queryAllPropertiesByProjectId(Long projectId,Integer tableType) throws Exception{
-        PreparedStatement ps=null;
-        ResultSet rs=null;
-        try{
-            List<String> selectColumns=getSelectColumn(PropertyEntry.class);
-            StringBuilder sb=new StringBuilder();
-            sb.append("select ").append(Joiner.on(",").join(selectColumns)).append(" from property_define where project_id=? and table_type=?");
-            logger.info("properties sql="+sb.toString());
-            ps=mysqlConn.prepareStatement(sb.toString());
-            ps.setLong(1,projectId);
-            ps.setInt(2,tableType);
-            rs=ps.executeQuery();
-            List<PropertyEntry> entries=getTList(rs,PropertyEntry.class);
-            return entries;
-        }finally {
-            releaseConnection(null,ps,rs);
-        }
-    }
-
-
-    public List<PropertyColumnEntry> queryAllPropertiesColumnByPropertyId(List<Integer> propertyIds) throws Exception{
-        PreparedStatement ps=null;
-        ResultSet rs=null;
-        try{
-            List<String> selectColumns=getSelectColumn(PropertyColumnEntry.class);
-            StringBuilder sb=new StringBuilder();
-            sb.append("select ").append(Joiner.on(",").join(selectColumns)).append(" from property_column where property_define_id in (").append(Joiner.on(',').join(propertyIds)).append(");");
-            logger.info("column sql="+sb.toString());
-            ps=mysqlConn.prepareStatement(sb.toString());
-            rs=ps.executeQuery();
-            List<PropertyColumnEntry> entries=getTList(rs,PropertyColumnEntry.class);
-            return entries;
-        }finally {
-            releaseConnection(null,ps,rs);
-        }
-    }
-
-    public List<EventEntry> queryAllEventByProjectId(Long projectId) throws Exception{
-        PreparedStatement ps=null;
-        ResultSet rs=null;
-        try{
-            List<String> selectColumns=getSelectColumn(EventEntry.class);
-            StringBuilder sb=new StringBuilder();
-            sb.append("select ").append(Joiner.on(",").join(selectColumns)).append(" from event_define where project_id=? and `virtual`=0");
-            logger.info(" event sql="+sb.toString());
-            ps=mysqlConn.prepareStatement(sb.toString());
-            ps.setLong(1,projectId);
-            rs=ps.executeQuery();
-            List<EventEntry> entries=getTList(rs,EventEntry.class);
-            return entries;
-        }finally {
-            releaseConnection(null,ps,rs);
-        }
-    }
-
-
-    public Map<String,String> queryClickHouseSchema(Long projectId) throws Exception{
+    public Map<String,String> queryClickHouseSchema() throws Exception{
         Statement ps=null;
         ResultSet rs=null;
         try{
@@ -255,15 +180,12 @@ public class SensorsMetaClient implements Serializable {
         return  true;
     }
 
-    public boolean changeClickHouseSchema(List<PropertyColumnEntry> needAddColumn)throws Exception{
+    public boolean changeClickHouseSchema(Map<String, String> needAddColumn)throws Exception{
         List<String> columnSql=Lists.newArrayList();
-        for(PropertyColumnEntry columnEntry:needAddColumn){
-            DataType dataType=DataType.indexOf(columnEntry.getData_type());
-            if(dataType==DataType.UNKNOWN){
-                throw new IllegalArgumentException("unknown dataType defined in property column,property_define_id="+columnEntry.getProperty_define_id());
-            }
-            columnSql.add(" ADD COLUMN IF NOT EXISTS "+columnEntry.getColumn_name()+" "+dataType.getClickHouseDataType());
-        }
+        needAddColumn.keySet().forEach(columnName -> {
+            columnSql.add(" ADD COLUMN IF NOT EXISTS "+columnName+" "+needAddColumn.get(columnName));
+        });
+
         logger.info("needAddColumn="+columnSql.toString());
         Statement ps=null;
         try{
@@ -306,68 +228,11 @@ public class SensorsMetaClient implements Serializable {
 
 
     public void destroy(){
-        releaseConnection(mysqlConn,null,null);
         if(clickHouseConn!=null && clickHouseConn.size()>0){
             for(Connection conn:clickHouseConn){
                 releaseConnection(conn,null,null);
             }
         }
-    }
-
-    protected List<String> getSelectColumn(Class clazz){
-        if(clazz==null){
-            throw new IllegalArgumentException("parameter clazz must not be null");
-        }
-        Field[] fields=clazz.getDeclaredFields();
-        if(fields==null || fields.length==0){
-            throw new IllegalArgumentException("parameter clazz has no declared field");
-        }
-        List<String> columns= Lists.newArrayList();
-        for(Field f:fields){
-            columns.add("`"+f.getName()+"`");
-        }
-        return columns;
-    }
-
-    protected <T> List<T> getTList(ResultSet rs,Class clazz) throws Exception{
-        if(clazz==null){
-            throw new IllegalArgumentException("parameter clazz must not be null");
-        }
-        Field[] fields=clazz.getDeclaredFields();
-        if(fields==null || fields.length==0){
-            throw new IllegalArgumentException("parameter clazz has no declared field");
-        }
-        List<T> result=Lists.newArrayList();
-        Map<String,Integer> colMap=Maps.newHashMap();
-        for(int i=1;i<=rs.getMetaData().getColumnCount();i++){
-            colMap.put(rs.getMetaData().getColumnName(i),i);
-        }
-        while (rs.next()){
-            Object o=clazz.newInstance();
-            for(Field f:fields){
-                f.setAccessible(true);
-                Object value=rs.getObject(f.getName());
-                if(value!=null){
-                    String cla=rs.getMetaData().getColumnClassName(colMap.get(f.getName()));
-                    switch (cla){
-                        case "java.lang.Integer":
-                        case "java.lang.String":
-                            f.set(o,value);
-                            break;
-                        case  "java.sql.Timestamp":
-                        case "java.sql.Date":
-                        case "java.sql.Time":
-                            f.set(o,(java.util.Date)value);
-                            break;
-                        case "java.lang.Boolean" :
-                            f.set(o,(Boolean)value==true?1:0);
-                            break;
-                    }
-                }
-            }
-            result.add((T)o);
-        }
-        return result;
     }
 
     public static void releaseConnection(Connection con, Statement stat, ResultSet rs) {

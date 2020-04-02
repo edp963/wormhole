@@ -1,7 +1,8 @@
-package edp.wormhole.sparkx.swifts.custom.sensors;
+package edp.wormhole.sparkx.swifts.custom.sensors.checkcolumn;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.base.Preconditions;
+import edp.wormhole.sparkx.swifts.custom.sensors.DataTypeSensorToCK;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -41,8 +42,8 @@ public final class ParamUtils implements Serializable {
     }
 
     private void initDataTypeConstMap(){
-        for(int i=0;i<DataType.values().length-1;i++){
-            DataType dt=DataType.values()[i];
+        for(int i = 0; i< DataTypeSensorToCK.values().length-1; i++){
+            DataTypeSensorToCK dt= DataTypeSensorToCK.values()[i];
             if(i>this.getEntry().getDataTypeConst().size()-1){
                 dataTypeConstMap.put(dt.getIndex(),null);
                 continue;
@@ -86,15 +87,9 @@ public final class ParamUtils implements Serializable {
         Preconditions.checkNotNull(entry.getMysqlUser(),"param [mysqlUser] must not be null");
         Preconditions.checkNotNull(entry.getMysqlPassword(),"param [mysqlPassword] must not be null");
         Preconditions.checkNotNull(entry.getMysqlDatabase(),"param [mysqlDatabase] must not be null");
-        Preconditions.checkNotNull(entry.getClickHouseConnUrl(),"param [clickHouseConnUrl] must not be null");
-        Preconditions.checkNotNull(entry.getClickHouseUser(),"param [clickHouseUser] must not be null");
-        Preconditions.checkNotNull(entry.getClickHouseDatabase(),"param [clickHouseDatabase] must not be null");
-        Preconditions.checkNotNull(entry.getClickHousePassword(),"param [clickHousePassword] must not be null");
-        Preconditions.checkNotNull(entry.getClickHouseTableName(),"param [clickHouseTableName] must not be null");
-        Preconditions.checkNotNull(entry.getClickHouseCluster(),"param [clickHouseCluster] must not be null");
         Preconditions.checkNotNull(entry.getDuration(),"param [duration] must not be null");
         Preconditions.checkNotNull(entry.getDataTypeConst(),"param [dataTypeConst] must not be null");
-        Preconditions.checkArgument(entry.getDataTypeConst().size()==DataType.values().length-1,"param [dataTypeConst] length must  be 6");
+        Preconditions.checkArgument(entry.getDataTypeConst().size()== DataTypeSensorToCK.values().length-1,"param [dataTypeConst] length must  be 6");
 
     }
 
@@ -140,30 +135,9 @@ public final class ParamUtils implements Serializable {
         private String mysqlUser;
         private String mysqlPassword;
         private String mysqlDatabase;
-        private String clickHouseConnUrl;
-        private String clickHouseUser;
-        private String clickHousePassword;
-        private String clickHouseDatabase;
-        private String clickHouseTableName;
-        private String clickHouseCluster;
         private Long   duration;
         private List<String> dataTypeConst;
 
-        public String getClickHouseCluster() {
-            return clickHouseCluster;
-        }
-
-        public void setClickHouseCluster(String clickHouseCluster) {
-            this.clickHouseCluster = clickHouseCluster;
-        }
-
-        public String getClickHouseTableName() {
-            return clickHouseTableName;
-        }
-
-        public void setClickHouseTableName(String clickHouseTableName) {
-            this.clickHouseTableName = clickHouseTableName;
-        }
 
         public Long getProjectId() {
             return projectId;
@@ -205,37 +179,6 @@ public final class ParamUtils implements Serializable {
             this.mysqlDatabase = mysqlDatabase;
         }
 
-        public String getClickHouseConnUrl() {
-            return clickHouseConnUrl;
-        }
-
-        public void setClickHouseConnUrl(String clickHouseConnUrl) {
-            this.clickHouseConnUrl = clickHouseConnUrl;
-        }
-
-        public String getClickHouseUser() {
-            return clickHouseUser;
-        }
-
-        public void setClickHouseUser(String clickHouseUser) {
-            this.clickHouseUser = clickHouseUser;
-        }
-
-        public String getClickHousePassword() {
-            return clickHousePassword;
-        }
-
-        public void setClickHousePassword(String clickHousePassword) {
-            this.clickHousePassword = clickHousePassword;
-        }
-
-        public String getClickHouseDatabase() {
-            return clickHouseDatabase;
-        }
-
-        public void setClickHouseDatabase(String clickHouseDatabase) {
-            this.clickHouseDatabase = clickHouseDatabase;
-        }
 
         public Long getDuration() {
             return duration;
@@ -261,12 +204,6 @@ public final class ParamUtils implements Serializable {
                     ", mysqlUser='" + mysqlUser + '\'' +
                     ", mysqlPassword='" + mysqlPassword + '\'' +
                     ", mysqlDatabase='" + mysqlDatabase + '\'' +
-                    ", clickHouseConnUrl='" + clickHouseConnUrl + '\'' +
-                    ", clickHouseUser='" + clickHouseUser + '\'' +
-                    ", clickHousePassword='" + clickHousePassword + '\'' +
-                    ", clickHouseDatabase='" + clickHouseDatabase + '\'' +
-                    ", clickHouseTableName='" + clickHouseTableName + '\'' +
-                    ", clickHouseCluster='" + clickHouseCluster + '\'' +
                     ", duration=" + duration +
                     ", dataTypeConst=" + dataTypeConst +
                     '}';
