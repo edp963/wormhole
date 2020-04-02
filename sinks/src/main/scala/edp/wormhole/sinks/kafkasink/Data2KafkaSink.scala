@@ -127,7 +127,7 @@ class Data2KafkaSink extends SinkProcessor {
     logger.info(s"start write to kafka, tupleList size is: ${tupleList.size}")
     tupleList.sliding(kafkaLimitNum, kafkaLimitNum).foreach(tuple => {
       val seqUmsTuple: Seq[UmsTuple] = tuple.map(payload => UmsTuple(payload))
-      logger.info(s"start write to kafka, seqUmsTuple size is: ${seqUmsTuple.size}")
+      //logger.info(s"start write to kafka, seqUmsTuple size is: ${seqUmsTuple.size}")
       val kafkaMessage: String = toJsonCompact(Ums(
         protocol,
         schema,

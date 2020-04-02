@@ -35,6 +35,10 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-configs.png" alt="" width="600"/>
 
+#### 消费kafka中无key数据
+
+如果绑定的topic中数据没有key，则可设定是否启用默认的kafka key，在specail config中设置{"useDefaultKey":true}，会将注册到该stream的第一个flow的source namespace作为这个topic中数据的key，该stream中同source namespace的flow就可以消费这个topic。如果绑定的topic中数据有key，则按照数据的key进行处理（0.6.3及之后版本支持）
+
 #### Topic 绑定
 
 Stream 消费哪些 Topic 根据 Flow 的启停自动绑定和注销。
@@ -178,6 +182,14 @@ Sink时支持分批读和分批写，批次大小配置项为batch_size
 
 `{"batch_size":"10000"}`
 
+#### sink kudu表名带特殊字符处理
+
+impala建的kudu表中表名可能带"."等特殊字符，如果在namespace中将"."加入，就会影响wormhole对namespace分割处理，可以sink config中配置连接符解决（0.6.3及之后版本支持）。例如kudu的表名为impala::dbname.tablename，namespace中database可配置为impala::dbname，table可配置为tablename，sinkconfig中配置：{"table_connect_character":"."}即可
+
+#### sink hbase设置版本字段进行幂等
+
+Sink hbase可以设置列版本号字段，进行幂等：{"hbase.version.column":"ums_id_"}，如果不配置，则按照wormhole原来的方式进行幂等（0.6.3及之后版本支持）
+
 #### 配置安全认证的sink kafka
 
 在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
@@ -201,8 +213,8 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 - 替换线上包
 
-- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2-0.6.2-jar-with-dependencies替换到线上wormhole app/目录下的该文件
-  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.2-jar-with-dependencies替换线上文件
+- - 如果使用的是sparkx，将生成的wormhole/sparkx/target目录下的wormhole-ums_1.3-sparkx_2.2-0.6.3-jar-with-dependencies替换到线上wormhole app/目录下的该文件
+  - 如果使用的是flinkx，则将wormhole/flinkx/target目录下wormhole-ums_1.3-flinkx_1.5.1-0.6.3-jar-with-dependencies替换线上文件
 
 （2）在用户项目中建立customer sink class流程
 
@@ -222,7 +234,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 ​     <artifactId>wormhole-sinks</artifactId>
 
-​     <version>0.6.2</version>
+​     <version>0.6.3</version>
 
   </dependency>
 
@@ -234,7 +246,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
 
 ​            <artifactId>wormhole-ums_1.3-flinkx_1.5.1</artifactId>
 
-​            <version>0.6.2</version>
+​            <version>0.6.3</version>
 
  </dependency>
 
@@ -263,7 +275,7 @@ Wormhole 0.6.1及之后版本支持用户自定义sink
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.2</version>
+     <version>0.6.3</version>
   </dependency>
   ```
 
@@ -313,6 +325,14 @@ select id as id1,name as name1,address,age from eurus_user where (id,name) in ($
 ```
 select id as id1, name as name1, address, age from eurus_user where (id, name) in (kafka.edp_kafka.udftest.udftable.id, kafka.edp_kafka.udftest.udftable.name);
 ```
+
+（3）关系型数据库支持不关联流上字段进行join（0.6.3及之后版本支持），例如
+
+```
+select id as id1, name as name1, address, age from eurus_user where id = 1;
+```
+
+这种方式要慎用，如果流上数据为n条，从数据库里查出来是m条，那么join之后数据的总量就会是n*m条，可能会造成内存溢出。
 
 若 Source Namespace为 kafka.edp_kafka.udftest.udftable，Union Table为 mysql.ermysql.eurustest 数据库下的 eurus_user 表，eurus_user 表中须含有与源数据相同的 UMS 系统字段，SQL 语句规则同上。
 
@@ -440,7 +460,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.2</version>
+     <version>0.6.3</version>
   </dependency>
   ```
 
@@ -612,6 +632,8 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 借助 Job 可轻松实现 Lambda 架构和 Kappa 架构。
 
 首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。Job中source端可选择数据的版本信息，将该版本的数据重算。
+
+Job配置中version为namespace的第五层，表示数据的版本。使用 hdfslog Stream 将源数据备份到 Hdfs时，改层需要为数字，配置job时，可根据不同的版本进行数据重算。
 
 Job中Spark SQL表名为“increment”。例如：
 

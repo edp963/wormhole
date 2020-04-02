@@ -213,7 +213,7 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `parallelism` INT NULL,
+  `config` VARCHAR(1000) NULL,
   `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
@@ -235,13 +235,13 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `flow`  modify column `tran_config` LONGTEXT;
 alter table `flow` modify column `consumed_protocol` VARCHAR(100);
-alter table `flow` add column `parallelism` INT NULL after `sink_ns`;
+alter table `flow` add column `config` VARCHAR(1000) NULL after `sink_ns`;
 alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`;
 alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(100) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
 alter table `flow` add column `priority_id` BIGINT NOT NULL DEFAULT 0;
-ALTER TABLE `flow` CHANGE COLUMN `parallelism` `config` VARCHAR(1000) NOT NULL ;
+alter table `flow` drop column `parallelism`;
 
 CREATE TABLE IF NOT EXISTS `flow_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `parallelism` INT NULL,
+  `config` VARCHAR(1000) NULL,
   `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
@@ -269,8 +269,8 @@ CREATE TABLE IF NOT EXISTS `flow_history` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-ALTER TABLE `flow_history`
-CHANGE COLUMN `parallelism` `config` VARCHAR(1000) NOT NULL ;
+alter table `flow_history` add column `config` VARCHAR(1000) NULL after `sink_ns`;
+alter table `flow_history` drop column `parallelism`;
 
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -499,7 +499,7 @@ CREATE TABLE IF NOT EXISTS `feedback_error` (
   `sink_ns` VARCHAR(1000) NOT NULL,
   `data_type` VARCHAR(60) NOT NULL,
   `error_pattern` VARCHAR(32) NOT NULL,
-  `topics` VARCHAR(2000) NULL,
+  `topics` TEXT NULL,
   `error_count` INT NULL,
   `error_max_watermark_ts` DATETIME NULL,
   `error_min_watermark_ts` DATETIME NULL,
@@ -513,6 +513,7 @@ CREATE TABLE IF NOT EXISTS `feedback_error` (
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_error` add column `project_id` BIGINT NOT NULL after `id`;
+alter table `feedback_error` modify column topics text;
 
 CREATE TABLE IF NOT EXISTS `recharge_result_log` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,

@@ -4,6 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -24,14 +27,55 @@ public final class ParamUtils implements Serializable {
 
     private String nameSpace=null;
 
+    private Map<Integer,Object> dataTypeConstMap=new HashMap();
+
     public ParamUtils (String json,String zkAddress,String zkPrefixPath,String nameSpace){
         Preconditions.checkNotNull(zkAddress,"param [zkAddress] must not be null");
         Preconditions.checkNotNull(zkPrefixPath,"param [zkPath] must not be null");
         parseParam(json.replaceAll("\\\\",""));
+        initDataTypeConstMap();
         this.zkAddress=zkAddress;
         this.zkPrefixPath=zkPrefixPath;
         this.zkFullPath=this.zkPrefixPath+"/"+String.valueOf(this.getEntry().getProjectId());
         this.nameSpace=nameSpace;
+    }
+
+    private void initDataTypeConstMap(){
+        for(int i=0;i<DataType.values().length-1;i++){
+            DataType dt=DataType.values()[i];
+            if(i>this.getEntry().getDataTypeConst().size()-1){
+                dataTypeConstMap.put(dt.getIndex(),null);
+                continue;
+            }
+            String s=this.getEntry().getDataTypeConst().get(i);
+            if("NULL".equalsIgnoreCase(s)){
+                dataTypeConstMap.put(dt.getIndex(),null);
+                continue;
+            }
+            switch (dt){
+                case NUMBER:
+                    dataTypeConstMap.put(dt.getIndex(),Long.valueOf(s));
+                    break;
+                case STRING:
+                    dataTypeConstMap.put(dt.getIndex(),s);
+                    break;
+                case LIST:
+                    dataTypeConstMap.put(dt.getIndex(),s);
+                    break;
+                case DATE:
+                    dataTypeConstMap.put(dt.getIndex(),Long.valueOf(s));
+                    break;
+                case DATETIME:
+                    dataTypeConstMap.put(dt.getIndex(),Long.valueOf(s));
+                    break;
+                case BOOL:
+                    dataTypeConstMap.put(dt.getIndex(),Integer.valueOf(s));
+                    break;
+                case UNKNOWN:
+                    dataTypeConstMap.put(dt.getIndex(),null);
+                    break;
+            }
+        }
     }
 
     public  void  parseParam(String json){
@@ -49,6 +93,8 @@ public final class ParamUtils implements Serializable {
         Preconditions.checkNotNull(entry.getClickHouseTableName(),"param [clickHouseTableName] must not be null");
         Preconditions.checkNotNull(entry.getClickHouseCluster(),"param [clickHouseCluster] must not be null");
         Preconditions.checkNotNull(entry.getDuration(),"param [duration] must not be null");
+        Preconditions.checkNotNull(entry.getDataTypeConst(),"param [dataTypeConst] must not be null");
+        Preconditions.checkArgument(entry.getDataTypeConst().size()==DataType.values().length-1,"param [dataTypeConst] length must  be 6");
 
     }
 
@@ -80,6 +126,14 @@ public final class ParamUtils implements Serializable {
         return zkPrefixPath;
     }
 
+    public Map<Integer, Object> getDataTypeConstMap() {
+        return dataTypeConstMap;
+    }
+
+    public void setDataTypeConstMap(Map<Integer, Object> dataTypeConstMap) {
+        this.dataTypeConstMap = dataTypeConstMap;
+    }
+
     public static class ParamEntry implements Serializable {
         private Long projectId;
         private String mysqlConnUrl;
@@ -93,6 +147,7 @@ public final class ParamUtils implements Serializable {
         private String clickHouseTableName;
         private String clickHouseCluster;
         private Long   duration;
+        private List<String> dataTypeConst;
 
         public String getClickHouseCluster() {
             return clickHouseCluster;
@@ -190,6 +245,14 @@ public final class ParamUtils implements Serializable {
             this.duration = duration;
         }
 
+        public List<String> getDataTypeConst() {
+            return dataTypeConst;
+        }
+
+        public void setDataTypeConst(List<String> dataTypeConst) {
+            this.dataTypeConst = dataTypeConst;
+        }
+
         @Override
         public String toString() {
             return "ParamEntry{" +
@@ -205,6 +268,7 @@ public final class ParamUtils implements Serializable {
                     ", clickHouseTableName='" + clickHouseTableName + '\'' +
                     ", clickHouseCluster='" + clickHouseCluster + '\'' +
                     ", duration=" + duration +
+                    ", dataTypeConst=" + dataTypeConst +
                     '}';
         }
     }
