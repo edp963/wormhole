@@ -45,7 +45,6 @@ public class SchemaUtils implements Serializable {
     }
 
     public boolean checkSchemaNeedChange(Map<String, String> columnMapDf) throws Exception{
-
         Map<String, String>  needAddColumns = new HashMap<>();
         Map<String,String> columnMapCk=metaClient.queryClickHouseSchema();
         for(String columnDfKey: columnMapDf.keySet()) {
@@ -53,12 +52,10 @@ public class SchemaUtils implements Serializable {
                 needAddColumns.put(columnDfKey, columnMapDf.get(columnDfKey));
             }
         }
-
         if(!needAddColumns.isEmpty()){
             metaClient.changeClickHouseSchema(needAddColumns);
-            logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns);
+            logger.info("schema change!!!!!!! needAddColumns is {}", needAddColumns);
         }
-
         return true;
     }
 
