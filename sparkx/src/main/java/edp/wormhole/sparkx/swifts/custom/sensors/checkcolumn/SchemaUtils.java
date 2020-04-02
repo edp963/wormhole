@@ -150,6 +150,8 @@ public class SchemaUtils implements Serializable {
             zkDataPut.setSchemas(schemaEntriesMysql);
             zkDataPut.setVersion(1);
             WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(), JSON.toJSONString(zkDataPut));
+            logger.info("schema not exist!!!!!!! addColumns is {}, current version is {}", schemaEntriesMysql.stream().map(SchemaEntry::getName).collect(Collectors.toList()), 1);
+
         }
 
         //zk schema get
@@ -171,11 +173,12 @@ public class SchemaUtils implements Serializable {
             zkDataPut.setSchemas(schemaEntriesMysql);
             zkDataPut.setVersion(ver);
             WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(),JSON.toJSONString(zkDataPut));
-            logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns, ver);
+            logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns.stream().map(PropertyColumnEntry::getColumn_name).collect(Collectors.toList()), ver);
         }
         List<String> ns= Lists.newArrayList(Splitter.on(".").split(paramUtils.getNameSpace()).iterator());
         ns.set(4,String.valueOf(ver));
         paramUtils.setNameSpace(Joiner.on(".").join(ns));
+        //logger.info("namespace is" + ns);
         return true;
     }
 
