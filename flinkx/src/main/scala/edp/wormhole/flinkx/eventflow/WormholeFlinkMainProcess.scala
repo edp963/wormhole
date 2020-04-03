@@ -179,7 +179,6 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
   private def manageCheckpoint(env: StreamExecutionEnvironment, flinkCheckpoint: FlinkCheckpoint): Unit = {
     if (flinkCheckpoint.isEnable) {
-      logger.info("wormhole flinkx checkpoint is opened !")
       env.setStateBackend(new FsStateBackend(flinkCheckpoint.stateBackend).asInstanceOf[StateBackend])
       env.enableCheckpointing(flinkCheckpoint `checkpointInterval.ms`)
       val checkpointConfig = env.getCheckpointConfig
