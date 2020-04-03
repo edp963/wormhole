@@ -37,7 +37,7 @@ export function loadDataSystemData () {
     { value: 'parquet', text: 'Parquet' },
     { value: 'kudu', text: 'Kudu' },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'clickhouse', text: 'clickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' }
   ]
   return dataSystemData
 }
@@ -59,7 +59,7 @@ export function filterDataSystemData () {
     { text: 'kudu', value: 'kudu' },
     { text: 'log', value: 'log' },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'clickhouse', text: 'clickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' }
   ]
   return dataSystemValue
 }
@@ -92,7 +92,8 @@ export function sinkDataSystemData () {
     { value: 'vertica', icon: 'icon-vertica', style: { fontSize: '45px' } },
     { value: 'kudu', text: 'Kudu' },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'clickhouse', text: 'clickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' },
+    { value: 'redis', text: 'Redis' }
   ]
   return sinkDataSystemData
 }
@@ -112,7 +113,8 @@ export function jobSinkDataSystemData () {
     { value: 'parquet', text: 'Parquet' },
     { value: 'kudu', text: 'Kudu' },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'clickhouse', text: 'clickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' },
+    { value: 'redis', text: 'Redis' }
   ]
   return sinkDataSystemData
 }
@@ -128,7 +130,7 @@ export function flowTransformationDadaHide () {
     { value: 'es', icon: 'icon-elastic', style: { fontSize: '24px' } },
     { value: 'greenplum', text: 'Greenplum' },
     { value: 'kudu', text: 'Kudu' },
-    { value: 'clickhouse', text: 'clickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' }
   ]
   return transformData
 }
@@ -146,7 +148,7 @@ export function flowTransformationDadaShow () {
     { value: 'redis', icon: 'icon-redis', style: { fontSize: '31px' } },
     { value: 'kudu', text: 'Kudu' },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'clickhouse', text: 'clickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' }
   ]
   return transformData
 }
