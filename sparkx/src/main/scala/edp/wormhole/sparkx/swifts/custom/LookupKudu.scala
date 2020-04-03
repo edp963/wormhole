@@ -36,13 +36,18 @@ object LookupKudu extends EdpLogging {
     val resultSchema: StructType = {
       var resultSchema: StructType = df.schema
 
-      val selectFieldArray: Array[(String, String)] = getFieldsArray(sqlConfig.fields.get) //select fields,key=sourcename,value=newname
+      val selectFieldArray: Array[(String, String)] = getFieldsArrayLookup(sqlConfig.fields.get) //select fields,key=sourcename,value=newname
 
       selectFieldArray.foreach(field => {
         val sourceName = field._1
         val asName = field._2
 
-        resultSchema = resultSchema.add(StructField(asName, SparkSchemaUtils.ums2sparkType(umsFieldType(tableSchema(sourceName)))))
+        if(tableSchema.contains(sourceName)) {
+          resultSchema = resultSchema.add(StructField(asName, SparkSchemaUtils.ums2sparkType(umsFieldType(tableSchema(sourceName)))))
+        } else {
+          log.error(s"""kudu table $database.$tmpTableName not contain field $sourceName, all fields is $tableSchema""")
+          throw new Exception(s"""kudu table $database.$tmpTableName not contain field $sourceName""")
+        }
       })
       resultSchema
     }
@@ -50,7 +55,7 @@ object LookupKudu extends EdpLogging {
     val joinedRDD = df.rdd.mapPartitions(partition => {
       KuduConnection.initKuduConfig(connectionConfig)
 
-      val selectFieldNewNameArray: Seq[String] = getFieldsArray(sqlConfig.fields.get).map(_._1).toList //select fields,newname
+      val selectFieldNewNameArray: Seq[String] = getFieldsArrayLookup(sqlConfig.fields.get).map(_._1).toList //select fields,newname
 
       val originalData: ListBuffer[Row] = partition.to[ListBuffer]
       val originalDataSize = originalData.size
@@ -144,7 +149,7 @@ object LookupKudu extends EdpLogging {
   }
 
 
-  def getFieldsArray(fields: String): Array[(String, String)] = {
+  def getFieldsArrayLookup(fields: String): Array[(String, String)] = {
     fields.split(",").map(f => {
       val fields = f.split(":")
       val sourceName = fields(0).trim
@@ -158,6 +163,23 @@ object LookupKudu extends EdpLogging {
       }
     })
   }
+
+  def getFieldsArrayUnion(fields: String): Array[(String, String, String)] = {
+    fields.split(",").map(f => {
+      val fields = f.split(":")
+      val sourceName = fields(0).trim
+      val fields1trim = fields(1).trim
+      if (fields1trim.toLowerCase.contains(" as ")) {
+        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
+        val fieldType = fields1trim.substring(0, asIndex).trim
+        val newName = fields1trim.substring(asIndex + 4).trim
+        (sourceName, newName, fieldType)
+      } else {
+        (sourceName, sourceName, fields1trim)
+      }
+    })
+  }
+
 
   def getJoinRow(fieldArray: Seq[String], queryFieldsResultMap: Map[String, (Any, String)], originalArray: Array[Any], resultSchema: StructType): GenericRowWithSchema = {
     val outputArray = ListBuffer.empty[Any]
