@@ -386,7 +386,14 @@ object ParseSwiftsSqlInternal {
     val selectLength = 6
     val selectFieldsArray = getFieldsArray(sql.substring(selectLength, fromIndex))
     val schemaInString = selectFieldsArray.map(fieldWithAs => {
-      fieldWithAs._1 + ":" + tableSchema(fieldWithAs._1) + " as " + fieldWithAs._2
+      if(tableSchema.contains(fieldWithAs._1)) {
+        fieldWithAs._1 + ":" + tableSchema(fieldWithAs._1) + " as " + fieldWithAs._2
+      } else if(!tableSchema.contains(fieldWithAs._1) && ((fieldWithAs._1.startsWith("'") && fieldWithAs._1.endsWith("'")) || (fieldWithAs._1.startsWith("\"") && fieldWithAs._1.endsWith("\"")))) {
+        fieldWithAs._1 + ":" + "default" + " as " + fieldWithAs._2
+      } else {
+        logger.error(s"""kudu table $database.$tmpTableName not contain field ${fieldWithAs._1}, all fields is $tableSchema""")
+        throw new Exception(s"""kudu table $database.$tmpTableName not contain field ${fieldWithAs._1}""")
+      }
     }).mkString(",")
     logger.info("get kudu table schema success")
     KuduConnection.closeClient(client)

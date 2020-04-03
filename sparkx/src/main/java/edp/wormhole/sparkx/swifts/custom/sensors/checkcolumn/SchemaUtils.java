@@ -1,12 +1,12 @@
-package edp.wormhole.sparkx.swifts.custom.sensors;
+package edp.wormhole.sparkx.swifts.custom.sensors.checkcolumn;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.EventEntry;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyColumnEntry;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyEntry;
+import edp.wormhole.sparkx.swifts.custom.sensors.TableType;
+import edp.wormhole.sparkx.swifts.custom.sensors.entry.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ public class SchemaUtils implements Serializable {
 
     private ParamUtils paramUtils;
 
-    private SensorsMetaClient metaClient;
+    private SensorsMysqlMetaClient metaClient;
 
     private Map<String,EventEntry> eventMap=new HashMap();
 
@@ -47,7 +47,7 @@ public class SchemaUtils implements Serializable {
 
     public SchemaUtils(ParamUtils paramUtils)throws Exception{
         this.paramUtils=paramUtils;
-        this.metaClient=new SensorsMetaClient(paramUtils);
+        this.metaClient=new SensorsMysqlMetaClient(paramUtils);
     }
 
     public void destroy(){
@@ -128,55 +128,59 @@ public class SchemaUtils implements Serializable {
     }
 
 
-    public boolean checkClickHouseSchemaNeedChange(Long projectId) throws Exception{
+    public boolean checkSchemaNeedChange(Long projectId) throws Exception{
         List<PropertyEntry> propertyEntryList=metaClient.queryAllPropertiesByProjectId(projectId,TableType.EVENT.getIndex());
         if(CollectionUtils.isEmpty(propertyEntryList)){
             throw new IllegalArgumentException("this project has no any property,projectId="+projectId);
         }
         List<Integer> ids=propertyEntryList.stream().map(x->x.getId()).collect(Collectors.toList());
-        List<PropertyColumnEntry> columnEntries=metaClient.queryAllPropertiesColumnByPropertyId(ids);
-        if(CollectionUtils.isEmpty(columnEntries)){
+        List<PropertyColumnEntry> columnEntriesMysql=metaClient.queryAllPropertiesColumnByPropertyId(ids);
+        if(CollectionUtils.isEmpty(columnEntriesMysql)){
             throw new IllegalArgumentException("this project has no any property column,projectId="+projectId);
         }
-        Map<String,String> columnMap=metaClient.queryClickHouseSchema(projectId);
-        List<PropertyColumnEntry> needAddColumns=columnEntries.stream().filter(x->!columnMap.containsKey(x.getColumn_name())).collect(Collectors.toList());
+
+        //mysql schema get
+        List<SchemaEntry> schemaEntriesMysql = columnEntriesMysql.stream().map(column ->
+                new SchemaEntry(column.getColumn_name(), column.getData_type())
+        ).collect(Collectors.toList());
+
         Boolean exist=WormholeZkClient.checkExist(paramUtils.getZkAddress(),paramUtils.getZkFullPath());
         if(!exist){
-            WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(),"1");
+            ZkDataEntry zkDataPut=new ZkDataEntry();
+            zkDataPut.setSchemas(schemaEntriesMysql);
+            zkDataPut.setVersion(1);
+            WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(), JSON.toJSONString(zkDataPut));
+            logger.info("schema not exist!!!!!!! addColumns is {}, current version is {}", schemaEntriesMysql.stream().map(SchemaEntry::getName).collect(Collectors.toList()), 1);
+
         }
 
-        //update namespace
+        //zk schema get
         byte[] bytes=WormholeZkClient.getData(paramUtils.getZkAddress(),paramUtils.getZkFullPath());
-        Integer ver=Integer.valueOf(new String(bytes));
+        ZkDataEntry zkDataGet=JSON.parseObject(new String(bytes), ZkDataEntry.class);
+
+        Map<String,Integer> columnMapZk=new HashMap<>();
+        zkDataGet.getSchemas().forEach(schema -> {
+            columnMapZk.put(schema.getName(), schema.getType());
+        });
+
+        List<PropertyColumnEntry> needAddColumns=columnEntriesMysql.stream().filter(x->!columnMapZk.containsKey(x.getColumn_name())).collect(Collectors.toList());
+
+        //zk schema put
+        Integer ver = zkDataGet.getVersion();
         if(!needAddColumns.isEmpty()){
-            metaClient.changeClickHouseSchema(needAddColumns);
             ver++;
-            WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(),String.valueOf(ver));
-            logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns, ver);
+            ZkDataEntry zkDataPut=new ZkDataEntry();
+            zkDataPut.setSchemas(schemaEntriesMysql);
+            zkDataPut.setVersion(ver);
+            WormholeZkClient.createAndSetData(paramUtils.getZkAddress(),paramUtils.getZkFullPath(),JSON.toJSONString(zkDataPut));
+            logger.info("schema change!!!!!!! needAddColumns is {}, current version is {}", needAddColumns.stream().map(PropertyColumnEntry::getColumn_name).collect(Collectors.toList()), ver);
         }
         List<String> ns= Lists.newArrayList(Splitter.on(".").split(paramUtils.getNameSpace()).iterator());
         ns.set(4,String.valueOf(ver));
         paramUtils.setNameSpace(Joiner.on(".").join(ns));
-
+        //logger.info("namespace is" + ns);
         return true;
     }
-
-
-    public boolean checkClickHouseInitTable(Long projectId) throws Exception {
-        return metaClient.checkAndCreateClickHouseTable();
-    }
-
-
-
-    public boolean initProject() throws Exception{
-        this.checkClickHouseInitTable(this.paramUtils.getMyProjectId());
-        this.checkSensorSystemCompleteSchemaChange(this.paramUtils.getMyProjectId());
-        this.checkClickHouseSchemaNeedChange(this.paramUtils.getMyProjectId());
-        return true;
-    }
-
-
-
 
 
     public enum KafkaOriginColumn{
