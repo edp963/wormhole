@@ -228,6 +228,7 @@ object FlowUtils extends RiderLogger {
           case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
           case "parquet" => ""
           case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
+          case "redis" =>"edp.wormhole.sinks.redissink.Data2RedisSink"
         }
     }
   }
