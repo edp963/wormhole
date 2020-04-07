@@ -20,9 +20,13 @@
 
 package edp.wormhole.dbdriver.redis
 
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig
-import redis.clients.jedis.{ JedisShardInfo, ShardedJedis, ShardedJedisPool}
+import java.util
 
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
+import redis.clients.jedis.{JedisShardInfo, ShardedJedis, ShardedJedisPool}
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object SharedJedisConnection extends Serializable{
@@ -47,30 +51,38 @@ object SharedJedisConnection extends Serializable{
   }
 
   def get(jedis:ShardedJedis,key:String): String ={
-    val value = jedis.get(key)
-    jedis.close()
-    value
+    jedis.get(key)
   }
 
   def set(jedis:ShardedJedis, key: String, value: String):String ={
-    val rcKey = jedis.set(key, value)
-    jedis.close()
-    rcKey
+    jedis.set(key, value)
   }
 
   def expire(jedis:ShardedJedis, key: String, nSeconds: Int ) :Long={
-    val l = jedis.expire(key, nSeconds)
-    jedis.close()
-    l
+    jedis.expire(key, nSeconds)
   }
 
   def del(jedis:ShardedJedis, key: String) = {
     jedis.del(key)
   }
 
+  def hGet(jedis:ShardedJedis,key:String,filed:String): String ={
+    jedis.hget(key,filed)
+  }
 
-  //  def closeResource(jedis:ShardedJedis): Unit ={
-  //    jedis.close()
-  //  }
+  def hGetAll(jedis:ShardedJedis,key:String):mutable.Map[String, String] ={
+    jedis.hgetAll(key).asScala
+  }
 
+  def hSet(jedis:ShardedJedis, key:String, field:String, value:String): Unit ={
+    jedis.hset(key,field,value)
+  }
+
+  def mGet(jedis:ShardedJedis, key:String, fields:Seq[String]): mutable.Seq[String] ={
+    jedis.hmget(key,fields: _*).asScala
+  }
+
+  def mSet(jedis:ShardedJedis,key:String,hash:Map[String,String]): Unit ={
+    jedis.hmset(key,hash.asJava)
+  }
 }
