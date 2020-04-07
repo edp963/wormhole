@@ -38,7 +38,7 @@ class Data2RedisSink extends SinkProcessor {
       otherMode(sinkSpecialConfig, sinkProcessConfig.tableKeyList, schemaMap, tupleList, connectionConfig, sinkTableAsRedisKey)
     }
     val dt2: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
-    println("sink redis duration:   " + dt2 + " - " + dt1 + " = " + (Seconds.secondsBetween(dt1, dt2).getSeconds % 60 + " seconds."))
+    logger.info("sink redis duration:   " + dt2 + " - " + dt1 + " = " + (Seconds.secondsBetween(dt1, dt2).getSeconds % 60 + " seconds."))
     if (errorList.nonEmpty)
       throw new Exception("some data error ,records count is " + errorList.size)
   }
