@@ -13,7 +13,7 @@ object RedisClusterMode extends Enumeration {
     RedisClusterMode.withName(s.toLowerCase)
   } catch {
     case e: Throwable =>
-      logger.warn(s"RedisClusterMode invalid string: $s")
+      logger.warn(s"RedisClusterMode invalid string: $s",e)
       SHARED
   }
 
