@@ -52,13 +52,14 @@ class DataJson2EsSink extends SinkProcessor {
 
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
-    val cc = EsTools.getAvailableConnection(connectionConfig)
-    logger.info("random url:" + cc.connectionUrl)
-    if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
     val sinkSpecificConfig: EsConfig =
       if (sinkProcessConfig.specialConfig.isDefined)
         JsonUtils.json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
       else EsConfig()
+    val cc = EsTools.getAvailableConnection(connectionConfig, sinkSpecificConfig)
+    logger.info("random url:" + cc.connectionUrl)
+    if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
+
 
     val namespace = UmsNamespace(sinkNamespace)
     val indexName = if (sinkSpecificConfig.index_extend_config.nonEmpty) EsTools.getFullIndexNameByExtentConfig(namespace.database, sinkSpecificConfig.index_extend_config.get)
@@ -90,7 +91,7 @@ class DataJson2EsSink extends SinkProcessor {
 
     val (result, esid2UmsidInEsMap) = {
       val idList = dataList.map(_._1)
-      EsTools.queryVersionByEsid(idList, sinkNamespace, cc,indexName)
+      EsTools.queryVersionByEsid(idList, sinkNamespace, cc,indexName, sinkSpecificConfig)
     }
 
     if (!result) false
@@ -102,8 +103,8 @@ class DataJson2EsSink extends SinkProcessor {
         if (umsidInEs == -1) insertId2JsonMap(id) = json
         else if (umsidInEs < umsid) updateId2JsonMap(id) = json
       }
-      val insertFlag = doBatchInsert(insertId2JsonMap, sinkNamespace, cc,indexName)
-      val updateFlag = doBatchUpdate(updateId2JsonMap, sinkNamespace, cc,indexName)
+      val insertFlag = doBatchInsert(insertId2JsonMap, sinkNamespace, cc,indexName, sinkSpecificConfig)
+      val updateFlag = doBatchUpdate(updateId2JsonMap, sinkNamespace, cc,indexName, sinkSpecificConfig)
       insertFlag | updateFlag
     }
   }
@@ -111,28 +112,30 @@ class DataJson2EsSink extends SinkProcessor {
   private def doBatchInsert(insertId2JsonMap: mutable.HashMap[String, String],
                             sinkNamespace: UmsNamespace,
                             connectionConfig: ConnectionConfig,
-                            indexName:String): Boolean = {
+                            indexName:String,
+                            sinkSpecificConfig: EsConfig): Boolean = {
     if (insertId2JsonMap.nonEmpty) {
       val insertList = ListBuffer.empty[String]
       insertId2JsonMap.foreach(item => {
         insertList += s"""{ "$optNameInsert" : {"_id" : "${item._1}" }}"""
         insertList += item._2
       })
-      EsTools.write2Es(insertList, connectionConfig, sinkNamespace,indexName)
+      EsTools.write2Es(insertList, connectionConfig, sinkNamespace,indexName, sinkSpecificConfig)
     } else true
   }
 
   private def doBatchUpdate(updateId2JsonMap: mutable.HashMap[String, String],
                             sinkNamespace: UmsNamespace,
                             connectionConfig: ConnectionConfig,
-                            indexName:String): Boolean = {
+                            indexName:String,
+                            sinkSpecificConfig: EsConfig): Boolean = {
     if (updateId2JsonMap.nonEmpty) {
       val updateList = ListBuffer.empty[String]
       updateId2JsonMap.foreach(item => {
         updateList += s"""{ "$optNameUpdate" : {"_id" : "${item._1}" }}"""
         updateList += "{\"doc\":" + item._2 + "}"
       })
-      EsTools.write2Es(updateList, connectionConfig, sinkNamespace,indexName)
+      EsTools.write2Es(updateList, connectionConfig, sinkNamespace,indexName,sinkSpecificConfig: EsConfig)
     } else true
   }
 
@@ -150,7 +153,7 @@ class DataJson2EsSink extends SinkProcessor {
         insertList += s"""{ "$optNameInsert" : {"_id" : "${_id}" }}"""
         insertList += data
       }
-      EsTools.write2Es(insertList, connectionConfig, sinkNamespace,indexName)
+      EsTools.write2Es(insertList, connectionConfig, sinkNamespace,indexName, sinkSpecificConfig)
     } else true
   }
 
