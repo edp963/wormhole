@@ -110,10 +110,11 @@ class UserIDGenerate extends EdpLogging {
       if (tmpQueryResult == 1) {
         selectFieldValue = tmpSelectFieldValue
         umsId = tmpUmsId
-        logInfo("查到id，无需生成")
-      } else if (tmpQueryResult == 0) {
-        logInfo("未查到id，生成，" + row)
+//        logInfo("查到id，无需生成")
       }
+//      else if (tmpQueryResult == 0) {
+//        logInfo("未查到id，生成，" + row)
+//      }
     }
 
     if (selectFieldValue == null) selectFieldValue = UUID.randomUUID().toString
