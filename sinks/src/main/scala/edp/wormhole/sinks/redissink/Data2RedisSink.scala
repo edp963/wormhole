@@ -1,20 +1,19 @@
 package edp.wormhole.sinks.redissink
 
-import edp.wormhole.dbdriver.redis.JedisConnection
+import edp.wormhole.dbdriver.redis.{JedisConnection, RedisMode}
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
-import edp.wormhole.sinks.redissink.RedisClusterMode.RedisClusterMode
+import edp.wormhole.dbdriver.redis.RedisMode.RedisMode
 import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import edp.wormhole.util.DateUtils.{currentyyyyMMddHHmmss, dt2dateTime}
 import edp.wormhole.util.JsonUtils.json2caseClass
-import edp.wormhole.util.config.ConnectionConfig
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import org.apache.log4j.Logger
 import org.joda.time.{DateTime, Seconds}
+
 import collection.JavaConversions._
-
-
 import scala.collection.mutable.ListBuffer
 
 
@@ -45,55 +44,86 @@ class Data2RedisSink extends SinkProcessor {
 
   private def insertOnlyMode(redisConfig: RedisConfig, tableKeyList: List[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tupleList: Seq[Seq[String]], connectionConfig: ConnectionConfig, sinkUniqueTableName: String) = {
     val errorList = ListBuffer.empty[Seq[String]]
-    if (getClusterMode(connectionConfig) == RedisClusterMode.CLUSTER) {
-      val clusterConnection = JedisConnection.getClusterConnection(connectionConfig.connectionUrl, connectionConfig.password)
-      tupleList.foreach(tuple => {
-        try {
-          val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
+    getRedisMode(connectionConfig.parameters) match {
+      case RedisMode.CLUSTER =>
+        val clusterConnection = JedisConnection.getClusterConnection(connectionConfig.connectionUrl, connectionConfig.password)
+        tupleList.foreach(tuple => {
+          try {
+            val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
            sinkUniqueTableName+"_"+ SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
           } else{
             SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
           }
           val hash = tuple2Map(schemaMap, tuple)
           clusterConnection.sadd(sinkUniqueTableName, tableKeys)
-          clusterConnection.hmset(tableKeys, hash)
-          if (redisConfig.expireTimeInSeconds > 0) {
-            clusterConnection.expire(tableKeys, redisConfig.expireTimeInSeconds)
+            clusterConnection.hmset(tableKeys, hash)
+            if (redisConfig.expireTimeInSeconds > 0) {
+              clusterConnection.expire(tableKeys, redisConfig.expireTimeInSeconds)
+            }
+          } catch {
+            case e: Exception => logger.error("sink 2 redis error ", e)
+              errorList += tuple
           }
-        } catch {
-          case e: Exception => logger.error("sink 2 redis error ", e)
-            errorList += tuple
-        }
-      })
-      clusterConnection.close()
-    } else {
-      val shardedJedis = JedisConnection.getConnection(connectionConfig.connectionUrl, connectionConfig.password)
-      tupleList.foreach(tuple => {
-        try {
-          val tableKeys = SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
-          val hash = tuple2Map(schemaMap, tuple)
-          shardedJedis.sadd(sinkUniqueTableName, tableKeys)
-          shardedJedis.hmset(tableKeys, hash)
-          if (redisConfig.expireTimeInSeconds > 0) {
-            shardedJedis.expire(tableKeys, redisConfig.expireTimeInSeconds)
+        })
+        clusterConnection.close()
+      case RedisMode.SHARED =>
+        val shardedJedis = JedisConnection.getSharedJedisConnection(connectionConfig.connectionUrl, connectionConfig.password)
+        tupleList.foreach(tuple => {
+          try {
+            val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
+              sinkUniqueTableName+"_"+ SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            } else{
+              SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            }
+            val hash = tuple2Map(schemaMap, tuple)
+            shardedJedis.sadd(sinkUniqueTableName, tableKeys)
+            shardedJedis.hmset(tableKeys, hash)
+            if (redisConfig.expireTimeInSeconds > 0) {
+              shardedJedis.expire(tableKeys, redisConfig.expireTimeInSeconds)
+            }
+          } catch {
+            case e: Exception => logger.error("sink 2 redis error ", e)
+              errorList += tuple
           }
-        } catch {
-          case e: Exception => logger.error("sink 2 redis error ", e)
-            errorList += tuple
-        }
-      })
-      shardedJedis.close()
+        })
+        shardedJedis.close()
+      case RedisMode.SENTINEL =>
+        val masterName = getSentinelMasterName(connectionConfig.parameters)
+        val jedis = JedisConnection.getJedisSentinelConnection(connectionConfig.connectionUrl, connectionConfig.password, masterName)
+        val databaseNo = getSentinelDataBaseNo(connectionConfig.parameters)
+        jedis.select(databaseNo)
+        tupleList.foreach(tuple => {
+          try {
+            val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
+              sinkUniqueTableName+"_"+ SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            } else{
+              SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            }
+            val hash = tuple2Map(schemaMap, tuple)
+            jedis.sadd(sinkUniqueTableName, tableKeys)
+            jedis.hmset(tableKeys, hash)
+            if (redisConfig.expireTimeInSeconds > 0) {
+              jedis.expire(tableKeys, redisConfig.expireTimeInSeconds)
+            }
+          } catch {
+            case e: Exception => logger.error("sink 2 redis error ", e)
+              errorList += tuple
+          }
+        })
+        jedis.close()
     }
     errorList
   }
 
   private def otherMode(redisConfig: RedisConfig, tableKeyList: List[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tupleList: Seq[Seq[String]], connectionConfig: ConnectionConfig, sinkUniqueTableName: String) = {
     val errorList = ListBuffer.empty[Seq[String]]
-    if (getClusterMode(connectionConfig) == RedisClusterMode.CLUSTER) {
-      val clusterConnection = JedisConnection.getClusterConnection(connectionConfig.connectionUrl, connectionConfig.password)
-      tupleList.foreach(tuple => {
-        try {
-          val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
+
+    getRedisMode(connectionConfig.parameters) match {
+      case RedisMode.CLUSTER =>
+        val clusterConnection = JedisConnection.getClusterConnection(connectionConfig.connectionUrl, connectionConfig.password)
+        tupleList.foreach(tuple => {
+          try {
+            val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
             sinkUniqueTableName+"_"+ SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
           } else{
             SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
@@ -103,38 +133,70 @@ class Data2RedisSink extends SinkProcessor {
           if (idGetFromRedis == null || idGetFromRedis < umsIdInTuple) {
             val hash = tuple2Map(schemaMap, tuple)
             clusterConnection.sadd(sinkUniqueTableName, tableKeys)
-            clusterConnection.hmset(tableKeys, hash)
-            if (redisConfig.expireTimeInSeconds > 0) {
-              clusterConnection.expire(tableKeys, redisConfig.expireTimeInSeconds)
+              clusterConnection.hmset(tableKeys, hash)
+              if (redisConfig.expireTimeInSeconds > 0) {
+                clusterConnection.expire(tableKeys, redisConfig.expireTimeInSeconds)
+              }
             }
+          } catch {
+            case e: Exception => logger.error("sink 2 redis error ", e)
+              errorList += tuple
           }
-        } catch {
-          case e: Exception => logger.error("sink 2 redis error ", e)
-            errorList += tuple
-        }
-      })
-      clusterConnection.close()
-    } else {
-      val shardedJedis = JedisConnection.getConnection(connectionConfig.connectionUrl, connectionConfig.password)
-      tupleList.foreach(tuple => {
-        try {
-          val tableKeys = SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
-          val getFromRedis = shardedJedis.hget(tableKeys, UmsSysField.ID.toString)
-          val umsIdInTuple = SinkCommonUtils.fieldValue(UmsSysField.ID.toString, schemaMap, tuple).toString
-          if (getFromRedis == null || getFromRedis < umsIdInTuple) {
-            val hash = tuple2Map(schemaMap, tuple)
-            shardedJedis.sadd(sinkUniqueTableName, tableKeys)
-            shardedJedis.hmset(tableKeys, hash)
-            if (redisConfig.expireTimeInSeconds > 0) {
-              shardedJedis.expire(tableKeys, redisConfig.expireTimeInSeconds)
+        })
+        clusterConnection.close()
+      case RedisMode.SHARED =>
+        val shardedJedis = JedisConnection.getSharedJedisConnection(connectionConfig.connectionUrl, connectionConfig.password)
+        tupleList.foreach(tuple => {
+          try {
+            val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
+              sinkUniqueTableName+"_"+ SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            } else{
+              SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
             }
+            val getFromRedis = shardedJedis.hget(tableKeys, UmsSysField.ID.toString)
+            val umsIdInTuple = SinkCommonUtils.fieldValue(UmsSysField.ID.toString, schemaMap, tuple).toString
+            if (getFromRedis == null || getFromRedis < umsIdInTuple) {
+              val hash = tuple2Map(schemaMap, tuple)
+              shardedJedis.sadd(sinkUniqueTableName, tableKeys)
+              shardedJedis.hmset(tableKeys, hash)
+              if (redisConfig.expireTimeInSeconds > 0) {
+                shardedJedis.expire(tableKeys, redisConfig.expireTimeInSeconds)
+              }
+            }
+          } catch {
+            case e: Exception => logger.error("sink 2 redis error ", e)
+              errorList += tuple
           }
-        } catch {
-          case e: Exception => logger.error("sink 2 redis error ", e)
-            errorList += tuple
-        }
-      })
-      shardedJedis.close()
+        })
+        shardedJedis.close()
+      case RedisMode.SENTINEL =>
+        val masterName = getSentinelMasterName(connectionConfig.parameters)
+        val jedis = JedisConnection.getJedisSentinelConnection(connectionConfig.connectionUrl, connectionConfig.password, masterName)
+        val databaseNo = getSentinelDataBaseNo(connectionConfig.parameters)
+        jedis.select(databaseNo)
+        tupleList.foreach(tuple => {
+          try {
+            val tableKeys = if(redisConfig.`saveTableNameAsKeyPrefix.get`) {
+              sinkUniqueTableName+"_"+ SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            } else{
+              SinkCommonUtils.keyList2values(tableKeyList, schemaMap, tuple)
+            }
+            val getFromRedis = jedis.hget(tableKeys, UmsSysField.ID.toString)
+            val umsIdInTuple = SinkCommonUtils.fieldValue(UmsSysField.ID.toString, schemaMap, tuple).toString
+            if (getFromRedis == null || getFromRedis < umsIdInTuple) {
+              val hash = tuple2Map(schemaMap, tuple)
+              jedis.sadd(sinkUniqueTableName, tableKeys)
+              jedis.hmset(tableKeys, hash)
+              if (redisConfig.expireTimeInSeconds > 0) {
+                jedis.expire(tableKeys, redisConfig.expireTimeInSeconds)
+              }
+            }
+          } catch {
+            case e: Exception => logger.error("sink 2 redis error ", e)
+              errorList += tuple
+          }
+        })
+        jedis.close()
     }
     errorList
   }
@@ -154,17 +216,39 @@ class Data2RedisSink extends SinkProcessor {
     })
   }
 
-  private def getClusterMode(connectionConfig: ConnectionConfig): RedisClusterMode = {
-    var redisClusterMode: RedisClusterMode = RedisClusterMode.SHARED
-    if (connectionConfig.parameters.isDefined) {
-      val kvPairs = connectionConfig.parameters.get
+  private def getRedisMode(parameters: Option[Seq[KVConfig]]): RedisMode = {
+    var redisMode: RedisMode = RedisMode.SENTINEL
+    if (parameters.isDefined) {
+      val kvPairs = parameters.get
       kvPairs.foreach(kv => {
         if (kv.key == "mode")
-          redisClusterMode = RedisClusterMode.redisClusterMode(kv.value)
+          redisMode = RedisMode.redisMode(kv.value)
       })
     }
-    redisClusterMode
+    redisMode
   }
 
+  private def getSentinelMasterName(parameters: Option[Seq[KVConfig]]): String = {
+    var masterName: String = null
+    if (parameters.isDefined) {
+      val kvPairs = parameters.get
+      kvPairs.foreach(kv => {
+        if (kv.key == "masterName")
+          masterName = kv.value
+      })
+    }
+    masterName
+  }
 
+  private def getSentinelDataBaseNo(parameters: Option[Seq[KVConfig]]): Int = {
+    var databaseNo: Int = 0
+    if (parameters.isDefined) {
+      val kvPairs = parameters.get
+      kvPairs.foreach(kv => {
+        if (kv.key == "databaseNo")
+          databaseNo = kv.value.toInt
+      })
+    }
+    databaseNo
+  }
 }

@@ -26,6 +26,11 @@
             <type>jar</type>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
     </dependencies>
 </project>

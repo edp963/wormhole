@@ -45,12 +45,12 @@ class UserIDGenerate extends EdpLogging {
         }
 
         val rowReplace = ListBuffer.empty[Any]
-        for(i <- 0 until row.size){
-          if(i == umsIdIndex){
-            if(queryResult==1) {
-              rowReplace += umsId+1
-            }else rowReplace += row.get(i)
-          }else{
+        for (i <- 0 until row.size) {
+          if (i == umsIdIndex) {
+            if (queryResult == 1) {
+              rowReplace += umsId + 1
+            } else rowReplace += row.get(i)
+          } else {
             rowReplace += row.get(i)
           }
         }
@@ -63,13 +63,31 @@ class UserIDGenerate extends EdpLogging {
     })
 
     val selectFieldName = qcp.selectFieldName
-    var tmpDf = session.createDataFrame(userIDRDD, resultSchema).where(s"$selectFieldName is not null")
-    qcp.conditions.foreach(condition=>{
+    var tmpDf: DataFrame = session.createDataFrame(userIDRDD, resultSchema).where(s"$selectFieldName is not null").cache()
+
+    var finalDf = session.createDataFrame(session.sparkContext.emptyRDD[Row], resultSchema)
+
+    qcp.conditions.foreach(condition => {
       val columnNames: Array[String] = condition.map(_._1)
-      tmpDf = tmpDf.dropDuplicates(columnNames)
+      val notNullCondition = columnNames.map(c => {
+        s"$c is not null"
+      }).mkString(" and ")
+      val dropDuplicatesDf = tmpDf.where(notNullCondition).dropDuplicates(columnNames)
+      finalDf = finalDf.union(dropDuplicatesDf)
+
+      val isNullCondition = columnNames.map(c => {
+        s"$c is null"
+      }).mkString(" or ")
+      val hasNullDf = tmpDf.where(isNullCondition).cache()
+      tmpDf.unpersist()
+      tmpDf = hasNullDf
+
     })
 
-    tmpDf
+    finalDf = finalDf.union(tmpDf)
+    tmpDf.unpersist()
+
+    finalDf
 
   }
 
@@ -92,62 +110,76 @@ class UserIDGenerate extends EdpLogging {
       if (tmpQueryResult == 1) {
         selectFieldValue = tmpSelectFieldValue
         umsId = tmpUmsId
-        logInfo("查到id，无需生成")
-      } else if (tmpQueryResult == 0) {
-        logInfo("未查到id，生成，"+row)
-        selectFieldValue = UUID.randomUUID().toString
+//        logInfo("查到id，无需生成")
       }
+//      else if (tmpQueryResult == 0) {
+//        logInfo("未查到id，生成，" + row)
+//      }
     }
+
+    if (selectFieldValue == null) selectFieldValue = UUID.randomUUID().toString
+
     (queryResult, selectFieldValue, umsId)
   }
 
   def queryByCondition(selectPartSql: String, cc: ConnectionConfig, selectFieldName: String, conditionArray: Array[(String, String)],
                        row: Row, schemaMap: Map[String, StructField]): (Int, String, Long) = {
-    val wherePartSql = getWherePartSql(cc.connectionUrl, conditionArray)
-
-    var ps: PreparedStatement = null
-    var conn: Connection = null
-    try {
-      conn = DbConnection.getConnection(cc)
-      val sql = selectPartSql + wherePartSql
-      logInfo(sql)
-      ps = conn.prepareStatement(sql)
-      for (i <- conditionArray.indices) {
-        val fieldValue = getFieldValue(schemaMap, conditionArray(i)._1, row)
-        ps.setObject(i + 1, fieldValue, SinkDbSchemaUtils.ums2dbType(SparkSchemaUtils.spark2umsType(schemaMap(conditionArray(i)._1).dataType)))
+    var hasNull = false
+    for (i <- conditionArray.indices) {
+      val fieldValue = getFieldValue(schemaMap, conditionArray(i)._1, row)
+      if (fieldValue == null) {
+        hasNull = true
       }
+    }
+    if (hasNull) {
+      (0, null.asInstanceOf[String], null.asInstanceOf[Long])
+    } else {
+      val wherePartSql = getWherePartSql(cc.connectionUrl, conditionArray)
 
-      val rs: ResultSet = ps.executeQuery()
-      val queryResult = if (rs.next()) {
-        (1, rs.getString(1), rs.getLong(2))
-      } else {
-        (0, null.asInstanceOf[String], null.asInstanceOf[Long])
+      var ps: PreparedStatement = null
+      var conn: Connection = null
+      try {
+        conn = DbConnection.getConnection(cc)
+        val sql = selectPartSql + wherePartSql
+        logInfo(sql)
+        ps = conn.prepareStatement(sql)
+        for (i <- conditionArray.indices) {
+          val fieldValue = getFieldValue(schemaMap, conditionArray(i)._1, row)
+          ps.setObject(i + 1, fieldValue, SinkDbSchemaUtils.ums2dbType(SparkSchemaUtils.spark2umsType(schemaMap(conditionArray(i)._1).dataType)))
+        }
+
+        val rs: ResultSet = ps.executeQuery()
+        val queryResult = if (rs.next()) {
+          (1, rs.getString(1), rs.getLong(2))
+        } else {
+          (0, null.asInstanceOf[String], null.asInstanceOf[Long])
+        }
+
+        rs.close()
+        queryResult
+      } catch {
+        case e: SQLTransientConnectionException =>
+          DbConnection.resetConnection(cc)
+          logError("SQLTransientConnectionException", e)
+          throw e
+        case e: Throwable =>
+          logError("queryByCondition error ", e)
+          throw e
+      } finally {
+        if (ps != null)
+          try {
+            ps.close()
+          } catch {
+            case e: Throwable => logError("ps.close", e)
+          }
+        if (null != conn)
+          try {
+            conn.close()
+            conn == null
+          } catch {
+            case e: Throwable => logError("conn.close", e)
+          }
       }
-
-      rs.close()
-      queryResult
-    } catch {
-      case e: SQLTransientConnectionException =>
-        DbConnection.resetConnection(cc)
-        logError("SQLTransientConnectionException", e)
-        throw e
-      case e: Throwable =>
-        logError("queryByCondition error ", e)
-        throw e
-    } finally {
-      if (ps != null)
-        try {
-          ps.close()
-        } catch {
-          case e: Throwable => logError("ps.close", e)
-        }
-      if (null != conn)
-        try {
-          conn.close()
-          conn == null
-        } catch {
-          case e: Throwable => logError("conn.close", e)
-        }
     }
 
 
@@ -158,9 +190,9 @@ class UserIDGenerate extends EdpLogging {
     schemaMap(fieldName).dataType match {
       case StringType =>
         val strValue = row.getString(fieldIndex)
-        if(strValue == null){
+        if (strValue == null) {
           strValue
-        }else strValue.trim
+        } else strValue.trim
       case IntegerType => row.getInt(fieldIndex)
       case LongType => row.getLong(fieldIndex)
       case BooleanType => row.getBoolean(fieldIndex)
