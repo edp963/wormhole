@@ -202,6 +202,8 @@ object KuduConnection extends Serializable {
             keyData.toLong
           case Type.INT8 | Type.INT16 | Type.INT32 =>
             keyData.toInt
+          case Type.DECIMAL =>
+            new java.math.BigDecimal(keyData).stripTrailingZeros()
           case _ =>
             keyData
         }
@@ -276,6 +278,8 @@ object KuduConnection extends Serializable {
             KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toLong)
           case Type.INT8 | Type.INT16 | Type.INT32 =>
             KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toInt)
+          case Type.DECIMAL =>
+            KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, new java.math.BigDecimal(keyContent).stripTrailingZeros())
           case _ =>
             KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent)
         }
@@ -331,6 +335,8 @@ object KuduConnection extends Serializable {
             keyData.toLong
           case Type.INT8 | Type.INT16 | Type.INT32 =>
             keyData.toInt
+          case Type.DECIMAL =>
+            new java.math.BigDecimal(keyData).stripTrailingZeros()
           case _ =>
             keyData
         }
