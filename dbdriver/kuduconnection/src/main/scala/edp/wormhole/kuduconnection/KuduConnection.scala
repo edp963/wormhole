@@ -157,7 +157,7 @@ object KuduConnection extends Serializable {
       val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
 
       tupleList.foreach((row: Seq[String]) => {
-        val keysContent = keysName.map(keyName => {
+        val keysContent: Seq[String] = keysName.map(keyName => {
           row(schemaMap(keyName)._1)
         })
         val (keysStr, valueMap) = doQueryByKey(keysName, keysContent, fieldTypeMap, client, table, queryFieldsName)
@@ -193,19 +193,7 @@ object KuduConnection extends Serializable {
         row(schemaMap(keyName)._1)
       })
 
-      val dataList: Seq[Any] = tupleList.map(row => {
-        val keyData = row(schemaMap(keyName)._1)
-        keyType match {
-          case Type.STRING =>
-            keyData
-          case Type.INT64 =>
-            keyData.toLong
-          case Type.INT8 | Type.INT16 | Type.INT32 =>
-            keyData.toInt
-          case _ =>
-            keyData
-        }
-      })
+      val dataList: Seq[Any] = getDataList(tupleList,schemaMap,keyName,keyType)
 
       queryResultMap = if (batchSize == 1) {
         queryOneRowByOneKey(client, table, queryFieldsName, keyName, dataOriginList, keyType, tableSchema)
@@ -273,9 +261,11 @@ object KuduConnection extends Serializable {
       val kuduPredicate =
         keyType match {
           case Type.INT64 =>
-            KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toLong)
+            val tmpCon = dataToLong(keyContent)
+            KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, tmpCon)
           case Type.INT8 | Type.INT16 | Type.INT32 =>
-            KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent.toInt)
+            val tmpCon = dataToInt(keyContent)
+            KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, tmpCon)
           case _ =>
             KuduPredicate.newComparisonPredicate(tableSchema.getColumn(keyName), KuduPredicate.ComparisonOp.EQUAL, keyContent)
         }
@@ -322,19 +312,7 @@ object KuduConnection extends Serializable {
       val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
       val keyType: Type = fieldTypeMap(keyName)
 
-      val dataList: Seq[Any] = tupleList.map(row => {
-        val keyData = row(schemaMap(keyName)._1)
-        keyType match {
-          case Type.STRING =>
-            keyData
-          case Type.INT64 =>
-            keyData.toLong
-          case Type.INT8 | Type.INT16 | Type.INT32 =>
-            keyData.toInt
-          case _ =>
-            keyData
-        }
-      })
+      val dataList: Seq[Any] = getDataList(tupleList,schemaMap,keyName,keyType)
 
 //      val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
 //        .setProjectedColumnNames(queryFieldsName) //指定输出列
@@ -406,6 +384,43 @@ object KuduConnection extends Serializable {
     })
     logger.info("doQueryMultiByKeyListInBatch Finish!!!")
     queryResultMapResult
+  }
+
+  def getDataList(tupleList:Seq[Seq[String]],schemaMap:collection.Map[String, (Int, UmsFieldType, Boolean)],keyName:String,keyType:Type):
+  Seq[Any] ={
+    tupleList.map(row => {
+      val keyData = row(schemaMap(keyName)._1)
+      dataToType(keyData,keyType)
+    })
+  }
+
+  def dataToType(keyData:String,keyType:Type): Any ={
+    keyType match {
+      case Type.STRING =>
+        keyData
+      case Type.INT64 =>
+        dataToLong(keyData)
+      case Type.INT8 | Type.INT16 | Type.INT32 =>
+        dataToInt(keyData)
+      case _ =>
+        keyData
+    }
+  }
+
+  def dataToLong(keyData:String): Long ={
+    val tmpIndex = keyData.indexOf(".")
+    if(tmpIndex>0)
+      keyData.substring(0,tmpIndex).toLong
+    else if(tmpIndex==0) 0l
+    else keyData.toLong
+  }
+
+  def dataToInt(keyData:String):Int={
+    val tmpIndex = keyData.indexOf(".")
+    if(tmpIndex>0)
+      keyData.substring(0,keyData.indexOf(".")).toInt
+    else if(tmpIndex==0) 0
+    else keyData.toInt
   }
 
   //flink look up
@@ -526,9 +541,9 @@ object KuduConnection extends Serializable {
         case UmsFieldType.BINARY => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addBinary(fieldName, fieldContent.getBytes())
         case UmsFieldType.DECIMAL => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent).stripTrailingZeros())
         case UmsFieldType.DOUBLE => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDouble(fieldName, fieldContent.toDouble)
-        case UmsFieldType.INT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addInt(fieldName, fieldContent.toInt)
+        case UmsFieldType.INT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addInt(fieldName, dataToInt(fieldContent))
         case UmsFieldType.FLOAT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
-        case UmsFieldType.LONG => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, fieldContent.toLong)
+        case UmsFieldType.LONG => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, dataToLong(fieldContent))
         case UmsFieldType.DATETIME => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, DateUtils.dt2long(fieldContent))
         case _ => if (fieldContent == null) row.setNull(fieldName) else row.addString(fieldName, fieldContent)
       }
@@ -625,9 +640,11 @@ object KuduConnection extends Serializable {
       case Type.STRING =>
         KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue)
       case Type.INT64 =>
-        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toLong)
+        val tmpCon = dataToLong(fieldValue)
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, tmpCon)
       case Type.INT8 | Type.INT16 | Type.INT32 =>
-        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toInt)
+        val tmpCon = dataToInt(fieldValue)
+        KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, tmpCon)
       case Type.FLOAT =>
         KuduPredicate.newComparisonPredicate(table.getSchema.getColumn(fieldName), comparisonOp, fieldValue.toFloat)
       case Type.DOUBLE =>
@@ -655,9 +672,9 @@ object KuduConnection extends Serializable {
         case Type.STRING =>
           fieldValue
         case Type.INT64 =>
-          fieldValue.toLong
+          dataToLong(fieldValue)
         case Type.INT8 | Type.INT16 | Type.INT32 =>
-          fieldValue.toInt
+          dataToInt(fieldValue)
         case Type.FLOAT =>
           fieldValue.toFloat
         case Type.DOUBLE =>
