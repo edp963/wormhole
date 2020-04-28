@@ -4,12 +4,12 @@ import java.util.UUID
 
 import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
-import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
+import edp.wormhole.ums.UmsProtocolType
 import org.apache.flink.api.common.functions.RichFilterFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.types.Row
-import org.joda.time.DateTime
 
+import scala.collection.Map
 class PatternOutputFilter(exceptionConfig: ExceptionConfig, config: WormholeFlinkxConfig, outputSchemaMap: Map[String, (TypeInformation[_], Int)]) extends RichFilterFunction[(Boolean,Row)]{
 
   override def filter(value: (Boolean, Row)): Boolean = {

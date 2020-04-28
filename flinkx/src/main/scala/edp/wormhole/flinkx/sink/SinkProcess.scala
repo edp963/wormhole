@@ -34,6 +34,7 @@ import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.types.Row
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.collection.Map
 
 object SinkProcess extends Serializable {
 

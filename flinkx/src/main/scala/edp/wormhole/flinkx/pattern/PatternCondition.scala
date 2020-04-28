@@ -27,13 +27,13 @@ import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.Condition._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.{object2TrueValue, s2TrueValue}
-import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
+import edp.wormhole.ums.UmsProtocolType
+import edp.wormhole.util.DateUtils.{dt2sqlDate, dt2timestamp}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
-import edp.wormhole.util.DateUtils.{dt2sqlDate, dt2timestamp}
-import org.joda.time.DateTime
 
+import scala.collection.Map
 class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],exceptionConfig: ExceptionConfig,config: WormholeFlinkxConfig) extends java.io.Serializable {
 
   lazy val leftConditionIndex = 0

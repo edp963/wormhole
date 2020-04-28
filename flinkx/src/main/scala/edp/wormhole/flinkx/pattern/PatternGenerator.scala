@@ -30,6 +30,7 @@ import org.apache.flink.cep.scala.pattern.Pattern
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.types.Row
 
+import scala.collection.Map
 class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)], exceptionConfig: ExceptionConfig, config: WormholeFlinkxConfig) extends java.io.Serializable {
   var pattern: Pattern[Row, Row] = _
   private var patternSeqSize = 0

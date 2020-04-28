@@ -37,10 +37,11 @@ import org.apache.flink.cep.scala.PatternStream
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
+import org.apache.flink.util.Collector
 import org.slf4j.LoggerFactory
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.{Map, mutable}
 import scala.language.existentials
 import scala.math.Ordering
 
@@ -61,6 +62,28 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
   def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[(Boolean, Row)] = {
     var flag = true
+    val timeoutOutputTag  = OutputTag[Iterable[Row]]("timeout-side-output")
+
+    OutputType.outputType(outputType) match {
+      case AGG =>
+        patternStream.select(pattern => {
+          buildRow(pattern.values, keyByFields)
+        })
+      case FILTERED_ROW => patternStream.select(pattern => {
+        filteredRow(pattern.values)
+      })
+      case DETAIL => patternStream.flatSelect((pattern,out:Collector[Iterable[Row]])=>{
+           out.collect(pattern.values.flatten)
+      }).flatMap(r =>r)
+      case TIMEOUT =>
+        val result =patternStream.select(timeoutOutputTag){
+        (pattern: Map[String, Iterable[Row]], timestamp: Long) => pattern.values.flatten
+      } {
+        pattern: Map[String, Iterable[Row]] =>pattern.values.flatten
+      }
+        result.getSideOutput(timeoutOutputTag).flatMap(r=>r)
+    }
+
     val out = patternStream.select(patternSelectFun => {
       try {
         val eventSeq = patternSelectFun.values
@@ -183,7 +206,7 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     * map[renameField,(originalField,functionType)]
     */
 
-  private def getAggFieldMap: mutable.Map[String, (String, String)] = {
+  private def getAggFieldMap:Map[String, (String, String)] = {
     val aggFieldMap = mutable.HashMap.empty[String, (String, String)]
     for (i <- 0 until outputFieldArray.size()) {
       val outputFieldJsonObj = outputFieldArray.getJSONObject(i)

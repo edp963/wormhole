@@ -37,6 +37,7 @@ import org.apache.flink.table.api.{StreamQueryConfig, Table, Types}
 import org.apache.flink.table.expressions.{Expression, ExpressionParser}
 import org.apache.flink.types.Row
 import org.slf4j.{Logger, LoggerFactory}
+import scala.collection.Map
 
 
 class SwiftsProcess(dataStream: DataStream[Row],

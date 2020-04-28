@@ -21,12 +21,11 @@ package edp.wormhole.flinkx.swifts
 
 import java.util.UUID
 
-import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.flinkx.common.{ExceptionConfig, FlinkxUtils}
 import edp.wormhole.flinkx.swifts.custom.{LookupHbaseHelper, LookupKuduHelper, LookupRedisHelper}
 import edp.wormhole.flinkx.util.FeedbackUtils
-import edp.wormhole.ums.{UmsDataSystem, UmsProtocolType, UmsProtocolUtils}
+import edp.wormhole.ums.{UmsDataSystem, UmsProtocolType}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -34,11 +33,10 @@ import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
-import org.joda.time.DateTime
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.{Map, mutable}
 
 class LookupProcessElement(swiftsSql: SwiftsSql,
                            preSchemaMap: Map[String, (TypeInformation[_], Int)],
