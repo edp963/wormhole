@@ -32,10 +32,12 @@
         <module>dbdriver/redispool</module>
         <module>dbdriver/kuduconnection</module>
         <module>dbdriver/hbaseconnection</module>
+        <module>dbdriver/rocketmqpool</module>
         <!--<module>dbdriver/phoenix-jdbc</module>-->
         <module>interface/sparkxinterface</module>
         <module>interface/flinkxinterface</module>
         <module>interface/publicinterface</module>
+
         <module>sinks</module>
         <module>common</module>
         <module>swifts</module>
