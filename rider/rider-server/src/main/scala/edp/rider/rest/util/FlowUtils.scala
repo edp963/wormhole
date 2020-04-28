@@ -229,6 +229,7 @@ object FlowUtils extends RiderLogger {
           case "parquet" => ""
           case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
           case "redis" =>"edp.wormhole.sinks.redissink.Data2RedisSink"
+          case "rocketmq" =>"edp.wormhole.sinks.rocketmqsink.Data2RocketMQSink"
         }
     }
   }

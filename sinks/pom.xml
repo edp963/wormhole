@@ -84,6 +84,12 @@
             <artifactId>wormhole-redispool</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-rocketmqpool</artifactId>
+            <version>${project.version}</version>
+        </dependency>
    <!--     <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch-spark-20_2.11</artifactId>
