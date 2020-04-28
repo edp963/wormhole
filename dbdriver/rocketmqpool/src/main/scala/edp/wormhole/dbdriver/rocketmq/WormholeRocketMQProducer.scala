@@ -76,8 +76,8 @@ object WormholeRocketMQProducer extends Serializable {
   }
 
   def send(namesrvAddr: String, producerGroup: String, messages: Seq[Message], timeout: Long = 3000): Unit = {
-    //val messagesSend: util.List[Message] = messages.toList
-    if(null != messages && !messages.isEmpty) {
+    val messagesSend: util.List[Message] = messages.toList
+    if(null != messages && !messagesSend.isEmpty) {
       try {
         val listSplitter = new ListSplitter(messages)
         while(listSplitter.hasNext) {
@@ -91,12 +91,12 @@ object WormholeRocketMQProducer extends Serializable {
         }
       } catch {
         case ex: Throwable => {
-            logger.error("send - send ERROR:", ex)
+            println("send - send ERROR:", ex)
             try {
               close(namesrvAddr)
             } catch {
               case closeError: Throwable =>
-                logger.error("sendInternal - close ERROR,", closeError)
+                println("sendInternal - close ERROR,", closeError)
                 producerMap -= namesrvAddr
             }
             throw ex
