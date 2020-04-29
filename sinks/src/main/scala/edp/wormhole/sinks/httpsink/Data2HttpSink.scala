@@ -61,7 +61,7 @@ class Data2HttpSink extends SinkProcessor {
           case _ => null.asInstanceOf[HttpResult]
         }
 
-        if (hr == null || hr.getStatus > HttpStatus.SC_NO_CONTENT || hr.getStatus < HttpStatus.SC_OK) {
+        if (hr == null || (hr.getStatus >= HttpStatus.SC_OK && hr.getStatus <= HttpStatus.SC_NO_CONTENT)) {
           logger.error(s"sink reponse error, status=${hr.getStatus}, response=${hr.getData}, data=$tuple")
           errorCount += 1
         }
