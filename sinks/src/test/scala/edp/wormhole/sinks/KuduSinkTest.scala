@@ -1,6 +1,7 @@
-package edp.wormhole.sinks.kudusink
+package edp.wormhole.sinks
 
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.kudusink.Data2KuduSink
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.config.ConnectionConfig

@@ -11,6 +11,7 @@ import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
+import org.apache.rocketmq.common.message.Message
 
 class Data2RocketMQSink extends SinkProcessor{
   private lazy val logger = Logger.getLogger(this.getClass)
@@ -88,7 +89,7 @@ class Data2RocketMQSink extends SinkProcessor{
       val mqMessage = MqMessage(mqTopic, JSON.toJSONString(flattenJson, SerializerFeature.WriteMapNullValue), sinkSpecificConfig.tags)
       WormholeRocketMQProducer.genMqMessage(mqMessage)
     })
-    WormholeRocketMQProducer.send(connectionConfig.connectionUrl, producerGroup, mqMessages.toIterator)
+    WormholeRocketMQProducer.send(connectionConfig.connectionUrl, producerGroup, mqMessages)
   }
 
 
@@ -115,7 +116,7 @@ class Data2RocketMQSink extends SinkProcessor{
       val mqMessage = MqMessage(mqTopic, JSON.toJSONString(flattenJson, SerializerFeature.WriteMapNullValue), sinkSpecificConfig.tags)
       WormholeRocketMQProducer.genMqMessage(mqMessage)
     })
-    WormholeRocketMQProducer.send(connectionConfig.connectionUrl, producerGroup, mqMessages.toIterator)
+    WormholeRocketMQProducer.send(connectionConfig.connectionUrl, producerGroup, mqMessages)
   }
 
 
@@ -128,7 +129,7 @@ class Data2RocketMQSink extends SinkProcessor{
                            sinkSpecificConfig: RocketMQConfig,
                            producerGroup: String): Unit = {
     logger.info(s"start write to rocketMQ, tupleList size is: ${tupleList.size}")
-    val mqMessages = tupleList.sliding(mqLimitNum, mqLimitNum).map(tuple => {
+    val mqMessages: Iterator[Message] = tupleList.sliding(mqLimitNum, mqLimitNum).map(tuple => {
       val seqUmsTuple: Seq[UmsTuple] = tuple.map(payload => UmsTuple(payload))
       //logger.info(s"start write to rocketMQ, seqUmsTuple size is: ${seqUmsTuple.size}")
       val umsMessage: String = toJsonCompact(Ums(
@@ -138,7 +139,7 @@ class Data2RocketMQSink extends SinkProcessor{
       val mqMessage = MqMessage(mqTopic, umsMessage, sinkSpecificConfig.tags)
       WormholeRocketMQProducer.genMqMessage(mqMessage)
     })
-    WormholeRocketMQProducer.send(connectionConfig.connectionUrl, producerGroup, mqMessages)
+    WormholeRocketMQProducer.send(connectionConfig.connectionUrl, producerGroup, mqMessages.toSeq)
   }
 
 
