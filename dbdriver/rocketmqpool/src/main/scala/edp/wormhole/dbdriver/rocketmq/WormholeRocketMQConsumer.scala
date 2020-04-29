@@ -8,6 +8,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer
 import org.apache.rocketmq.client.consumer.listener.{ConsumeConcurrentlyContext, ConsumeConcurrentlyStatus, MessageListenerConcurrently}
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere
 import org.apache.rocketmq.common.message.MessageExt
+import scala.collection.JavaConversions._
 
 object WormholeRocketMQConsumer {
   private val logger = Logger.getLogger(this.getClass)
@@ -23,7 +24,10 @@ object WormholeRocketMQConsumer {
     consumer.registerMessageListener(new MessageListenerConcurrently {
       override def consumeMessage(msgs: util.List[MessageExt], context: ConsumeConcurrentlyContext): ConsumeConcurrentlyStatus = {
         logger.info(s"""${Thread.currentThread.getName} Receive New Messages: $msgs""")
-        println(s"""${Thread.currentThread.getName} Receive New Messages: $msgs""")
+        println(s"""${Thread.currentThread.getName} Receive New Messages: """)
+        for(m <- msgs) {
+          println(new String(m.getBody) + ";")
+        }
         ConsumeConcurrentlyStatus.CONSUME_SUCCESS
       }
     })

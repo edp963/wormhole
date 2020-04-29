@@ -20,12 +20,14 @@ class ListSplitter(messages: Seq[Message], sizeLimit: Int = 1000000) extends Ite
     while(nextIndex < messages.size && doNext) {
       val message = messages(nextIndex)
       var tmpSize = message.getTopic.length + message.getBody.length
-      val properties = mutable.HashMap.empty[String, String]
-      properties.putAll(message.getProperties)
-      properties.foreach(p => {
-        tmpSize += p._1.length
-        tmpSize += p._2.length
-      })
+      if(null != message.getProperties) {
+        val properties = mutable.HashMap.empty[String, String]
+        properties.putAll(message.getProperties)
+        properties.foreach(p => {
+          tmpSize += p._1.length
+          tmpSize += p._2.length
+        })
+      }
       tmpSize += 20
 
       if(tmpSize > sizeLimit) {

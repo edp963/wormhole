@@ -76,8 +76,8 @@ object WormholeRocketMQProducer extends Serializable {
   }
 
   def send(namesrvAddr: String, producerGroup: String, messages: Seq[Message], timeout: Long = 3000): Unit = {
-    val messagesSend: util.List[Message] = messages.toList
-    if(null != messages && !messagesSend.isEmpty) {
+    //val messagesSend: util.List[Message] = messages.toList
+    if(null != messages && !messages.isEmpty) {
       try {
         val listSplitter = new ListSplitter(messages)
         while(listSplitter.hasNext) {
