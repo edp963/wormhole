@@ -2,11 +2,8 @@ package edp.wormhole.sparkx.swifts.custom.sensors;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.EventEntry;
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyColumnEntry;
-import edp.wormhole.sparkx.swifts.custom.sensors.entry.PropertyEntry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.joda.time.*;
@@ -19,7 +16,6 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -195,7 +191,7 @@ public class ConvertUtils implements Serializable {
 
     public static  Object convert(String key,PropertyColumnEntry column, Object value){
         System.out.print("value type:" + value.getClass());
-        switch (DataType.indexOf(column.getData_type())){
+        switch (DataTypeSensorToCK.indexOf(column.getData_type())){
             case STRING:
                 if(value instanceof String || value instanceof Integer || value instanceof Long || value instanceof Float || value instanceof Double ){
                     return String.valueOf(value);
@@ -326,26 +322,26 @@ public class ConvertUtils implements Serializable {
      }
 
 
-    public static DataType judgeDataType(String paramString, Object paramObject, Set<String> paramSet) {
+    public static DataTypeSensorToCK judgeDataType(String paramString, Object paramObject, Set<String> paramSet) {
         if (paramObject instanceof String) {
             if (paramSet != null) {
                 if (paramSet.contains(paramString)) {
-                    return DataType.DATETIME;
+                    return DataTypeSensorToCK.DATETIME;
                 }
-                return DataType.STRING;
+                return DataTypeSensorToCK.STRING;
             }
-            return DataType.STRING;
+            return DataTypeSensorToCK.STRING;
         }
         if (paramObject instanceof Long || paramObject instanceof Integer || paramObject instanceof Float || paramObject instanceof Double){
-            return DataType.NUMBER;
+            return DataTypeSensorToCK.NUMBER;
         }
         if (paramObject instanceof Boolean){
-            return DataType.BOOL;
+            return DataTypeSensorToCK.BOOL;
         }
         if (paramObject instanceof java.util.List || paramObject instanceof String[]) {
-            return DataType.LIST;
+            return DataTypeSensorToCK.LIST;
         }
-        return DataType.UNKNOWN;
+        return DataTypeSensorToCK.UNKNOWN;
     }
 
 

@@ -92,6 +92,11 @@ object SparkxUtils extends EdpLogging{
       //if (row.get(i) == null) "''"  // join fields cannot be null
       if (row.get(i) == null) null
       else "'" + row.get(i) + "'"
+      /*else {
+        if(schema(i).dataType.toString.equals("StringType") && row.get(i).toString.contains("'")) {
+          "'" + row.get(i).toString.replace("'", "\\\'") + "'"
+        } else "'" + row.get(i) + "'"
+      }*/
     } else row.get(i)
   }
 

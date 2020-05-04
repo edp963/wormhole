@@ -24,34 +24,35 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.{HostAndPort, JedisCluster}
 
 import scala.collection.mutable
+import collection.JavaConversions._
 
 object JedisClusterConnection {
 
-  def createPool(hosts: Array[(String, Int)],password:Option[String]):JedisCluster={
+  def createPool(hosts: Array[(String, Int)], password: Option[String]): JedisCluster = {
     import collection.JavaConversions._
     val jedisClusterNodes = mutable.HashSet.empty[HostAndPort]
-    hosts.foreach(host=>{
+    hosts.foreach(host => {
       jedisClusterNodes += new HostAndPort(host._1, host._2)
     })
     val poolConfig = new GenericObjectPoolConfig()
     poolConfig.setMaxIdle(1)
     poolConfig.setMaxTotal(3)
-    if(password.nonEmpty) new JedisCluster(jedisClusterNodes, 3000, 3000,  3, password.get, poolConfig)
-    else new JedisCluster(jedisClusterNodes, 3000, 3000,  3, poolConfig)
+    if (password.nonEmpty) new JedisCluster(jedisClusterNodes, 3000, 3000, 3, password.get, poolConfig)
+    else new JedisCluster(jedisClusterNodes, 3000, 3000, 3, poolConfig)
   }
 
-  def get(jedisCluster:JedisCluster,key:String): String ={
-    val value = jedisCluster.get(key)
-    jedisCluster.close()
-    value
+  def get(jedisCluster: JedisCluster, key: String): String = {
+    jedisCluster.get(key)
   }
 
-  def mget(jedisCluster:JedisCluster,keys:Seq[String]): Seq[String] ={
-    import collection.JavaConversions._
-    val value = jedisCluster.mget(keys:_*)
-    jedisCluster.close()
-    value
+  def mget(jedisCluster: JedisCluster, keys: Seq[String]): Seq[String] = {
+    jedisCluster.mget(keys: _*)
   }
+
+  def mset(jedisCluster: JedisCluster, key: String, hash: Map[String, String]): String = {
+    jedisCluster.hmset(key, hash)
+  }
+
 
   //  def closeResource(jedisCluster:JedisCluster): Unit ={
   //    jedisCluster.close()

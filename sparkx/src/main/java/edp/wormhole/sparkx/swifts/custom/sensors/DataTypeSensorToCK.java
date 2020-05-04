@@ -9,7 +9,7 @@ import java.io.Serializable;
  * @Date 19/11/18 16:44
  * To change this template use File | Settings | File Templates.
  */
-public enum DataType implements Serializable {
+public enum DataTypeSensorToCK implements Serializable {
     NUMBER(1,"Int64"),
     STRING(2,"String"),
     LIST(3,"String"),
@@ -37,13 +37,13 @@ public enum DataType implements Serializable {
         this.clickHouseDataType = clickHouseDataType;
     }
 
-    DataType(int index, String clickHouseDataType){
+    DataTypeSensorToCK(int index, String clickHouseDataType){
         this.index=index;
         this.clickHouseDataType=clickHouseDataType;
     }
 
-    public static DataType indexOf(int index){
-        for(DataType type:values()){
+    public static DataTypeSensorToCK indexOf(int index){
+        for(DataTypeSensorToCK type:values()){
             if(type.getIndex()==index){
                 return type;
             }

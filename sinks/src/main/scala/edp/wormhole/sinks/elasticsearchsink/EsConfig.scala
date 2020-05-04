@@ -36,7 +36,10 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import scalaj.http.Http
 
-case class EsConfig(`mutation_type`: Option[String] = None, _id: Option[String] = None, index_extend_config: Option[String] = None) {
+import scala.collection.JavaConversions._
+
+
+case class EsConfig(`mutation_type`: Option[String] = None, _id: Option[String] = None, index_extend_config: Option[String] = None, header_config: Option[Map[String, String]] = None) {
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
   lazy val `_id.get` = if (_id.nonEmpty) _id.get.split(",") else Array.empty[String]
 }
@@ -59,11 +62,26 @@ object EsTools {
     indexName + extendContent
   }
 
-  def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String, requestTimeOut: Int): String = {
-    if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
-      Http(url).timeout(1000, requestTimeOut * 1000).auth(username.get, passwd.get).postData(requestContent).asString.body
+  def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String, requestTimeOut: Int, sinkSpecificConfig: EsConfig): String = {
+    Http(url).timeout(1000, requestTimeOut * 1000)
+    val header_config = sinkSpecificConfig.header_config
+    if(header_config.nonEmpty && header_config.get.nonEmpty) {
+      //val connConfigGet = JSON.parseObject(header_config.get)
+      val connConfigGet = header_config.get
+      val headers = connConfigGet.keys.map(key => {
+        (key, connConfigGet.getOrElse(key, ""))
+      }).toSeq
+      if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
+        Http(url).headers(headers).timeout(1000, requestTimeOut * 1000).auth(username.get, passwd.get).postData(requestContent).asString.body
+      } else {
+        Http(url).headers(headers).timeout(1000, requestTimeOut * 1000).postData(requestContent).asString.body
+      }
     } else {
-      Http(url).timeout(1000, requestTimeOut * 1000).postData(requestContent).asString.body
+      if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
+        Http(url).timeout(1000, requestTimeOut * 1000).auth(username.get, passwd.get).postData(requestContent).asString.body
+      } else {
+        Http(url).timeout(1000, requestTimeOut * 1000).postData(requestContent).asString.body
+      }
     }
   }
 
@@ -73,7 +91,7 @@ object EsTools {
     result
   }
 
-  def getAvailableConnection(cc: ConnectionConfig): ConnectionConfig = {
+  def getAvailableConnection(cc: ConnectionConfig, sinkSpecificConfig: EsConfig): ConnectionConfig = {
     def randomUrl(urlArray: Array[String]): String = {
       val index = Random.nextInt(urlArray.length)
       urlArray(index)
@@ -87,7 +105,7 @@ object EsTools {
     while (i < length) {
       val url = randomUrl(urlArray)
       try {
-        EsTools.doHttp(url, cc.username, cc.password, "", requestTimeOut)
+        EsTools.doHttp(url, cc.username, cc.password, "", requestTimeOut, sinkSpecificConfig)
         availableUrl = url
         i = length
       } catch {
@@ -103,7 +121,8 @@ object EsTools {
   def queryVersionByEsid(esids: Seq[String],
                          namespace: UmsNamespace,
                          connectionConfig: ConnectionConfig,
-                         sinkIndex: String): (Boolean, mutable.HashMap[String, Long]) = {
+                         sinkIndex: String,
+                         sinkSpecificConfig: EsConfig): (Boolean, mutable.HashMap[String, Long]) = {
     var queryResult = true
     val esid2VersionMap = mutable.HashMap.empty[String, Long]
     val requestContent = """{"docs":[{"_id":"""" + esids.mkString("\",\"_source\":\"" + UmsSysField.ID.toString + "\"},{\"_id\":\"") + "\",\"_source\":\"" + UmsSysField.ID.toString + "\"}]}"
@@ -113,7 +132,7 @@ object EsTools {
     logger.info("query url: " + url)
     val requestTimeOut = getRequestTimeout(connectionConfig)
 
-    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent, requestTimeOut)
+    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent, requestTimeOut, sinkSpecificConfig)
     val responseJson: JValue = json2jValue(responseContent)
     if (!EsTools.checkResponseSuccess(responseJson)) {
       logger.error("queryVersionByEsid error :" + responseContent)
@@ -136,13 +155,13 @@ object EsTools {
     (queryResult, esid2VersionMap)
   }
 
-  def write2Es(list: ListBuffer[String], connectionConfig: ConnectionConfig, namespace: UmsNamespace, sinkIndex: String): Boolean = {
+  def write2Es(list: ListBuffer[String], connectionConfig: ConnectionConfig, namespace: UmsNamespace, sinkIndex: String, sinkSpecificConfig: EsConfig): Boolean = {
     val requestContent = list.mkString("\n") + "\n"
     val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + sinkIndex + "/" + namespace.table + "/_bulk"
     else connectionConfig.connectionUrl.trim + "/" + sinkIndex + "/" + namespace.table + "/_bulk"
     logger.info("doBatch url:" + url)
     val requestTimeOut = getRequestTimeout(connectionConfig)
-    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent, requestTimeOut)
+    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent, requestTimeOut, sinkSpecificConfig)
     val responseJson: JValue = json2jValue(responseContent)
     EsTools.checkResponseSuccess(responseJson)
   }

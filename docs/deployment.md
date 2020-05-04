@@ -32,11 +32,11 @@ mysql-connector-java-{your-db-version}.jar
 
 #### 下载安装包
 
-**下载 wormhole-0.6.2.tar.gz 包 (链接：https://pan.baidu.com/s/1womXy7Ylr1oaO_u3VqeT4g  提取码：nthu)，或者自编译**
+**下载 wormhole-0.6.3.tar.gz 包 (链接:https://pan.baidu.com/s/1nDzcHYKIVCT6atq9wAuK9Q  密码:5cqn)，或者自编译 mvn clean install -Pwormhole**
 
 ```
-下载wormhole-0.6.2.tar.gz安装包
-tar -xvf wormhole-0.6.2.tar.gz
+下载wormhole-0.6.3.tar.gz安装包
+tar -xvf wormhole-0.6.3.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole
@@ -408,6 +408,33 @@ topic name：wormhole_heartbeat partitions: 1
 **访问 http://ip:port 即可试用 Wormhole，可使用 admin 类型用户登录，默认用户名，密码见 application.conf 中配置**
 
 ## 升级
+
+#### 0.6.1-0.6.2版本升级到0.6.3版本
+
+（1）如果有使用custom class，需要按照新接口修改使用的custom class
+
+（2）数据库操作
+
+```
+#instance表更新：
+alter table `instance` add column `conn_config` VARCHAR(1000) NULL after `conn_url`;
+
+#stream表更新：
+alter table `stream` add column `special_config` VARCHAR(1000) NULL after `launch_config`;
+
+#flow_history表更新：
+alter table `flow_history` add column `config` VARCHAR(1000) NULL after `sink_ns`;
+
+#flow表更新：
+alter table `flow` add column `config` VARCHAR(1000) NULL after `sink_ns`;
+下面的语句需要根据application.conf中自己的系统进行配置
+update flow set config = CONCAT('{"parallelism":', parallelism,',"checkpoint":{"enable":false,"checkpoint_interval_ms":300000,"stateBackend":"hdfs://flink-checkpoint"}}') where parallelism is not null and stream_id in (select id from stream where stream_type='flink');
+enable：代表是否启用checkpoint（true/false）
+checkpoint_interval_ms：代表checkpoint的间隔时间
+stateBackend：代表checkpoint保存的位置
+```
+
+修改完后，重启wormhole服务即可
 
 #### 0.6.0 版本升级到 0.6.1 版本
 

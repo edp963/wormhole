@@ -10,6 +10,7 @@ import edp.wormhole.sparkx.spark.log.EdpLogging
 
 import scala.collection.JavaConversions._
 import edp.wormhole.sparkx.swifts.custom.sensors.ase.AESUtil
+import edp.wormhole.sparkx.swifts.custom.sensors.checkcolumn.{ParamUtils, SchemaUtils}
 import edp.wormhole.sparkx.swifts.custom.sensors.entry.{EventEntry, PropertyColumnEntry}
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import org.apache.hadoop.conf.Configuration
@@ -53,7 +54,7 @@ class SensorsDataTransform extends EdpLogging{
 //    }
     val schemaUtils=new SchemaUtils(paramUtil);
     schemaUtils.checkSensorSystemCompleteSchemaChange(paramUtil.getMyProjectId());
-    schemaUtils.checkClickHouseSchemaNeedChange(paramUtil.getMyProjectId());
+    schemaUtils.checkSchemaNeedChange(paramUtil.getMyProjectId());
     schemaUtils.destroy();
 
     //namespace session config
