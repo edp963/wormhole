@@ -22,12 +22,12 @@
 package edp.wormhole.sparkx.batchjob.transform
 
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object Transform extends EdpLogging {
 
-  def process(session: SparkSession, sourceNs: String, inputDf: DataFrame, actions: Array[String], specialConfig: Option[String]): DataFrame = {
+  def process(session: SparkSession, sourceNs: String, sinkNs: String, inputDf: DataFrame, actions: Array[String], specialConfig: Option[String]): DataFrame = {
     val tmpTable = "increment"
     var currentDf = inputDf
     val tableName = sourceNs.split("\\.")(3)
@@ -44,9 +44,9 @@ object Transform extends EdpLogging {
         case "custom_class" =>
           val clazz = Class.forName(content)
           val reflectObject: Any = clazz.newInstance()
-          val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+          val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[WormholeConfig], classOf[String], classOf[String])
 
-          currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig)).asInstanceOf[DataFrame]
+          currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig), null, sourceNs, sinkNs).asInstanceOf[DataFrame]
         case _ => logInfo("unsupported processing type, e.g. spark_sql, custom_class.")
       }
     }

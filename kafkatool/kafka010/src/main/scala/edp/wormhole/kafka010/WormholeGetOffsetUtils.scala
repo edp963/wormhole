@@ -143,7 +143,7 @@ object WormholeGetOffsetUtils {
         offsetPartitionSort(offset)
       } catch {
         case ex: Exception =>
-          logger.error(s"get consumer groupId $groupId for topic $topic offset failed", ex)
+          logger.error(s"get consumer groupId $groupId for topic $topic offset failed kerberos $kerberos", ex)
           channel.disconnect()
           //          Range(0, partitions).mkString(":,").concat(":")
           throw ex

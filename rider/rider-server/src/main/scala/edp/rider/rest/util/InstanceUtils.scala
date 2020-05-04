@@ -23,8 +23,14 @@ package edp.rider.rest.util
 
 import java.util.NoSuchElementException
 
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.ums.UmsDataSystem
 import edp.rider.common.RiderLogger
+import edp.rider.RiderStarter.modules._
+import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils._
+
+import scala.concurrent.Await
 import scala.util.hashing.MurmurHash3._
 
 
@@ -100,4 +106,19 @@ object InstanceUtils extends RiderLogger {
   }
 
   def generateNsInstance(connUrl: String): String = stringHash(connUrl).toString
+
+  def getKafkaKerberosConfig(connConfig: String, defaultValue: Boolean): Boolean = {
+    if(null != connConfig && connConfig.nonEmpty) {
+      val configJson = JSON.parseObject(connConfig)
+      if (configJson.containsKey("kerberos")) {
+        configJson.getBoolean("kerberos")
+      } else defaultValue
+    } else defaultValue
+  }
+
+  def getKafkaDetailByInstanceId(id: Long): (String, Option[String]) = {
+    val instance = Await.result(instanceDal.findById(id), minTimeOut)
+    (instance.get.connUrl, instance.get.connConfig)
+  }
+
 }

@@ -26,10 +26,11 @@ import java.lang.reflect.Method
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
+import edp.wormhole.sparkextension.udf.UdfRegister.convertSparkType
 import edp.wormhole.sparkx.hdfs.HdfsFlowConfig
 import edp.wormhole.sparkx.router.RouterFlowConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
@@ -243,13 +244,15 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     if (!swiftsTransformReflectMap.contains(className)) {
       val clazz = Class.forName(className.split('$')(0))
       val reflectObject: Any = clazz.newInstance()
-      val transformMethod = if("".equals(param)) {
-        logInfo("No Customer Class param Find")
-        clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
-      }else{
-        logInfo("Customer Class param :" + param+" the length "+param.length)
-        clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig],classOf[String])
-      }
+
+      val transformMethod =
+        if ("".equals(param)) {
+          logInfo("No Customer Class param Find")
+          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[WormholeConfig], classOf[String], classOf[String])
+        } else {
+          logInfo("Customer Class param :" + param + " the length " + param.length)
+          clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig], classOf[String], classOf[WormholeConfig], classOf[String], classOf[String])
+        }
 
       swiftsTransformReflectMap += (className -> (reflectObject,transformMethod,param))
     }
@@ -362,6 +365,13 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     JsonSourceParseMap.toMap
   }
 
+  def getAllSourceNamespaceSet: Set[String] = {
+    if(JsonSourceParseMap.nonEmpty) {
+      JsonSourceParseMap.keySet.map(key => key._2).toSet
+    } else {
+      null
+    }
+  }
 
   def getAllLookupNamespaceSet: Set[String] = {
     lookup2SourceSinkNamespaceMap.keySet.toSet
@@ -398,7 +408,11 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
   def getHdfslogMap = hdfslogMap.toMap
 
+  def getHdfslogNamespaceSet = hdfslogMap.keySet.toSet
+
   def getHdfscsvMap = hdfscsvMap.toMap
+
+  def getHdfscsvNamespaceSet = hdfscsvMap.keySet.toSet
 
   def getDefaultMap = flowConfigMap.toMap
 }

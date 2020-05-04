@@ -24,6 +24,7 @@ package edp.wormhole.sparkx.common
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.spark.kafka010.{WormholeKafkaUtils, WormholePerPartitionConfig}
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.KafkaInputConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.streaming.StreamingContext

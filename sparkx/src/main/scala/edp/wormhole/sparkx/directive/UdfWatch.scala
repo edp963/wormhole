@@ -21,8 +21,8 @@
 package edp.wormhole.sparkx.directive
 
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.WormholeConfig
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}
 import org.apache.spark.sql.SparkSession
 

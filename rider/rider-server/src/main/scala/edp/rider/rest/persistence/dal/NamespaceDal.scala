@@ -161,7 +161,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         kafka => {
           val instanceSearch = Await.result(instanceDal.findByFilter(_.connUrl === kafka), minTimeOut)
           if (instanceSearch.isEmpty) {
-            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
+            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, None, active = true, currentSec, session.userId, currentSec, session.userId)
             i = i + 1
           }
           else kafkaIdMap.put(kafka, instanceSearch.head.id)
@@ -241,8 +241,29 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         riderLogger.error(s"get namespace object by $ns failed", ex)
         throw ex
     }
-
   }
+
+/*  def getNamespaceByNsMatch(ns: String): Option[Seq[Namespace]] = {
+    try {
+      val nsSplit = ns.split("\\.")
+      val nsResult: Seq[Namespace] = if(nsSplit(1) == "*") {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0)), minTimeOut)
+      } else if(nsSplit(2) == "*") {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1)), minTimeOut)
+      } else if(nsSplit(3) == "*") {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2)), minTimeOut)
+      } else  {
+        Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2) && ns.nsTable === nsSplit(3)), minTimeOut)
+      }
+      if(null == nsResult || nsResult.isEmpty) None
+      else Some(nsResult)
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get namespace object by $ns failed", ex)
+        throw ex
+    }
+
+  }*/
 
   def getNamespaceByNs(sys: String, database: String, table: String): Option[Namespace] =
     try {

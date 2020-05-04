@@ -35,6 +35,7 @@ import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFinder, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums._
@@ -84,14 +85,16 @@ object HdfsLogMainProcess extends EdpLogging {
         val directiveTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
         HdfsDirective.doDirectiveTopic(config, stream)
 
+        val sourceNamespaceSet = ConfMemoryStorage.getHdfslogNamespaceSet
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
-          if (message.key == null || message.key.trim.isEmpty) {
+          val messageKey = SparkxUtils.getDefaultKey(message.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+          if (messageKey == null || messageKey.trim.isEmpty) {
             val namespace = UmsCommonUtils.getFieldContentFromJson(message.value, "namespace")
             var protocolType = UmsCommonUtils.getProtocolTypeFromUms(message.value)
             if (protocolType == null || protocolType.isEmpty) protocolType = UmsProtocolType.DATA_INCREMENT_DATA.toString
             ((protocolType, namespace), message.value)
           } else {
-            val (protocol, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(message.key)
+            val (protocol, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(messageKey)
             ((protocol.toString, namespace), message.value)
           }
         })

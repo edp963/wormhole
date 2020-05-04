@@ -50,6 +50,9 @@ instance 相当于为数据系统的物理地址起别名，connUrl 填写规则
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-instance.png" alt="" width="600"/>
 
+备注：
+(1)如果kafka为Kerberos认证的kafka，则将Connection Config设置为{"kerberos":true}，否则配置为{"kerberos":false}，如果没有配置，默认为application.conf中设置的Kerberos信息（0.6.3及之后版本支持）。
+(2)es 如果是sink es，则Connection URL需要在前面加上http://ip:port（port为http访问端口）；如果是lookup es，则Connection URL为ip:port（port为jdbc访问端口），config中需要配置cluster.name=名字
 ### Database
 
 database 配置数据库名，用户名，密码及连接配置等信息。

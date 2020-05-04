@@ -41,7 +41,7 @@ import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Radio from 'antd/lib/radio'
-import { Checkbox } from 'antd'
+import { Checkbox, Switch } from 'antd'
 const CheckboxGroup = Checkbox.Group
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
@@ -276,8 +276,8 @@ export class WorkbenchFlowForm extends React.Component {
         'sinkNamespace',
         'sinkConfig'
       ])
-      formDSNSValues.sourceDataSystem = flowSourceNsSys
-      formDSNSValues.sinkDataSystem = flowSourceNsSys
+      // formDSNSValues.sourceDataSystem = flowSourceNsSys
+      // formDSNSValues.sinkDataSystem = flowSourceNsSys
     } else if (streamDiffType === 'routing') {
       formDSNSValues = this.props.form.getFieldsValue([
         'sourceDataSystem'
@@ -552,6 +552,18 @@ export class WorkbenchFlowForm extends React.Component {
                     initialValue: 6
                   })(
                     <InputNumber min={1} />
+                  )}
+                </FormItem>
+              </Col>
+            ) : ''}
+            {flowSubPanelKey === 'flink' ? (
+              <Col span={24}>
+                <FormItem label="Checkpoint" {...itemStyle}>
+                  {getFieldDecorator('checkpoint', {
+                    valuePropName: 'checked',
+                    initialValue: false
+                  })(
+                    <Switch />
                   )}
                 </FormItem>
               </Col>
@@ -941,7 +953,7 @@ export class WorkbenchFlowForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('Time Characteristic', 'Time Characteristic')
                   }],
-                  hidden: stepHiddens[1],
+                  hidden: stepHiddens[1] || transConnectClass === 'hide',
                   initialValue: 'processing_time'
                 })(
                   <RadioGroup className="radio-group-style" size="default">

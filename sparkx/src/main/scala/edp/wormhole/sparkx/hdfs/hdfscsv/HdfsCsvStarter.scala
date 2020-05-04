@@ -23,10 +23,11 @@ package edp.wormhole.sparkx.hdfs.hdfscsv
 
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
-import edp.wormhole.sparkx.common.{KafkaInputConfig, SparkContextUtils, SparkUtils, WormholeConfig}
+import edp.wormhole.sparkx.common.{SparkContextUtils, SparkUtils}
 import edp.wormhole.sparkx.directive.DirectiveFlowWatch
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.util.JsonUtils
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}
@@ -37,7 +38,7 @@ object HdfsCsvStarter extends App with EdpLogging {
   logInfo("hdfsCsvConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
-  WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
+  WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kafka_output.kerberos)
   val sparkConf = new SparkConf()
     .setMaster(config.spark_config.master)
     .set("dfs.client.block.write.replace-datanode-on-failure.policy", "ALWAYS")

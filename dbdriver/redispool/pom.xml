@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.2</version>
+        <version>0.6.3</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -25,6 +25,11 @@
             <version>2.9.0</version>
             <type>jar</type>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-util</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
     </dependencies>

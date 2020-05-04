@@ -183,6 +183,14 @@ export class InstanceForm extends React.Component {
             </FormItem>
           </Col>
 
+          <Col span={24}>
+            <FormItem label="Connection Config" {...itemStyle}>
+              {getFieldDecorator('connConfig', {})(
+                <Input type="textarea" placeholder="Connection Config" autosize={{ minRows: 3, maxRows: 8 }} />
+              )}
+            </FormItem>
+          </Col>
+
         </Row>
       </Form>
     )

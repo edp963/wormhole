@@ -30,11 +30,13 @@ import org.apache.spark.sql.types.StructField
 object SqlBinding extends EdpLogging {
 
   private[transform] def getCassandraSql(session: SparkSession, tmpLastDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String): String = {
-    val sourceJoinFieldsContent: Array[String] = getJoinFieldsContent(session, tmpLastDf, sourceTableFields, lookupTableFields)
-    sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
-      if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
-      else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
-    }).mkString(" union ")  //TODO if sourceJoinFieldsContent is empty
+    if(lookupTableFields.nonEmpty) {
+      val sourceJoinFieldsContent: Array[String] = getJoinFieldsContent(session, tmpLastDf, sourceTableFields, lookupTableFields)
+      sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
+        if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
+        else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
+      }).mkString(" union ") //TODO if sourceJoinFieldsContent is empty
+    } else sql
   }
 
   def getCassandraSqlSingleField(sourceJoinFieldsContent: Set[String],lookupTableFields: String, sql: String): String = {
@@ -50,6 +52,7 @@ object SqlBinding extends EdpLogging {
   }
 
   def getCassandraSqlMutilField(sourceJoinFieldsContent: String,lookupTableFields: Array[String], sql: String): String = {
+    //lookupTableFields.length > 1
     var replaceStr = ""
     val content = sourceJoinFieldsContent.trim.substring(1,sourceJoinFieldsContent.length-1).split(",")
     for(i<- lookupTableFields.indices){
@@ -61,29 +64,35 @@ object SqlBinding extends EdpLogging {
   }
 
    def getMysqlSql(sourceJoinFieldsContent: Set[String],lookupTableFields: Array[String], sql: String): String = {
-    if (sourceJoinFieldsContent.nonEmpty) {
-      if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + sourceJoinFieldsContent.mkString(",") + ")")
-      else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + sourceJoinFieldsContent.mkString(",") + ")")
-    } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+     if(lookupTableFields.nonEmpty) {
+       if (sourceJoinFieldsContent.nonEmpty) {
+         if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + sourceJoinFieldsContent.mkString(",") + ")")
+         else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + sourceJoinFieldsContent.mkString(",") + ")")
+       } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+     } else sql
   }
 
    def getSlidingUnionSql(sourceJoinFieldsContent: Set[String], lookupTableFields: Array[String], sql: String): String = {
-    if (sourceJoinFieldsContent.nonEmpty) {
-      sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
-        if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
-        else  sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
-      }).mkString(" union ")
-    } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+     if(lookupTableFields.nonEmpty) {
+       if (sourceJoinFieldsContent.nonEmpty) {
+         sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
+           if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
+           else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
+         }).mkString(" union ")
+       } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+     } else sql
    }
 
   private[transform] def getSlidingUnionSql(session: SparkSession, tmpLastDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String): String = {
-    val sourceJoinFieldsContent: Array[String] = getJoinFieldsContent(session, tmpLastDf, sourceTableFields, lookupTableFields)
-    if (sourceJoinFieldsContent.nonEmpty) {
-      sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
-        if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
-        else  sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
-      }).mkString(" union ")
-    } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+    if(lookupTableFields.nonEmpty) {
+      val sourceJoinFieldsContent: Array[String] = getJoinFieldsContent(session, tmpLastDf, sourceTableFields, lookupTableFields)
+      if (sourceJoinFieldsContent.nonEmpty) {
+        sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
+          if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
+          else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
+        }).mkString(" union ")
+      } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+    } else sql
     //      if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in ( null ) ")
     //      else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in ((" + lookupTableFields.map(_ => "null").mkString(",") + "))")
 

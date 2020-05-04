@@ -229,4 +229,22 @@ object NamespaceUtils extends RiderLogger {
         throw new Exception(ex)
     }
   }
+
+/*  def namespaceMatch(flowNs: String, matchNsSeq: Seq[String]): Boolean = {
+    val sourceNsSeq = flowNs.split("\\.")
+    var matchResult = false
+    matchNsSeq.foreach(matchNs => {
+      val matchNsSeq = matchNs.split("\\.")
+      if(sourceNsSeq(1) == "*" && sourceNsSeq(0) == matchNsSeq(0)) {
+        matchResult = true
+      } else if(sourceNsSeq(2) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1)) {
+        matchResult = true
+      } else if(sourceNsSeq(3) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2)) {
+        matchResult = true
+      } else if(sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2) && sourceNsSeq(3) == matchNsSeq(3)){
+        matchResult = true
+      }
+    })
+    matchResult
+  }*/
 }
