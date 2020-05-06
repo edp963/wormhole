@@ -71,8 +71,8 @@ object InstanceUtils extends RiderLogger {
       UmsDataSystem.dataSystem(nsSys)
       true
     } catch {
-      case _: NoSuchElementException => {
-        riderLogger.info(s"checkSys: ${nsSys}")
+      case ex: NoSuchElementException => {
+        riderLogger.info(s"checkSys: ${nsSys}", ex)
         false
       }
 
@@ -84,8 +84,10 @@ object InstanceUtils extends RiderLogger {
     nsSys.toLowerCase match {
       case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       case "kafka" | "redis" | "cassandra" | "kudu" | "clickhouse" | "rocketmq" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
+      //case "clickhouse" | "rocketmq" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches() | tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
       case "es" => http_url_ip_port_pattern.matcher(url).matches() || http_host_ip_port_pattern.matcher(url).matches() || one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
-      case "http" => http_url_pattern.matcher(url).matches() || http_host_pattern.matcher(url).matches()
+      //case "http" => http_url_pattern.matcher(url).matches() || http_host_pattern.matcher(url).matches()
+      case "http" => http_url_ip_port_pattern.matcher(url).matches() || http_host_ip_port_pattern.matcher(url).matches()
       case "phoenix" => phoenix_zk_node_ip_pattern.matcher(url).matches() || phoenix_zk_node_host_pattern.matcher(url).matches()
       case "hbase" => zk_node_ip_pattern.matcher(url).matches() || zk_node_host_pattern.matcher(url).matches()
       case "mongodb" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches() || tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
