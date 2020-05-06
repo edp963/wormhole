@@ -37,7 +37,9 @@ export function loadDataSystemData () {
     { value: 'parquet', text: 'Parquet' },
     { value: 'kudu', text: 'Kudu' },
     { value: 'greenplum', text: 'Greenplum' },
-    { value: 'clickhouse', text: 'ClickHouse' }
+    { value: 'clickhouse', text: 'ClickHouse' },
+    { value: 'rocketmq', text: 'RocketMQ' },
+    { value: 'http', text: 'HTTP' }
   ]
   return dataSystemData
 }
@@ -93,7 +95,9 @@ export function sinkDataSystemData () {
     { value: 'kudu', text: 'Kudu' },
     { value: 'greenplum', text: 'Greenplum' },
     { value: 'clickhouse', text: 'ClickHouse' },
-    { value: 'redis', text: 'Redis' }
+    { value: 'redis', text: 'Redis' },
+    { value: 'rocketmq', text: 'RocketMQ' },
+    { value: 'http', text: 'HTTP' }
   ]
   return sinkDataSystemData
 }
