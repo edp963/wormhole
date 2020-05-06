@@ -24,7 +24,7 @@ package edp.rider.rest.router.admin.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.dal.NsDatabaseDal
+import edp.rider.rest.persistence.dal.{InstanceDal, NsDatabaseDal}
 import edp.rider.rest.persistence.entities.{NsDatabase, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.{AuthorizationProvider, NsDatabaseUtils}
@@ -32,10 +32,11 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
 
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 
-class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(databaseDal) with RiderLogger with JsonSerializer {
+class NsDatabaseAdminApi(databaseDal: NsDatabaseDal, instanceDal: InstanceDal) extends BaseAdminApiImpl(databaseDal) with RiderLogger with JsonSerializer {
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
       get {
@@ -133,6 +134,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
               }
               else {
                 if (namePattern.matcher(simple.nsDatabase).matches()) {
+                  //val instance = Await.result(instanceDal.findById(simple.nsInstanceId ), minTimeOut).head
                   if (isKeyEqualValue(simple.config.getOrElse(""))) {
                     val database = NsDatabase(0, simple.nsDatabase.trim, simple.desc, simple.nsInstanceId, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
                     onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
