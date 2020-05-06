@@ -23,7 +23,7 @@ object WormholeRocketMQConsumer {
     consumer.subscribe(topic, "*")
     consumer.registerMessageListener(new MessageListenerConcurrently {
       override def consumeMessage(msgs: util.List[MessageExt], context: ConsumeConcurrentlyContext): ConsumeConcurrentlyStatus = {
-        logger.info(s"""${Thread.currentThread.getName} Receive New Messages: $msgs""")
+        //logger.info(s"""${Thread.currentThread.getName} Receive New Messages: $msgs""")
         println(s"""${Thread.currentThread.getName} Receive New Messages: """)
         for(m <- msgs) {
           println(new String(m.getBody) + ";")
@@ -32,7 +32,7 @@ object WormholeRocketMQConsumer {
       }
     })
     consumer.start()
-    logger.info("Consumer Started")
+    //logger.info("Consumer Started")
     println("Consumer Started")
   }
 

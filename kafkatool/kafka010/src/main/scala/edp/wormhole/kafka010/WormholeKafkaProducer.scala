@@ -104,7 +104,7 @@ object WormholeKafkaProducer extends Serializable {
         producerMap(brokers).close()
       producerMap -= brokers
     } catch {
-      case e: Throwable => println("close - ERROR", e)
+      case e: Throwable => logger.error("close - ERROR", e)
     }
 
   private def getProducer(brokers: String): KafkaProducer[String, String] = {
@@ -129,12 +129,12 @@ object WormholeKafkaProducer extends Serializable {
         }
       } catch {
         case e: Throwable =>
-          println("sendInternal - send ERROR:", e)
+          logger.error("sendInternal - send ERROR:", e)
           try {
             close(brokers)
           } catch {
             case closeError: Throwable =>
-              println("sendInternal - close ERROR,", closeError)
+              logger.error("sendInternal - close ERROR,", closeError)
               producerMap -= brokers
           }
           //producerMap = null
@@ -154,12 +154,12 @@ object WormholeKafkaProducer extends Serializable {
         }
       } catch {
         case e: Throwable =>
-          println("sendInternal - send ERROR:", e)
+          logger.error("sendInternal - send ERROR:", e)
           try {
             close(brokers)
           } catch {
             case closeError: Throwable =>
-              println("sendInternal - close ERROR,", closeError)
+              logger.error("sendInternal - close ERROR,", closeError)
               producerMap -= brokers
           }
           //producerMap = null

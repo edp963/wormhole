@@ -1,7 +1,5 @@
 package edp.wormhole.dbdriver.rocketmq
 
-import java.util
-
 import org.apache.rocketmq.common.message.Message
 
 import scala.collection.JavaConversions._
