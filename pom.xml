@@ -32,10 +32,12 @@
         <module>dbdriver/redispool</module>
         <module>dbdriver/kuduconnection</module>
         <module>dbdriver/hbaseconnection</module>
+        <module>dbdriver/rocketmqpool</module>
         <!--<module>dbdriver/phoenix-jdbc</module>-->
         <module>interface/sparkxinterface</module>
         <module>interface/flinkxinterface</module>
         <module>interface/publicinterface</module>
+
         <module>sinks</module>
         <module>common</module>
         <module>swifts</module>
@@ -86,6 +88,7 @@
         <jackson.version>2.6.5</jackson.version>
         <kudu.version>1.8.0</kudu.version>
         <clickhouse.version>0.1.54</clickhouse.version>
+        <rocketmq.version>4.5.1</rocketmq.version>
         <fastjson.version>1.2.58</fastjson.version>
         <hikariCP.version>3.3.1</hikariCP.version>
         <hash.version>0.9</hash.version>

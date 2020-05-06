@@ -22,6 +22,7 @@ class Data2KuduSink extends SinkProcessor {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     logger.info(s"sink kudu size is ${tupleList.size}")
+    logger.info(s"sink kudu config is ${sinkProcessConfig}")
     KuduConnection.initKuduConfig(connectionConfig)
 
     val sinkSpecificConfig =
