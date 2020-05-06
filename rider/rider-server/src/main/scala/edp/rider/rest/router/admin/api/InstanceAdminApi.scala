@@ -63,7 +63,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                     onComplete(instanceDal.findByFilter(_.connUrl === conn_url).mapTo[Seq[Instance]]) {
                       case Success(instances) =>
                         if (instances.isEmpty) {
-                          if (checkFormat(sys, url)) {
+                          if (checkSys(sys) && checkFormat(sys, url)) {
                             riderLogger.info(s"user ${session.userId} check instance url $url doesn't exist, and fits the url format.")
                             complete(OK, ResponseJson[String](getHeader(200, session), url))
                           }
@@ -183,7 +183,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
               }
               else {
                 if (namePattern.matcher(instance.nsInstance).matches()) {
-                  if (checkFormat(instance.nsSys, instance.connUrl)) {
+                  if (checkSys(instance.nsSys) && checkFormat(instance.nsSys, instance.connUrl)) {
                     val instanceUpdate = Instance(instance.id, instance.nsInstance.trim, instance.desc, instance.nsSys.trim, instance.connUrl.trim, instance.connConfig, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
                     onComplete(instanceDal.update(instanceUpdate).mapTo[Int]) {
                       case Success(_) =>

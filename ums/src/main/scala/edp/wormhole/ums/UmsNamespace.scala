@@ -88,6 +88,7 @@ object UmsDataSystem extends Enumeration {
   val GREENPLUM = Value("greenplum")
   val CLICKHOUSE = Value("clickhouse")
   val HTTP = Value("http")
+  val ROCKETMQ = Value("rocketmq")
   val UNKONWN = Value("")
 
 
