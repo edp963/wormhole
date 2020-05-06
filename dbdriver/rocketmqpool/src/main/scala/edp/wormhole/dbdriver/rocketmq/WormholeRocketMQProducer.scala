@@ -91,12 +91,12 @@ object WormholeRocketMQProducer extends Serializable {
         }
       } catch {
         case ex: Throwable => {
-            println("send - send ERROR:", ex)
+            logger.error("send - send ERROR:", ex)
             try {
               close(namesrvAddr)
             } catch {
               case closeError: Throwable =>
-                println("sendInternal - close ERROR,", closeError)
+                logger.error("sendInternal - close ERROR,", closeError)
                 producerMap -= namesrvAddr
             }
             throw ex
