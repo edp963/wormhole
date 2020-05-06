@@ -60,9 +60,8 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     outputType
   }
 
-  def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[(Boolean, Row)] = {
-    var flag = true
-    val timeoutOutputTag  = OutputTag[Iterable[Row]]("timeout-side-output")
+  def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[Row] = {
+    val timeoutOutputTag = OutputTag[Iterable[Row]]("timeout-side-output")
 
     OutputType.outputType(outputType) match {
       case AGG =>
@@ -72,41 +71,16 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
       case FILTERED_ROW => patternStream.select(pattern => {
         filteredRow(pattern.values)
       })
-      case DETAIL => patternStream.flatSelect((pattern,out:Collector[Iterable[Row]])=>{
-           out.collect(pattern.values.flatten)
-      }).flatMap(r =>r)
+      case DETAIL => patternStream.flatSelect((pattern, out: Collector[Iterable[Row]]) => {
+        out.collect(pattern.values.flatten)
+      }).flatMap(r => r)
       case TIMEOUT =>
-        val result =patternStream.select(timeoutOutputTag){
-        (pattern: Map[String, Iterable[Row]], timestamp: Long) => pattern.values.flatten
-      } {
-        pattern: Map[String, Iterable[Row]] =>pattern.values.flatten
-      }
-        result.getSideOutput(timeoutOutputTag).flatMap(r=>r)
-    }
-
-    val out = patternStream.select(patternSelectFun => {
-      try {
-        val eventSeq = patternSelectFun.values
-        OutputType.outputType(outputType) match {
-          case AGG => buildRow(eventSeq, keyByFields)
-          case FILTERED_ROW => filteredRow(eventSeq)
-          case DETAIL => eventSeq.flatten
+        val result = patternStream.select(timeoutOutputTag) {
+          (pattern: Map[String, Iterable[Row]], timestamp: Long) => pattern.values.flatten
+        } {
+          pattern: Map[String, Iterable[Row]] => pattern.values.flatten
         }
-      } catch {
-        case e: Throwable =>
-          flag = false
-          logger.error("exception in getOutput ", e)
-          null.asInstanceOf[Row]
-      }
-    })
-
-    OutputType.outputType(outputType) match {
-      case AGG =>
-        out.asInstanceOf[DataStream[Row]].map(r => (flag, r))
-      case FILTERED_ROW =>
-        out.asInstanceOf[DataStream[Row]].map(r => (flag, r))
-      case DETAIL =>
-        out.asInstanceOf[DataStream[Seq[Row]]].flatMap(o => o).map(r => (flag, r))
+        result.getSideOutput(timeoutOutputTag).flatMap(r => r)
     }
   }
 
@@ -126,13 +100,14 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
 
   /**
-    *
-    * agg build row with key_by fields
-    * and ums_ts,ums_id,ums_op (if contains)
-    *
-    **/
+   *
+   * agg build row with key_by fields
+   * and ums_ts,ums_id,ums_op (if contains)
+   *
+   **/
 
   private def buildRow(input: Iterable[Iterable[Row]], keyByFields: String) = {
+    try{
     val outputFieldList = getOutputFieldList(keyByFields)
     val aggFieldMap = getAggFieldMap
     val row: Row = new Row(outputFieldList.size)
@@ -163,17 +138,21 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
           pos += 1
       }
     })
-    row
+    row}catch {
+      case e:Exception =>
+        logger.error("output build row exception " ,e)
+        null;
+    }
   }
 
 
   /**
-    * @param keyByFields key1,key2
-    *                    outputFieldList: [{"function_type":"max","field_name":"col1","alias_name":"maxCol1"}]
-    *                    systemFieldArray: ums_id_ ,ums_ts_, ums_op_
-    * @return keyByFields+systemFields++originalFields if keyByFields are not empty,
-    *         else systemFields++originalFields
-    */
+   * @param keyByFields key1,key2
+   *                    outputFieldList: [{"function_type":"max","field_name":"col1","alias_name":"maxCol1"}]
+   *                    systemFieldArray: ums_id_ ,ums_ts_, ums_op_
+   * @return keyByFields+systemFields++originalFields if keyByFields are not empty,
+   *         else systemFields++originalFields
+   */
 
   private def getOutputFieldList(keyByFields: String): ListBuffer[(String, TypeInformation[_], FieldType)] = {
     val outPutFieldListBuffer = ListBuffer.empty[(String, TypeInformation[_], FieldType)]
@@ -203,10 +182,10 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
 
   /**
-    * map[renameField,(originalField,functionType)]
-    */
+   * map[renameField,(originalField,functionType)]
+   */
 
-  private def getAggFieldMap:Map[String, (String, String)] = {
+  private def getAggFieldMap: Map[String, (String, String)] = {
     val aggFieldMap = mutable.HashMap.empty[String, (String, String)]
     for (i <- 0 until outputFieldArray.size()) {
       val outputFieldJsonObj = outputFieldArray.getJSONObject(i)
@@ -223,14 +202,19 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
   }
 
 
-  private def filteredRow(input: Iterable[Iterable[Row]]) = {
-    val functionType = outputFieldArray.getJSONObject(0).getString(FUNCTION_TYPE.toString)
-    Functions.functions(functionType) match {
-      case HEAD => input.head.head
-      case LAST => input.last.last
-      case MAX => maxRow(input)
-      case MIN => minRow(input)
-      case _ => throw new UnsupportedOperationException(s"Unsupported output type : $functionType")
+  private def filteredRow(input: Iterable[Iterable[Row]]): Row = {
+    try {
+      val functionType = outputFieldArray.getJSONObject(0).getString(FUNCTION_TYPE.toString)
+      Functions.functions(functionType) match {
+        case HEAD => input.head.head
+        case LAST => input.last.last
+        case MAX => maxRow(input)
+        case MIN => minRow(input)
+        case _ => throw new UnsupportedOperationException(s"Unsupported output type : $functionType")
+      }
+    } catch {
+      case e: Exception => logger.error("filteredRow exception ", e)
+        null
     }
   }
 
