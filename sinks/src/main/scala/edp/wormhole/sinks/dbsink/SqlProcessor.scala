@@ -245,7 +245,7 @@ object SqlProcessor {
     //    val batchSize = specificConfig.`db.sql_batch_size.get`
     val fields = getSqlField(updateFieldNames, systemRenameMap, UmsOpType.UPDATE, dataSys)
     val sql = dataSys match {
-      case UmsDataSystem.MYSQL => s"UPDATE `$tableName` SET " + fields + " WHERE " + tableKeyNames.map(key => s"`$key`=?").mkString(" AND ") + s" AND $sysIdName<? "
+      case UmsDataSystem.MYSQL => s"UPDATE `$tableName` SET " + fields + " WHERE " + tableKeyNames.map(key => s"`$key`=?").mkString(" AND ") + s" AND ($sysIdName<? or $sysIdName is null)"
       case _ => s"UPDATE ${tableName.toUpperCase()} SET " + fields + " WHERE " + tableKeyNames.map(key => s"$key=?").mkString(" AND ") + s" AND $sysIdName<? "
     }
     logger.info("@update sql " + sql)
