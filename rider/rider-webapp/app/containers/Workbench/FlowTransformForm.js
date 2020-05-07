@@ -416,7 +416,7 @@ export class FlowTransformForm extends React.Component {
 
     const itemStyle = {
       labelCol: { span: 4 },
-      wrapperCol: { span: 10 }
+      wrapperCol: { span: 12 }
     }
     const patternItemStyle = {
       labelCol: { span: 4 },
@@ -468,6 +468,7 @@ export class FlowTransformForm extends React.Component {
       outputType === 'detail',
       outputType === 'agg',
       outputType === 'filteredRow',
+      outputType === 'timeout',
       outputFilteredRowSelect === 'min',
       outputFilteredRowSelect === 'max'
     ]
@@ -1086,6 +1087,7 @@ export class FlowTransformForm extends React.Component {
                     <RadioButton value="detail">Detail</RadioButton>
                     <RadioButton value="agg">Agg</RadioButton>
                     <RadioButton value="filteredRow">FilteredRow</RadioButton>
+                    <RadioButton value="timeout">Timeout</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>
