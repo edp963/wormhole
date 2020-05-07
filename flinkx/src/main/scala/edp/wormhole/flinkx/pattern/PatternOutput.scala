@@ -94,7 +94,7 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
         val fieldNames = outputFieldList.map(_._1).toArray
         val fieldTypes = outputFieldList.map(_._2).toArray
         (fieldNames, fieldTypes)
-      case FILTERED_ROW | DETAIL => (originalFieldNames, originalFieldTypes)
+      case FILTERED_ROW | DETAIL | TIMEOUT => (originalFieldNames, originalFieldTypes)
     }
   }
 
