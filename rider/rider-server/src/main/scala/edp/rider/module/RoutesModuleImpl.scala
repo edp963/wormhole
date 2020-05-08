@@ -30,7 +30,7 @@ trait RoutesModuleImpl {
   this: ConfigurationModule with PersistenceModule =>
 
   lazy val instanceAdminService = new InstanceAdminApi(instanceDal)
-  lazy val databaseAdminService = new NsDatabaseAdminApi(databaseDal)
+  lazy val databaseAdminService = new NsDatabaseAdminApi(databaseDal, instanceDal)
   lazy val namespaceAdminService = new NamespaceAdminApi(namespaceDal, databaseDal, relProjectNsDal)
   lazy val streamAdminService = new StreamAdminApi(streamDal,projectDal,jobDal)
   lazy val flowAdminService = new FlowAdminApi(flowDal, streamDal)
