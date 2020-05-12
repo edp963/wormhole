@@ -7,17 +7,16 @@ import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, FlinkxUti
 import edp.wormhole.flinkx.util.FeedbackUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.{Ums, UmsProtocolType, UmsProtocolUtils, UmsTuple}
+import edp.wormhole.ums.{Ums, UmsProtocolType, UmsTuple}
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
-import org.joda.time.DateTime
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.collection.Map
 import scala.collection.mutable.ListBuffer
-
 class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, Boolean)], exceptionConfig: ExceptionConfig, sinkProcessConfig: SinkProcessConfig, umsFlowStart: Ums, connectionConfig: ConnectionConfig, config: WormholeFlinkxConfig, initialTs: Long, swiftsTs: Long, sinkTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
   //private val outputTag = OutputTag[String]("sinkException")
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)

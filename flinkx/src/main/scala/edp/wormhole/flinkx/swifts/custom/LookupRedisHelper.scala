@@ -13,8 +13,7 @@ import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
-
-import scala.collection.mutable
+import scala.collection.{mutable,Map}
 import scala.collection.mutable.ListBuffer
 
 object LookupRedisHelper {

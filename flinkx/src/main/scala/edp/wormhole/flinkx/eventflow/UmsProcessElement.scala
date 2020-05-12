@@ -22,7 +22,7 @@ import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.log4j.Logger
 import org.joda.time.DateTime
-
+import scala.collection.{Map, mutable}
 import scala.collection.mutable.ArrayBuffer
 
 class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],

@@ -37,6 +37,7 @@ import org.apache.flink.table.api.{StreamQueryConfig, Table, Types}
 import org.apache.flink.table.expressions.{Expression, ExpressionParser}
 import org.apache.flink.types.Row
 import org.slf4j.{Logger, LoggerFactory}
+import scala.collection.Map
 
 
 class SwiftsProcess(dataStream: DataStream[Row],
@@ -128,20 +129,21 @@ class SwiftsProcess(dataStream: DataStream[Row],
   }
 
   private def doCEP(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
-    var resultDataStream: DataStream[Row] = null
+
     val patternSeq = JSON.parseObject(sql)
     val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap, exceptionConfig, config)
     val pattern = patternGenerator.getPattern
     val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
     val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
-      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
+      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key.toLowerCase)._2)
       CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
     } else CEP.pattern(transformedStream, pattern)
     val patternOutput = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap)
-    val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputRowType(keyByFields)
     setSwiftsSchemaWithCEP(patternOutput, index, keyByFields)
-    val patternOutputStream: DataStream[(Boolean, Row)] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields)
-    resultDataStream = filterException(patternOutputStream, patternOutputStreamType)
+    val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputRowType(keyByFields)
+    val patternOutputStream: DataStream[Row] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields).filter(row => row != null)
+
+    val resultDataStream: DataStream[Row] = patternOutputStream.map(row =>row)(Types.ROW(patternOutputStreamType._1, patternOutputStreamType._2))
     println(resultDataStream.dataType.toString + "in  doCep")
     resultDataStream
   }
@@ -151,11 +153,6 @@ class SwiftsProcess(dataStream: DataStream[Row],
       val (fieldNames, fieldTypes) = patternOutput.getPatternOutputRowType(keyByFields)
       FlinkSchemaUtils.getSchemaMapFromArray(fieldNames, fieldTypes)
     } else preSchemaMap
-  }
-
-  def filterException(patternOutputStream: DataStream[(Boolean, Row)], patternOutputStreamType: (Array[String], Array[TypeInformation[_]])): DataStream[Row] = {
-    val filteredDataStream = patternOutputStream.filter(new PatternOutputFilter(exceptionConfig, config, preSchemaMap))
-    filteredDataStream.map(_._2)(Types.ROW(patternOutputStreamType._1, patternOutputStreamType._2))
   }
 
   private def doLookup(transformedStream: DataStream[Row], element: SwiftsSql, index: Int): DataStream[Row] = {

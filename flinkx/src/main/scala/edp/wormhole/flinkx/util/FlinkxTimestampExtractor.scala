@@ -9,6 +9,8 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.types.Row
 import org.slf4j.LoggerFactory
 
+import scala.collection.Map
+
 class FlinkxTimestampExtractor(sourceSchemaMap: Map[String, (TypeInformation[_], Int)]) extends AscendingTimestampExtractor[Row] with Serializable {
   private lazy val logger = LoggerFactory.getLogger(this.getClass)
 
