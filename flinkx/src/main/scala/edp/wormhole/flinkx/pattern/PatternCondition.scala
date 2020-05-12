@@ -45,7 +45,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
     LogicOperator.logicOperator(op) match {
       case LogicOperator.SINGLE =>
         val logic = conditions.getJSONObject(LOGIC.toString)
-        val fieldName = logic.getString(FIELDNAME.toString)
+        val fieldName = logic.getString(FIELDNAME.toString).toLowerCase
         val compareType = logic.getString(COMPARETYPE.toString)
         val value = logic.getString(VALUE.toString)
         eventFilter(fieldName, value, compareType, event)

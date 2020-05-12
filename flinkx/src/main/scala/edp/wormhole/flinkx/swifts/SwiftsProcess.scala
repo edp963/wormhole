@@ -135,7 +135,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     val pattern = patternGenerator.getPattern
     val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
     val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
-      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
+      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key.toLowerCase)._2)
       CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
     } else CEP.pattern(transformedStream, pattern)
     val patternOutput = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap)
