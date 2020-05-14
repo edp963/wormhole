@@ -159,6 +159,7 @@ case class Monitor(databaseType: String)
 object RiderConfig {
 
   lazy val riderRootPath = s"${System.getProperty("WORMHOLE_HOME")}"
+  //lazy val riderRootPath ="D:\\workspaces\\gaoji\\wormhole\\rider"
 
   lazy val riderServer = RiderServer(
     getStringConfig("wormholeServer.cluster.id", ""),

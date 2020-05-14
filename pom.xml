@@ -59,7 +59,7 @@
         <main.basedir>${project.basedir}</main.basedir>
         <spark.2_2.version>2.2.0</spark.2_2.version>
         <spark.2_3.version>2.3.3</spark.2_3.version>
-        <spark.2_4.version>2.4.3</spark.2_4.version>
+        <spark.2_4.version>2.4.0</spark.2_4.version>
         <ums.version>1.3</ums.version>
         <project.version>0.6.3</project.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -92,9 +92,9 @@
         <fastjson.version>1.2.58</fastjson.version>
         <hikariCP.version>3.3.1</hikariCP.version>
         <hash.version>0.9</hash.version>
-        <spark.extension.version>2.2</spark.extension.version>
-        <!--<json4s.version>3.5.3</json4s.version>-->
-        <json4s.version>3.2.11</json4s.version>
+        <spark.extension.version>2.4</spark.extension.version>
+        <json4s.version>3.5.3</json4s.version>
+<!--        <json4s.version>3.2.11</json4s.version>-->
 
         <guava.version>19.0</guava.version>
         <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
