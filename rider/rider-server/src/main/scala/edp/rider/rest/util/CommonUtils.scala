@@ -87,7 +87,7 @@ object CommonUtils extends RiderLogger {
   def isKeyEqualValue(str: String): Boolean = {
     if (str == "" || str == null)
       return true
-    keyEqualValuePattern.matcher(str.split(",").mkString("&")).matches()
+    keyEqualValuePatternSimple.matcher(str.split(",").mkString("&")).matches()
   }
 
   def isStreamConfig(str: String): Boolean = {
