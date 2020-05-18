@@ -62,7 +62,7 @@ class Data2RedisSink extends SinkProcessor {
           }
         })
         clusterConnection.close()
-      case RedisMode.SHARED =>
+      case RedisMode.STANDALONE =>
         val shardedJedis = JedisConnection.getSharedJedisConnection(connectionConfig.connectionUrl, connectionConfig.password)
         tupleList.foreach(tuple => {
           try {
@@ -128,7 +128,7 @@ class Data2RedisSink extends SinkProcessor {
           }
         })
         clusterConnection.close()
-      case RedisMode.SHARED =>
+      case RedisMode.STANDALONE =>
         val shardedJedis = JedisConnection.getSharedJedisConnection(connectionConfig.connectionUrl, connectionConfig.password)
         tupleList.foreach(tuple => {
           try {

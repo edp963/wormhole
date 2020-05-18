@@ -46,7 +46,7 @@ object JedisConnection extends Serializable {
         synchronized {
           if (!clusterPoolMap.contains(url)) clusterPoolMap(url) = JedisClusterConnection.createPool(hosts, password)
         }
-      case SHARED=>
+      case STANDALONE=>
         synchronized {
         if (!shardedPoolMap.contains(url)) shardedPoolMap(url) = SharedJedisConnection.createPool(hosts, password)
       }
@@ -60,7 +60,7 @@ object JedisConnection extends Serializable {
 
 
   def getSharedJedisConnection(url: String, password: Option[String]): ShardedJedis = {
-    if (!shardedPoolMap.contains(url)) createJedisPool(url, password, SHARED,"")
+    if (!shardedPoolMap.contains(url)) createJedisPool(url, password, STANDALONE,"")
     val j = shardedPoolMap(url)
     SharedJedisConnection.getJedis(j)
   }
@@ -88,7 +88,7 @@ object JedisConnection extends Serializable {
         val shardedJedis = getSharedJedisConnection(url, password)
         value = shardedJedis.get(key)
         shardedJedis.close()
-      case SHARED=>
+      case STANDALONE=>
         val jedis = getJedisSentinelConnection(url,password,"")
         value = jedis.get(key)
         jedis.close()
