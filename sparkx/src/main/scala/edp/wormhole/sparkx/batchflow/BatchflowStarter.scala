@@ -39,7 +39,11 @@ object BatchflowStarter extends App with EdpLogging {
   SparkContextUtils.setLoggerLevel()
 
   logInfo("swiftsConfig:" + args(0))
-  val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
+  //val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
+
+  System.setProperty("hadoop.home.dir", "D:\\hadoop-common-2.2.0-bin-master")
+  var s="""{"kafka_input":{"group_id":"wormhole_demo_test_stream","batch_duration_seconds":30,"brokers":"master:9092,slave01:9092,slave02:9091","kerberos":false,"max.partition.fetch.bytes":10485760,"session.timeout.ms":30000,"group.max.session.timeout.ms":60000,"auto.offset.reset":"earliest","key.deserializer":"org.apache.kafka.common.serialization.StringDeserializer","value.deserializer":"org.apache.kafka.common.serialization.StringDeserializer","enable.auto.commit":false},"kafka_output":{"feedback_topic_name":"wormhole_feedback","brokers":"master:9092,slave01:9092,slave02:9092","kerberos":false},"spark_config":{"stream_id":1,"stream_name":"wormhole_demo_test_stream","master":"local[1]","spark.sql.shuffle.partitions":3},"rdd_partition_number":3,"zookeeper_address":"slave01:2181,master:2181,slave02:2181","zookeeper_path":"/wormhole","kafka_persistence_config_isvalid":false,"stream_hdfs_address":"hdfs://master:8020/wormhole","kerberos":false}"""
+  val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](s)
   val appId = SparkUtils.getAppId
   WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kafka_output.kerberos)
   val sparkConf = new SparkConf()

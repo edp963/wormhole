@@ -95,8 +95,9 @@ object BatchflowMainProcess extends EdpLogging {
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
 
         logInfo("start create classifyRdd")
+        //将rdd中的row进行分类，mainNamespace lookupNameSpace, OthrNameSpace
         val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = getClassifyRdd(dataRepartitionRdd).cache()
-        val distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] = getDistinctSchema(classifyRdd)
+        val distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] = getDistinctSchema(classifyRdd) // 对所有的namespace去重
         logInfo("start doStreamLookupData")
 
         doStreamLookupData(session, classifyRdd, config, distinctSchema)
@@ -156,27 +157,27 @@ object BatchflowMainProcess extends EdpLogging {
     )
   }
 
-
+  // 将batch中的rdd数据，按照namespace的不同，进行区分，生成不同的rdd
   private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = {
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
-    val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
-    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+    val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet // 获取source的命名空间
+    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap // flow的source的两种处理协议 increment和initial，页面上配置即可
     //log.info(s"streamLookupNamespaceSet: $streamLookupNamespaceSet, mainNamespaceSet $mainNamespaceSet, jsonSourceParseMap $jsonSourceParseMap")
-    dataRepartitionRdd.mapPartitions(partition => {
+    dataRepartitionRdd.mapPartitions(partition => {  // 遍历rdd的分区
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val otherList = ListBuffer.empty[String]
-      val nsSchemaMap = mutable.HashMap.empty[(UmsProtocolType, String), Seq[UmsField]]
-      partition.foreach(row => {
+      val nsSchemaMap = mutable.HashMap.empty[(UmsProtocolType, String), Seq[UmsField]]  // 记录所有的(protocalType,namesapce)和其type的映射
+      partition.foreach(row => { // 遍历分区的每一个row
         try {
-          val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(row._1)
+          val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(row._1) // row 是个tuple _1是 data_increment_data.kafka.hdp-kafka.test_source.test_table.*.*.*
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
-            if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
+            if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) { // 如果当前的namespace属于mainNameSpace
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = SparkxUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1.map(f => UmsField(f.name.toLowerCase, f.`type`, f.nullable))
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
-            if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
+            if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) { // 如果当前的namespace属于lookupNameSpace
               //todo change  if back to if, efficiency
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = SparkxUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1.map(f => UmsField(f.name.toLowerCase, f.`type`, f.nullable))
@@ -188,7 +189,7 @@ object BatchflowMainProcess extends EdpLogging {
           case e1: Throwable => logAlert("do classifyRdd,one data has error,row:" + row, e1)
         }
       })
-      List((mainDataList, lookupDataList, otherList, nsSchemaMap.toArray)).toIterator
+      List((mainDataList, lookupDataList, otherList, nsSchemaMap.toArray)).toIterator  // 统一成tuple，返回rdd的迭代
     })
   }
 
@@ -238,8 +239,8 @@ object BatchflowMainProcess extends EdpLogging {
       val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(allDataRdd, "lookup")
       distinctSchema.foreach(schema => {
         val namespace = schema._1._2
-        val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(namespace)
-        if (matchLookupNamespace != null) {
+        val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(namespace) // 查看下是否是look up的namespace
+        if (matchLookupNamespace != null) { // 如果不为空，则为是
           val protocolType: UmsProtocolType = schema._1._1
           val lookupDf = createSourceDf(session, namespace, schema._2._1, umsRdd.filter(row => {
             row._1 == protocolType && row._2 == namespace
@@ -321,7 +322,7 @@ object BatchflowMainProcess extends EdpLogging {
             val flowConfig: FlowConfig = flowConfigMap(sinkNamespace)
 
             if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
-
+              // 如果有swift计算，则进入
               val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(protocolType, flowConfig, swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields, batchId, topicPartitionOffset)
               sinkFields = returnUmsFields
               sinkRDD = tuplesRDD
@@ -429,7 +430,7 @@ object BatchflowMainProcess extends EdpLogging {
     if (dataSetShow.get) {
       sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
     }
-
+    //是否需要对hdfs上的parquet rdd进行union
     val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
 
     try {
@@ -470,7 +471,7 @@ object BatchflowMainProcess extends EdpLogging {
 
   private def getDistinctSchema(umsRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])]): mutable.Map[(UmsProtocolType.UmsProtocolType, String), (Seq[UmsField], Long)] = {
     val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Long)]
-    umsRdd.map(_._4).collect().foreach(_.foreach {
+    umsRdd.map(_._4).collect().foreach(_.foreach {  // _4 是所有(protocol,ns)和field type的map关系
       case ((protocol, ns), schema) =>
         if (!schemaMap.contains((protocol, ns))) {
           val matchSourceNs = ConfMemoryStorage.getMatchSourceNamespaceRule(ns)

@@ -40,6 +40,7 @@ import scala.collection.mutable
 object BatchflowDirective extends Directive {
 
   private def registerFlowStartDirective(flowDirectiveConfig: FlowDirectiveConfig): String = {
+
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(flowDirectiveConfig.consumptionDataStr)
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
@@ -176,16 +177,82 @@ object BatchflowDirective extends Directive {
   }
 
   override def flowStartProcess(ums: Ums): String = {
+    """
+        {
+          "protocol": {
+            "type": "directive_flow_start"
+          },
+          "schema": {
+            "namespace": "kafka.hdp-kafka.test_source.test_table.*.*.*",
+            "fields": [{
+              "name": "directive_id",
+              "type": "long",
+              "nullable": false
+            }, {
+              "name": "stream_id",
+              "type": "long",
+              "nullable": false
+            }, {
+              "name": "flow_id",
+              "type": "long",
+              "nullable": false
+            }, {
+              "name": "source_increment_topic",
+              "type": "string",
+              "nullable": false
+            }, {
+              "name": "ums_ts_",
+              "type": "datetime",
+              "nullable": false
+            }, {
+              "name": "data_type",
+              "type": "string",
+              "nullable": false
+            }, {
+              "name": "data_parse",
+              "type": "string",
+              "nullable": true
+            }, {
+              "name": "sink_namespace",
+              "type": "string",
+              "nullable": false
+            }, {
+              "name": "consumption_protocol",
+              "type": "string",
+              "nullable": false
+            }, {
+              "name": "sinks",
+              "type": "string",
+              "nullable": false
+            }, {
+              "name": "swifts",
+              "type": "string",
+              "nullable": true
+            }, {
+              "name": "kerberos",
+              "type": "boolean",
+              "nullable": true
+            }, {
+              "name": "priority_id",
+              "type": "long",
+              "nullable": true
+            }]
+          },
+          "payload": [{
+            "tuple": [35, 1, 2, "test_source", "2020-05-14 11:53:31.000000", "ums_extension", "eyJmaWVsZHMiOlt7Im5hbWUiOiJpZCIsInR5cGUiOiJsb25nIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6Im5hbWUiLCJ0eXBlIjoic3RyaW5nIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6InBob25lIiwidHlwZSI6InN0cmluZyIsIm51bGxhYmxlIjp0cnVlfSx7Im5hbWUiOiJjaXR5IiwidHlwZSI6InN0cmluZyIsIm51bGxhYmxlIjp0cnVlfSx7Im5hbWUiOiJ0aW1lIiwidHlwZSI6ImRhdGV0aW1lIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6InRpbWUiLCJ0eXBlIjoiZGF0ZXRpbWUiLCJudWxsYWJsZSI6dHJ1ZSwicmVuYW1lIjoidW1zX3RzXyJ9XX0=", "mysql.hdp-mysql.testdb.user.*.*.*", "eyJpbml0aWFsIjogdHJ1ZSwgImluY3JlbWVudCI6IHRydWUsICJiYXRjaCI6IGZhbHNlfQ==", "ew0ic2lua19jb25uZWN0aW9uX3VybCI6ICJqZGJjOm15c3FsOi8vbWFzdGVyOjMzMDYvdGVzdGRiIiwNInNpbmtfY29ubmVjdGlvbl91c2VybmFtZSI6ICJyb290IiwNInNpbmtfY29ubmVjdGlvbl9wYXNzd29yZCI6ICJZb3VyQHB3ZDEyMyIsDSJzaW5rX3RhYmxlX2tleXMiOiAiaWQiLA0ic2lua19vdXRwdXQiOiAiIiwNInNpbmtfY29ubmVjdGlvbl9jb25maWciOiAiIiwNInNpbmtfcHJvY2Vzc19jbGFzc19mdWxsbmFtZSI6ICJlZHAud29ybWhvbGUuc2lua3MuZGJzaW5rLkRhdGEyRGJTaW5rIiwNInNpbmtfc3BlY2lmaWNfY29uZmlnIjogeyJtdXRhdGlvbl90eXBlIjoiaSJ9LA0ic2lua19yZXRyeV90aW1lcyI6ICIzIiwNInNpbmtfcmV0cnlfc2Vjb25kcyI6ICIzMDAiDX0=", "eyJwdXNoZG93bl9jb25uZWN0aW9uIjpbeyJwYXNzd29yZCI6IllvdXJAcHdkMTIzIiwibmFtZV9zcGFjZSI6Im15c3FsLmhkcC1teXNxbC5sb29rdXAiLCJjb25uZWN0aW9uX2NvbmZpZyI6W10sImpkYmNfdXJsIjoiamRiYzpteXNxbDovL21hc3RlcjozMzA2L2xvb2t1cD91c2VVbmljb2RlPXRydWUmY2hhcmFjdGVyRW5jb2Rpbmc9dXRmOCZhdXRvUmVjb25uZWN0PXRydWUmZmFpbE92ZXJSZWFkT25seT1mYWxzZSZub0FjY2Vzc1RvUHJvY2VkdXJlQm9kaWVzPXRydWUmemVyb0RhdGVUaW1lQmVoYXZpb3I9Y29udmVydFRvTnVsbCZ0aW55SW50MWlzQml0PWZhbHNlIiwidXNlcm5hbWUiOiJyb290In1dLCJkYXRhZnJhbWVfc2hvdyI6InRydWUiLCJhY3Rpb24iOiJjSFZ6YUdSdmQyNWZjM0ZzSUd4bFpuUWdhbTlwYmlCM2FYUm9JRzE1YzNGc0xtaGtjQzF0ZVhOeGJDNXNiMjlyZFhBZ1BTQnpaV3hsXG5ZM1FnYVdRZ1lYTWdhV1F4TEdOaGNtUkNZVzVySUdaeWIyMGdkWE5sY2tOaGNtUWdkMmhsY21VZ0tHbGtLU0JwYmlBb2EyRm1hMkV1XG5hR1J3TFd0aFptdGhMblJsYzNSZmMyOTFjbU5sTG5SbGMzUmZkR0ZpYkdVdWFXUXBPM053WVhKclgzTnhiQ0E5SUhObGJHVmpkQ0JwXG5aQ3h1WVcxbExHTmhjbVJDWVc1ckxIQm9iMjVsTEdOcGRIa2dabkp2YlNCMFpYTjBYM1JoWW14bE93PT0iLCJkYXRhZnJhbWVfc2hvd19udW0iOjEwfQ==", "false", "1"]
+          }]
+        }
+      """
     val payloads = ums.payload_get
     val schemas = ums.schema.fields_get
     val sourceNamespace = ums.schema.namespace.toLowerCase
-    val tuple = payloads.head
+    val tuple = payloads.head  // 取第一条
 
     val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
     val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
     val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
     try {
-      val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
+      val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")  // base64编码的
 
       val swiftsStr = if (swiftsEncoded != null && !swiftsEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swiftsEncoded.toString)) else null
       logInfo("swiftsStr:" + swiftsStr)
@@ -206,8 +273,9 @@ object BatchflowDirective extends Directive {
         if(null != sourceIncrementTopic) sourceIncrementTopic.toString.split(",").toList
         else null
 
+      // 定义config对象
       val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId, sourceIncrementTopicList)
-
+      // 初始化各种配置
       registerFlowStartDirective(flowDirectiveConfig)
     } catch {
       case e: Throwable =>

@@ -56,7 +56,7 @@ object SwiftsTransform extends EdpLogging {
     if (swiftsSqlArr.isDefined) {
       val swiftsArr: Array[SwiftsSql] = swiftsSqlArr.get
 
-      swiftsArr.foreach(f = operate => {
+      swiftsArr.foreach(f = operate => {  //  每一个sql
         val lookupNamespace = if (operate.lookupNamespace.isDefined) operate.lookupNamespace.get else null
         val sourceTableFields = if (operate.sourceTableFields.isDefined) operate.sourceTableFields.get else null
         val lookupTableFields = if (operate.lookupTableFields.isDefined) operate.lookupTableFields.get else null
@@ -83,10 +83,12 @@ object SwiftsTransform extends EdpLogging {
               if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {
                 // lookup Namespace is also match rule format .*.*
                 val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace"
+                // 查看lookup表的数据是否存在hdfs上存在，如果存在则通过spark sql生成临时表，表名字md5生成。
                 val (tableNameArrMD5, allTableReady) = DataframeObtain.createDfAndViewFromParquet(matchSourceNamespace, lookupNamespace, sinkNamespace, session, path)
                 if (allTableReady) {
                   try {
                     tmpTableNameList ++= tableNameArrMD5
+                    // 获取真正要执行的sql
                     val newSql = SqlBinding.getSlidingUnionSql(session, currentDf, sourceTableFields, lookupTableFields, sql)
                     logInfo(uuid + ",lookupStreamMap JOIN newSql@:" + newSql)
                     val df1 = session.sql(newSql)
@@ -94,7 +96,7 @@ object SwiftsTransform extends EdpLogging {
                   } catch {
                     case e: Throwable =>
                       logError("getJoinDf", e)
-                      tmpTableNameList.foreach(name => session.sqlContext.dropTempTable(name))
+                      tmpTableNameList.foreach(name => session.sqlContext.dropTempTable(name)) // 如果出错，则生产临时表
                       throw e
                   }
                 } else {

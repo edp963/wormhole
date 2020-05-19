@@ -39,7 +39,7 @@ import scala.collection.mutable.ListBuffer
 
 object OffsetPersistenceManager extends EdpLogging {
 
-  val directiveList = new ConcurrentLinkedQueue[(Ums, Ums)]
+  val  directiveList = new ConcurrentLinkedQueue[(Ums, Ums)]
 
   val topicTypePath = "topictype"
   val rateRelativePath = "rate"

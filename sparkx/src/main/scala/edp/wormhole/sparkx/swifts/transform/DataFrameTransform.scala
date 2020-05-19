@@ -133,22 +133,22 @@ object DataFrameTransform extends EdpLogging {
 
   def getDbJoinOrUnionDf(session: SparkSession, currentDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String, connectionConfig: ConnectionConfig, schemaStr: String, operate: SwiftsSql, sqlType: UmsDataSystem.Value, batchSize: Option[Int] = None): DataFrame = {
     var index = -1
-    val dbOutPutSchemaMap: Map[String, (String, Int)] = schemaStr.split(",").map(str => {
+    val dbOutPutSchemaMap: Map[String, (String, Int)] = schemaStr.split(",").map(str => { // 将sql中涉及的字段，分装成输出的rdd字段
       val arr = str.split(":")
       index += 1
       (arr(0), (arr(1), index))
     }).toMap //order is not same as input order !!!
 
     val inputDfSchema = currentDf.schema
-    val resultSchema: StructType = SqlOptType.toSqlOptType(operate.optType) match {
+    val resultSchema: StructType = SqlOptType.toSqlOptType(operate.optType) match { // 根据opt type的不同，判定最终rdd的字段类型
       case SqlOptType.JOIN | SqlOptType.INNER_JOIN | SqlOptType.LEFT_JOIN =>
         var afterJoinSchema: StructType = inputDfSchema
-        val addColumnType = dbOutPutSchemaMap.map { case (name, (dataType, _)) => StructField(name, ums2sparkType(umsFieldType(dataType))) }
+        val addColumnType = dbOutPutSchemaMap.map { case (name, (dataType, _)) => StructField(name, ums2sparkType(umsFieldType(dataType))) }  // join inner join left join 以sql的字段为主
         addColumnType.foreach(column => afterJoinSchema = afterJoinSchema.add(column))
         afterJoinSchema
       case SqlOptType.UNION => inputDfSchema
     }
-
+    // 真正执行join sql的地方
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
       val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
       if (batchSize.nonEmpty)

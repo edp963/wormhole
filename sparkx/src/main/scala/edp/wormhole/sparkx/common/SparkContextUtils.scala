@@ -93,12 +93,15 @@ object SparkContextUtils extends EdpLogging{
 
     val locationStrategy: LocationStrategy = LocationStrategies.PreferConsistent
 
+    // 消费策略
     val perConfig: WormholePerPartitionConfig = new WormholePerPartitionConfig(partitionRateMap)
     val consumerStrategy: ConsumerStrategy[String, String] = if(kafkaInput.inWatch){
       ConsumerStrategies.Subscribe[String, String](topicList, kafkaInput.inputBrokers, partitionOffsetMap.toMap)
     }else{
       ConsumerStrategies.Subscribe[String, String](topicList, kafkaInput.inputBrokers)
     }
+
+    // 同时订阅多个topic， topic中的数据，不是淡出的数据，而是有namespace的，
     WormholeKafkaUtils.createWormholeDirectStream[String, String](ssc, locationStrategy, consumerStrategy, perConfig)
   }
 

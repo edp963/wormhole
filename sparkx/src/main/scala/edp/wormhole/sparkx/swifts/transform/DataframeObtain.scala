@@ -79,15 +79,16 @@ object DataframeObtain extends EdpLogging {
     }
 
     val lookupTableFieldsAlias = operate.lookupTableFieldsAlias.get
-    if (sourceTableFields.length == 1) {
+    if (sourceTableFields.length == 1) {  // 如果是一个join的列
       tmpLastDf = tmpLastDf.join(df1, tmpLastDf(sourceTableFields(0)) === df1(lookupTableFieldsAlias(0)), joinType)
     } else {
+      // 如果是多个join的列
       val tmpLength = sourceTableFields.length
       var condition = tmpLastDf(sourceTableFields(0)) === df1(lookupTableFieldsAlias(0))
       for (i <- 1 until tmpLength) {
         condition = condition && tmpLastDf(sourceTableFields(i)) === df1(lookupTableFieldsAlias(i))
-      }
-      tmpLastDf = tmpLastDf.join(df1, condition, joinType)
+      }// 拼接到一起作为条件
+      tmpLastDf = tmpLastDf.join(df1, condition, joinType) // 执行两个df的join
     }
     tmpLastDf
   }

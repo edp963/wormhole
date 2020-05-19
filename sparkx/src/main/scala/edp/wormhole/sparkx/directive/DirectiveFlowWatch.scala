@@ -41,6 +41,7 @@ object DirectiveFlowWatch extends EdpLogging {
   def initFlow(config: WormholeConfig, appId: String): Unit = {
     logInfo("init flow,appId=" + appId)
     val watchPath = config.zookeeper_path + "/" + config.spark_config.stream_id + flowRelativePath
+    // 如果zk中不存在此路径，则创建
     if (!WormholeZkClient.checkExist(config.zookeeper_address, watchPath)) WormholeZkClient.createPath(config.zookeeper_address, watchPath)
     val flowList = WormholeZkClient.getChildren(config.zookeeper_address, watchPath)
     flowList.toArray.foreach(flow => {
