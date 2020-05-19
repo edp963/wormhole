@@ -193,14 +193,14 @@ class Data2RedisSink extends SinkProcessor {
   }
 
   private def getRedisMode(parameters: Option[Seq[KVConfig]]): RedisMode = {
-    var redisMode: RedisMode = RedisMode.SENTINEL
+    var redisMode :RedisMode =_
     if (parameters.isDefined) {
       val kvPairs = parameters.get
       kvPairs.foreach(kv => {
         if (kv.key == "mode")
-          redisMode = RedisMode.redisMode(kv.value)
+          redisMode=RedisMode.redisMode(kv.value)
       })
-    }
+    } else redisMode=RedisMode.STANDALONE
     redisMode
   }
 
