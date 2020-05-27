@@ -62,7 +62,7 @@ class Data2RedisSink extends SinkProcessor {
           }
         })
         clusterConnection.close()
-      case RedisMode.SHARED =>
+      case RedisMode.STANDALONE =>
         val shardedJedis = JedisConnection.getSharedJedisConnection(connectionConfig.connectionUrl, connectionConfig.password)
         tupleList.foreach(tuple => {
           try {
@@ -128,7 +128,7 @@ class Data2RedisSink extends SinkProcessor {
           }
         })
         clusterConnection.close()
-      case RedisMode.SHARED =>
+      case RedisMode.STANDALONE =>
         val shardedJedis = JedisConnection.getSharedJedisConnection(connectionConfig.connectionUrl, connectionConfig.password)
         tupleList.foreach(tuple => {
           try {
@@ -193,7 +193,7 @@ class Data2RedisSink extends SinkProcessor {
   }
 
   private def getRedisMode(parameters: Option[Seq[KVConfig]]): RedisMode = {
-    var redisMode: RedisMode = RedisMode.SENTINEL
+    var redisMode: RedisMode = RedisMode.STANDALONE
     if (parameters.isDefined) {
       val kvPairs = parameters.get
       kvPairs.foreach(kv => {

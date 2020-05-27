@@ -59,7 +59,7 @@ object HdfsCsvMainProcess extends EdpLogging {
 
   val namespace2FileStore = mutable.HashMap.empty[(String, String), mutable.HashMap[String, mutable.HashMap[Int, (String, Int, String)]]]
 
-  var schemaFlag = false
+  val path2schemaFlag = mutable.HashMap.empty[String, Boolean]
 
   val fileMaxSize = 128
   val schema = "schema"
@@ -445,8 +445,8 @@ object HdfsCsvMainProcess extends EdpLogging {
       if (dataList.nonEmpty) {
         val schemaArray = getDataSchema(dataList.head, hdfsFlowConfig)
         log.info("partition index="+index)
-        if (!schemaFlag && index == 0) {
-          schemaFlag = checkAndSetSchema(schemaFilePath, configuration, schemaArray)
+        if ((!path2schemaFlag.contains(schemaFilePath) || !path2schemaFlag(schemaFilePath)) && index == 0) {
+          path2schemaFlag(schemaFilePath) = checkAndSetSchema(schemaFilePath, configuration, schemaArray)
         } else {
           logInfo("index不是0，不写schema")
         }

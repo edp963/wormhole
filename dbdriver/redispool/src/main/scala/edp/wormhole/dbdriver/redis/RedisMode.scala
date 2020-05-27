@@ -7,7 +7,7 @@ object RedisMode extends Enumeration {
   private lazy val logger = Logger.getLogger(this.getClass)
   type RedisMode = Value
 
-  val SHARED = Value("shared")
+  val STANDALONE = Value("standalone")
   val CLUSTER = Value("cluster")
   val SENTINEL = Value("sentinel")
 
@@ -16,7 +16,7 @@ object RedisMode extends Enumeration {
   } catch {
     case e: Throwable =>
       logger.warn(s"RedisMode invalid string: $s",e)
-      SENTINEL
+      STANDALONE
   }
 
 }
