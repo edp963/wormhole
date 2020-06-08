@@ -95,14 +95,17 @@ class UserIDGenerate extends EdpLogging {
     var flag = true
     var i = 0
     var selectFieldValue = null.asInstanceOf[String]
-    var umsId = -1l
+    var umsId = -1L
     var queryResult = 0
     while (flag) {
       val conditionArray = qcp.conditions(i)
       i += 1
       val (tmpQueryResult, tmpSelectFieldValue, tmpUmsId) = queryByCondition(selectPartSql, cc, qcp.selectFieldName, conditionArray, row, schemaMap)
 
-      if (qcp.conditions.size == i || tmpQueryResult == 1 || tmpQueryResult == -1) {
+      //tmpQueryResult 有三种值  1.“1”找到一条已存在的   2. “-1”条件中有空值   3. “0”没找到
+
+      //跳出循环的条件  1.所有条件已检查完   2.找到一个已存在的记录 3.没找到且条件不为空
+      if (qcp.conditions.size == i || tmpQueryResult == 1  || tmpQueryResult == 0) {
         flag = false
       }
 
@@ -132,7 +135,7 @@ class UserIDGenerate extends EdpLogging {
       }
     }
     if (hasNull) {
-      (0, null.asInstanceOf[String], null.asInstanceOf[Long])
+      (-1, null.asInstanceOf[String], null.asInstanceOf[Long])
     } else {
       val wherePartSql = getWherePartSql(cc.connectionUrl, conditionArray)
 
