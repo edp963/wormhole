@@ -82,7 +82,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     covertTable2Stream(table)
   }
 
-  private def getKeyByStream(transformedStream: DataStream[Row]): DataStream[Row] = {
+  private def  getKeyByStream(transformedStream: DataStream[Row]): DataStream[Row] = {
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.KEY_BY_FIELDS)) {
       val streamKeyByFieldsIndex = specialConfigObj.getString(FlinkxSwiftsConstants.KEY_BY_FIELDS).split(",").map(preSchemaMap(_)._2)
       transformedStream.keyBy(streamKeyByFieldsIndex: _*)
