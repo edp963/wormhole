@@ -33,8 +33,8 @@ import org.apache.flink.types.Row
 import org.apache.kudu.client.KuduTable
 import org.apache.log4j.Logger
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.{Map, mutable}
 
 object LookupKuduHelper extends java.io.Serializable {
 

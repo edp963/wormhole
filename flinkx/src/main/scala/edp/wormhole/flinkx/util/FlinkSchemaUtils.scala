@@ -38,7 +38,7 @@ import org.apache.kafka.clients.consumer.{ConsumerRecord, ConsumerRecords}
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
+import scala.collection.Map
 
 object FlinkSchemaUtils extends java.io.Serializable {
 

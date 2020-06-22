@@ -426,13 +426,11 @@ object BatchflowMainProcess extends EdpLogging {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
     val sourceDf = createSourceDf(session, sourceNamespace, umsFields, sourceTupleRDD)
     val dataSetShow = swiftsProcessConfig.get.datasetShow
-    if (dataSetShow.get) {
-      sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
-    }
-
     val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
-
     try {
+      if (dataSetShow.get) {
+        sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
+      }
       val swiftsDf: DataFrame = SwiftsTransform.transform(session, sourceNamespace, sinkNamespace, afterUnionDf, matchSourceNamespace, config)
       val resultSchema = swiftsDf.schema
       val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => {

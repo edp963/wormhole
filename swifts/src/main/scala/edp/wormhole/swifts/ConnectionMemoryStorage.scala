@@ -3,7 +3,7 @@ package edp.wormhole.swifts
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import org.apache.log4j.Logger
 
-import scala.collection.mutable
+import scala.collection.{mutable,Map}
 
 object ConnectionMemoryStorage {
 

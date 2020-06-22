@@ -158,6 +158,7 @@ object OutputType extends Enumeration {
   val AGG = Value("agg")
   val FILTERED_ROW = Value("filteredrow")
   val DETAIL = Value("detail")
+  val TIMEOUT=Value("timeout")
 
   def outputType(s: String) = OutputType.withName(s.toLowerCase())
 }

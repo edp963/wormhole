@@ -60,6 +60,7 @@ import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.Map
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {

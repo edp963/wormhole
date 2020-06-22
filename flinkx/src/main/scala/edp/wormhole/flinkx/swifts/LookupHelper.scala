@@ -34,7 +34,7 @@ import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
-import scala.collection.mutable
+import scala.collection.{mutable,Map}
 import scala.collection.mutable.ListBuffer
 
 object LookupHelper extends java.io.Serializable {

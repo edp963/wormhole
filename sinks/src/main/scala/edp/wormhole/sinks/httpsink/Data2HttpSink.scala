@@ -6,6 +6,7 @@ import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.httpclient.{HttpClientService, HttpResult}
+import edp.wormhole.util.HttpUtils.{scalaMap2JavaMap,dataToJsonString}
 import org.apache.http.HttpStatus
 import org.apache.http.entity.ContentType
 import org.apache.log4j.Logger
@@ -139,7 +140,7 @@ class Data2HttpSink extends SinkProcessor {
     }.toSeq
   }
 
-  def scalaMap2JavaMap(data: Seq[(String, String)]): java.util.Map[String, String] = {
+  /*def scalaMap2JavaMap(data: Seq[(String, String)]): java.util.Map[String, String] = {
     if (data == null || data.isEmpty) null.asInstanceOf[java.util.Map[String, String]]
     else {
       import scala.collection.JavaConverters._
@@ -153,6 +154,6 @@ class Data2HttpSink extends SinkProcessor {
       json.put(d._1, d._2)
     })
     json.toJSONString
-  }
+  }*/
 
 }
