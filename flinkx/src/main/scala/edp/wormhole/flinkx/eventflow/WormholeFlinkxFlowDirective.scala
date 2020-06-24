@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
-import edp.wormhole.flinkx.util.FlinkSchemaUtils.findJsonSchema
+import edp.wormhole.flinkx.util.FlinkSchemaUtils.findUmsSchemaFromKafka
 import edp.wormhole.flinkx.util.UmsFlowStartUtils.extractVersion
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import edp.wormhole.ums._
@@ -40,6 +40,12 @@ object WormholeFlinkxFlowDirective {
     dataType
   }
 
+  /**
+   * get schema from data in kafka
+   * @param config
+   * @param umsFlowStart
+   * @return
+   */
   private def getJsonSchema(config: WormholeFlinkxConfig, umsFlowStart: Ums): UmsSchema = {
     val zkAddress: String = config.zookeeper_address
     val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
@@ -47,7 +53,7 @@ object WormholeFlinkxFlowDirective {
 
     val version = extractVersion(sourceNamespace)
     val zkPathWithVersion = UmsFlowStartUtils.formatZkPathWithVersion(sourceNamespace, streamId.mkString(""), version)
-    findJsonSchema(config, zkAddress, zkPathWithVersion, sourceNamespace)
+    findUmsSchemaFromKafka(config, sourceNamespace)
 
 
     //    val zkPath: String = formatZkPath(sourceNamespace, streamId)
