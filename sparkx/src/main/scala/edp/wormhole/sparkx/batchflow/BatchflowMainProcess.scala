@@ -46,6 +46,7 @@ import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
+import edp.wormhole.ums.ext.ExtSchemaConfig
 import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -161,6 +162,7 @@ object BatchflowMainProcess extends EdpLogging {
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
     val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+    val extJsonSourceParseMap: Map[(UmsProtocolType, String), ExtSchemaConfig] = ConfMemoryStorage.getAllExtSourceParseMap
     //log.info(s"streamLookupNamespaceSet: $streamLookupNamespaceSet, mainNamespaceSet $mainNamespaceSet, jsonSourceParseMap $jsonSourceParseMap")
     dataRepartitionRdd.mapPartitions(partition => {
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
@@ -172,13 +174,13 @@ object BatchflowMainProcess extends EdpLogging {
           val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(row._1)
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
             if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = SparkxUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = SparkxUtils.rawGetValue(namespace, protocolType, row._2, jsonSourceParseMap, extJsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1.map(f => UmsField(f.name.toLowerCase, f.`type`, f.nullable))
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
             if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
               //todo change  if back to if, efficiency
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = SparkxUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = SparkxUtils.rawGetValue(namespace, protocolType, row._2, jsonSourceParseMap, extJsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1.map(f => UmsField(f.name.toLowerCase, f.`type`, f.nullable))
               lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
             }

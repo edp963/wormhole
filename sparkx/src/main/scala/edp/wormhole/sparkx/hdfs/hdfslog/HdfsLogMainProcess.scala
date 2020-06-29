@@ -39,6 +39,7 @@ import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums._
+import edp.wormhole.ums.ext.ExtSchemaParser
 import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -139,7 +140,15 @@ object HdfsLogMainProcess extends EdpLogging {
           namespaceMap.foreach { case ((protocol, namespace), flowConfig) =>
             val namespaceDataList = ListBuffer.empty[String]
             dataList.foreach(data => {
-              if (data._1._1 == protocol && data._1._2 == namespace) namespaceDataList.append(data._2)
+              if (data._1._1 == protocol && data._1._2 == namespace) {
+                if (flowConfig.jsonSchema.schemaField != null && flowConfig.extSchemaConfig != null) {
+                  val fields = flowConfig.jsonSchema.schemaField.filter(item => !item.name.startsWith("ums_"))
+                  val json = ExtSchemaParser.extFormat(data._2, fields, flowConfig.extSchemaConfig)
+                  namespaceDataList.append(json)
+                } else {
+                  namespaceDataList.append(data._2)
+                }
+              }
             })
             logInfo("protocol=" + protocol + ",namespace=" + namespace + ",data num=" + namespaceDataList.size)
             var tmpMinTs = ""

@@ -35,6 +35,7 @@ export default defineMessages({
   nsTableDetails: { id: 'rider.app.table.details' },
   nsTableModifyAction: { id: 'rider.app.table.modify.action' },
   nsTableJsonFormat: { id: 'rider.containers.Namespace.Modal.configure.json.sample.format' },
+  nsTableExtConfig: { id: 'rider.containers.Namespace.Modal.configure.json.sample.ext' },
   nsTableJsonClear: { id: 'rider.containers.Namespace.Modal.configure.json.sample.clear' },
   nsModalTablesTables1: { id: 'rider.containers.Namespace.Modal.tables.table1' },
   nsModalTablesTables2: { id: 'rider.containers.Namespace.Modal.tables.table2' },

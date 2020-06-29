@@ -32,6 +32,7 @@ import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
+import edp.wormhole.ums.ext.ExtSchemaConfig
 import edp.wormhole.util.config.KVConfig
 import edp.wormhole.util.{DateUtils, JsonUtils}
 
@@ -95,6 +96,16 @@ object BatchflowDirective extends Directive {
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
       if (batch)
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+
+      if (flowDirectiveConfig.extDataParseStr != null) {
+        val extSchemaConfig: ExtSchemaConfig = JsonUtils.json2caseClass[ExtSchemaConfig](flowDirectiveConfig.extDataParseStr)
+        if (initial)
+          ConfMemoryStorage.registerExtJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, flowDirectiveConfig.sourceNamespace, extSchemaConfig)
+        if (increment)
+          ConfMemoryStorage.registerExtJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, flowDirectiveConfig.sourceNamespace, extSchemaConfig)
+        if (batch)
+          ConfMemoryStorage.registerExtJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, flowDirectiveConfig.sourceNamespace, extSchemaConfig)
+      }
     }
 
     val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds, flowDirectiveConfig.kerberos)
@@ -196,6 +207,8 @@ object BatchflowDirective extends Directive {
       val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
       val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
       val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+      val extDataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "ext_data_parse")
+      val extDataParseStr = if (extDataParseEncoded != null && !extDataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(extDataParseEncoded.toString)) else null
       val kerberos = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kerberos").toString.toBoolean
       val tmpPriorityIdStr = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "priority_id")
       val priorityId = if (tmpPriorityIdStr == null) directiveId else tmpPriorityIdStr.toString.toLong
@@ -206,7 +219,7 @@ object BatchflowDirective extends Directive {
         if(null != sourceIncrementTopic) sourceIncrementTopic.toString.split(",").toList
         else null
 
-      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId, sourceIncrementTopicList)
+      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, extDataParseStr, kerberos, priorityId, sourceIncrementTopicList)
 
       registerFlowStartDirective(flowDirectiveConfig)
     } catch {

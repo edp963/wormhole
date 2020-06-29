@@ -40,6 +40,7 @@ import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, Wo
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
+import edp.wormhole.ums.ext.ExtSchemaConfig
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
@@ -169,8 +170,9 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
       })
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+    val extJsonSourceParseMap: Map[(UmsProtocolType, String), ExtSchemaConfig] = ConfMemoryStorage.getAllExtSourceParseMap
 
-    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config, exceptionConfig, jsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config, exceptionConfig, jsonSourceParseMap, extJsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
 
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
     exceptionStream.map(new ExceptionProcess(exceptionProcessMethod, config, exceptionConfig))

@@ -26,7 +26,6 @@ import java.lang.reflect.Method
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
-import edp.wormhole.sparkextension.udf.UdfRegister.convertSparkType
 import edp.wormhole.sparkx.hdfs.HdfsFlowConfig
 import edp.wormhole.sparkx.router.RouterFlowConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
@@ -34,6 +33,7 @@ import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, WormholeConfig}
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
+import edp.wormhole.ums.ext.ExtSchemaConfig
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -67,6 +67,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
 
   val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
+
+  val ExtJsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), ExtSchemaConfig]
   //val JsonSourceSinkSchema = mutable.HashMap.empty[(String, String), String]//[(source, sink), schema]
   //[className, (object, method)]
   private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method,String)]
@@ -96,6 +98,10 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
   def registerJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, umsField: Seq[UmsField], fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]) = {
     JsonSourceParseMap((protocolType, namespace)) = (umsField, fieldsInfo, twoFieldsArr)
+  }
+
+  def registerExtJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, extSchemaConfig: ExtSchemaConfig) = {
+    ExtJsonSourceParseMap((protocolType, namespace)) = extSchemaConfig
   }
 
   //  def registerJsonSourceSinkSchema(sourceNamespace:String, sinkNamespace:String, sinkSchema:String): Unit = {
@@ -363,6 +369,10 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
   def getAllSourceParseMap = {
     JsonSourceParseMap.toMap
+  }
+
+  def getAllExtSourceParseMap = {
+    ExtJsonSourceParseMap.toMap
   }
 
   def getAllSourceNamespaceSet: Set[String] = {

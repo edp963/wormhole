@@ -123,6 +123,11 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     db.run(namespaceTable.filter(_.id === id).map(ns => (ns.umsInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
   }
 
+  def updateExtUmsInfo(id: Long, extUmsInfo: String, user: Long): Future[Int] = {
+    val schema = if (extUmsInfo == null || extUmsInfo == "") null else Option(extUmsInfo)
+    db.run(namespaceTable.filter(_.id === id).map(ns => (ns.extUmsInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
+  }
+
   def updateSinkInfo(id: Long, sinkInfo: SinkSchema, user: Long): Future[Int] = {
     val schema = if (sinkInfo == null) null else Option(caseClass2json[SinkSchema](sinkInfo))
     db.run(namespaceTable.filter(_.id === id).map(ns => (ns.sinkInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
@@ -224,10 +229,10 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       val nsSearch = namespace.filter(ns => ns.nsSys == nsSplit(0) && ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2) && ns.nsTable == nsSplit(3))
       if (nsSearch.isEmpty)
         insertSeq += Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+          None, None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
       else
         updateSeq += Namespace(nsSearch.head.id, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+          None, None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
     (insertSeq, updateSeq)
   }
@@ -334,6 +339,17 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         case None => None
       }
     )
+  }
+
+  def getExtUmsInfo(id: Long): Future[Option[String]] = {
+    super.findById(id).map[Option[String]] {
+      case Some(namespace) =>
+        namespace.extSourceSchema match {
+          case Some(extSourceSchema) => Some(extSourceSchema)
+          case None => None
+        }
+      case None => None
+    }
   }
 
   def getSinkInfo(id: Long): Future[Option[SinkSchema]] = {

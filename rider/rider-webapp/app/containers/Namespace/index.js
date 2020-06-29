@@ -141,6 +141,7 @@ export class Namespace extends React.PureComponent {
       queryConnUrl: '',
 
       schemaModalVisible: false,
+      extModalVisible: false,
       jsonSampleValue: [],
       umsTableDataSource: [],
       umsTypeSeleted: 'ums',
@@ -727,8 +728,6 @@ export class Namespace extends React.PureComponent {
             if (this.state.umsTypeSeleted === 'ums_extension') {
               this.cmSample.doc.setValue(result.jsonSample)
 
-              setTimeout(() => this.onJsonFormat(), 205)
-
               const tableData = result.umsSchemaTable.map((s, index) => {
                 s.key = index
                 return s
@@ -748,6 +747,10 @@ export class Namespace extends React.PureComponent {
                 }
                 this.setState({ selectAllState: tempState })
               })
+              setTimeout(() => {
+                this.onJsonFormat()
+                this.cmSample.refresh()
+              }, 500)
             } else {
               this.makeCodeMirrorInstance()
               this.cmSample.doc.setValue('')
@@ -798,8 +801,6 @@ export class Namespace extends React.PureComponent {
           } else {
             this.cmSinkSample.doc.setValue(jsonSample)
 
-            setTimeout(() => this.onSinkJsonFormat(), 205)
-
             const tableData = schemaTable.map((s, index) => {
               s.key = index
               return s
@@ -819,6 +820,10 @@ export class Namespace extends React.PureComponent {
               }
               this.setState({ sinkSelectAllState: tempState })
             })
+            setTimeout(() => {
+              this.onSinkJsonFormat()
+              this.cmSinkSample.refresh()
+            }, 500)
           }
         } else {
           this.makeSinkCodeMirrorInstance()
@@ -835,6 +840,7 @@ export class Namespace extends React.PureComponent {
       if (this.state.umsTypeSeleted === 'ums_extension') {
         this.makeCodeMirrorInstance()
         this.cmSample.doc.setValue(this.cmSample.doc.getValue() || '')
+        this.cmSample.refresh()
       }
     })
   }
@@ -897,6 +903,7 @@ export class Namespace extends React.PureComponent {
         umsopKey: -1
       })
       this.schemaTypeConfig.resetFields()
+      this.cmSample.doc.setValue('')
     })
   }
 
@@ -905,6 +912,7 @@ export class Namespace extends React.PureComponent {
       sinkSchemaModalVisible: false
     }, () => {
       this.setState({ sinkTableDataSource: [] })
+      this.cmSinkSample.doc.setValue('')
     })
   }
 
@@ -1080,7 +1088,7 @@ export class Namespace extends React.PureComponent {
   onJsonFormat = () => {
     const cmJsonvalue = this.cmSample.doc.getValue()
     const { locale } = this.props
-    const jsonText = locale === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const jsonText = locale === 'en' ? 'JSON Sample is null!' : 'JSON Sample 为空！'
     const noJsonText = locale === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmJsonvalue === '') {
@@ -1117,6 +1125,7 @@ export class Namespace extends React.PureComponent {
   getUmSopable = (umsopable, umsopKey) => {
     this.setState({umsopable, umsopKey})
   }
+
   onChangeUmsJsonToTable = () => {
     const cmVal = this.cmSample.doc.getValue()
     const { locale } = this.props
@@ -1426,9 +1435,85 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  showEditExtModal = () => {
+    this.setState({
+      extModalVisible: true
+    }, () => {
+      this.makeExtCodeMirrorInstance()
+      const { nsIdValue } = this.state
+      const { roleType, projectIdGeted } = this.props
+      const req = {
+        roleType: roleType,
+        projectId: projectIdGeted,
+        namespaceId: nsIdValue
+      }
+      this.props.onQuerySchemaConfig(req, 'ext', (result) => {
+        if (result) {
+          this.cmExt.doc.setValue(result)
+          setTimeout(() => this.onExtJsonFormat(), 200)
+        }
+      })
+    })
+  }
+
+  onExtModalOk = () => {
+    const { locale } = this.props
+    const { nsIdValue } = this.state
+    const successText = locale === 'en' ? 'Ext Schema is configured successfully!' : 'Ext Schema 配置成功！'
+    const noJsonText = locale === 'en' ? 'Not JSON format!' : '非JSON格式！'
+    const cmJsonvalue = this.cmExt.doc.getValue()
+    if (!isJSONNotEmpty(cmJsonvalue)) {
+      message.error(noJsonText, 3)
+    } else {
+      this.props.onSetSchema(nsIdValue, JSON.stringify(cmJsonvalue), 'ext', () => {
+        message.success(successText, 3)
+        this.hideExtModal()
+      })
+    }
+  }
+
+  hideExtModal = () => {
+    this.setState({
+      extModalVisible: false
+    }, () => {
+      this.cmExt.doc.setValue('')
+    })
+  }
+
+  onExtJsonFormat = () => {
+    const cmJsonvalue = this.cmExt.doc.getValue()
+    const { locale } = this.props
+    const jsonText = locale === 'en' ? 'JSON Sample is null!' : 'JSON Sample 为空！'
+    const noJsonText = locale === 'en' ? 'Not JSON format!' : '非JSON格式！'
+
+    if (cmJsonvalue === '') {
+      message.error(jsonText, 3)
+    } else if (!isJSONNotEmpty(cmJsonvalue)) {
+      message.error(noJsonText, 3)
+    } else {
+      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 3)
+      this.cmExt.doc.setValue(cmJsonvalueFormat || '')
+    }
+  }
+
+  makeExtCodeMirrorInstance = () => {
+    if (!this.cmExt) {
+      this.cmExt = CodeMirror.fromTextArea(this.extConfigInput, {
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: 'application/ld+json',
+        lineWrapping: true,
+        readOnly: this.cmIsDisabled(),
+        cursorBlinkRate: this.cmIsDisabled() ? -1 : 0 // 光标去掉
+      })
+      this.cmExt.setSize('100%', '456px')
+    }
+  }
+
   render () {
     const {
-      count, formVisible, schemaModalVisible, sinkSchemaModalVisible, currentNamespaces,
+      count, formVisible, schemaModalVisible, extModalVisible, sinkSchemaModalVisible, currentNamespaces,
       refreshNsLoading, refreshNsText, showNsDetail, namespaceFormType, queryConnUrl,
       databaseSelectValue, namespaceTableSource, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled
     } = this.state
@@ -1737,10 +1822,26 @@ export class Namespace extends React.PureComponent {
       : (<Helmet title="Workbench" />)
 
     let sourceFooter = null
+    let extSourceFooter = null
     let sinkFooter = null
     if (roleType === 'admin') {
       sourceFooter = namespaceClassHide === 'hide'
-        ? null
+        ? [
+          <Button
+            key="extConfig"
+            type="primary"
+            className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
+            onClick={this.showEditExtModal}
+          >
+            <FormattedMessage {...messages.nsTableExtConfig} />
+          </Button>, <Button
+            key="cancel"
+            size="large"
+            onClick={this.hideSchemaModal}
+          >
+            <FormattedMessage {...messages.nsModalCancel} />
+          </Button>
+        ]
         : [
           <Button
             key="jsonFormat"
@@ -1749,6 +1850,13 @@ export class Namespace extends React.PureComponent {
             onClick={this.onJsonFormat}
           >
             <FormattedMessage {...messages.nsTableJsonFormat} />
+          </Button>, <Button
+            key="extConfig"
+            type="primary"
+            className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
+            onClick={this.showEditExtModal}
+          >
+            <FormattedMessage {...messages.nsTableExtConfig} />
           </Button>, <Button
             key="cancel"
             size="large"
@@ -1760,6 +1868,32 @@ export class Namespace extends React.PureComponent {
             size="large"
             type="primary"
             onClick={this.onSchemaModalOk}
+          >
+            <FormattedMessage {...messages.nsModalSave} />
+          </Button>
+        ]
+
+      extSourceFooter = namespaceClassHide === 'hide'
+        ? null
+        : [
+          <Button
+            key="jsonFormat"
+            type="primary"
+            className={`json-format`}
+            onClick={this.onExtJsonFormat}
+          >
+            <FormattedMessage {...messages.nsTableJsonFormat} />
+          </Button>, <Button
+            key="cancel"
+            size="large"
+            onClick={this.hideExtModal}
+          >
+            <FormattedMessage {...messages.nsModalCancel} />
+          </Button>, <Button
+            key="submit"
+            type="primary"
+            size="large"
+            onClick={this.onExtModalOk}
           >
             <FormattedMessage {...messages.nsModalSave} />
           </Button>
@@ -1796,8 +1930,24 @@ export class Namespace extends React.PureComponent {
           </Button>
         ]
     } else if (roleType === 'user') {
+      sourceFooter = [
+        <Button
+          key="extConfig"
+          type="primary"
+          className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
+          onClick={this.showEditExtModal}
+        >
+          <FormattedMessage {...messages.nsTableExtConfig} />
+        </Button>, <Button
+          key="cancel"
+          size="large"
+          onClick={this.hideSchemaModal}
+        >
+          <FormattedMessage {...messages.nsModalCancel} />
+        </Button>
+      ]
+      extSourceFooter = null
       sinkFooter = null
-      sourceFooter = null
     }
 
     const modalTitle = this.state.namespaceFormType === 'add'
@@ -1908,6 +2058,24 @@ export class Namespace extends React.PureComponent {
             namespaceClassHide={namespaceClassHide}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
+        </Modal>
+        {/* Ext Config Modal */}
+        <Modal
+          title="Ext Config"
+          okText="保存"
+          wrapClassName="ant-modal-large"
+          visible={extModalVisible}
+          onCancel={this.hideExtModal}
+          footer={extSourceFooter}
+        >
+          <div>
+            <textarea
+              ref={(f) => { this.extConfigInput = f }}
+              placeholder="Paste your Ext Config JSON here."
+              className="ant-input ant-input-extra"
+              rows="20">
+            </textarea>
+          </div>
         </Modal>
         {/* Sink Schema Config Modal */}
         <Modal

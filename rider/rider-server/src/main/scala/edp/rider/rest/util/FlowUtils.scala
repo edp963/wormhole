@@ -452,6 +452,7 @@ object FlowUtils extends RiderLogger {
         }
         case None => ""
       }
+      val extUmsSchema = if (sourceNsObj.extSourceSchema.isDefined) sourceNsObj.extSourceSchema.get else ""
       val flowOpt = Await.result(flowDal.findByFilter(flow => flow.active === true && flow.id === flowId), minTimeOut).headOption
 
       if (functionType == "default") {
@@ -461,7 +462,7 @@ object FlowUtils extends RiderLogger {
         riderLogger.info(s"sink ${sinkNs} sinkConfig: ${sinkConfigSet}")
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
-        val base64Tuple = Seq(streamId, flowId, sourceIncrementTopic, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
+        val base64Tuple = Seq(streamId, flowId, sourceIncrementTopic, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), base64byte2s(extUmsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes), RiderConfig.kerberos.kafkaEnabled, if (flowOpt.nonEmpty) flowOpt.get.priorityId else 0L)
         val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId))
         directiveFuture onComplete {
@@ -508,6 +509,11 @@ object FlowUtils extends RiderLogger {
                  |},
                  |{
                  |"name": "data_parse",
+                 |"type": "string",
+                 |"nullable": true
+                 |},
+                 |{
+                 |"name": "ext_data_parse",
                  |"type": "string",
                  |"nullable": true
                  |},
@@ -563,14 +569,16 @@ object FlowUtils extends RiderLogger {
                 base64Tuple(6)
               }", "${
                 base64Tuple(7)
-              }","${
+              }", "${
                 base64Tuple(8)
-              }","${
+              }", "${
                 base64Tuple(9)
-              }","${
+              }", "${
                 base64Tuple(10)
-              }","${
+              }", "${
                 base64Tuple(11)
+              }", "${
+                base64Tuple(12)
               }"]
                  |}
                  |]
@@ -589,7 +597,7 @@ object FlowUtils extends RiderLogger {
       else if (functionType == "hdfslog") {
         //        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
         val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType,
-          base64byte2s(umsSchema.toString.trim.getBytes), sourceIncrementTopic,
+          base64byte2s(umsSchema.toString.trim.getBytes), base64byte2s(extUmsSchema.toString.trim.getBytes), sourceIncrementTopic,
           if (flowOpt.nonEmpty) flowOpt.get.priorityId else 0L)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
@@ -643,6 +651,11 @@ object FlowUtils extends RiderLogger {
              |"nullable": true
              |},
              |{
+             |"name": "ext_data_parse",
+             |"type": "string",
+             |"nullable": true
+             |},
+             |{
              |"name": "source_increment_topic",
              |"type": "string",
              |"nullable": true
@@ -676,6 +689,8 @@ object FlowUtils extends RiderLogger {
             base64Tuple(7)
           }", "${
             base64Tuple(8)
+          }", "${
+            base64Tuple(9)
           }"]
              |}
              |]
@@ -688,7 +703,7 @@ object FlowUtils extends RiderLogger {
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk.address} success.")
       } else if(functionType == "hdfscsv"){
         val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType,
-          base64byte2s(umsSchema.toString.trim.getBytes), sourceIncrementTopic,
+          base64byte2s(umsSchema.toString.trim.getBytes), base64byte2s(extUmsSchema.toString.trim.getBytes), sourceIncrementTopic,
           if (flowOpt.nonEmpty) flowOpt.get.priorityId else 0L)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSCSV_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
@@ -742,6 +757,11 @@ object FlowUtils extends RiderLogger {
              |"nullable": true
              |},
              |{
+             |"name": "ext_data_parse",
+             |"type": "string",
+             |"nullable": true
+             |},
+             |{
              |"name": "source_increment_topic",
              |"type": "string",
              |"nullable": true
@@ -775,6 +795,8 @@ object FlowUtils extends RiderLogger {
             base64Tuple(7)
           }", "${
             base64Tuple(8)
+          }", "${
+            base64Tuple(9)
           }"]
              |}
              |]
@@ -784,7 +806,7 @@ object FlowUtils extends RiderLogger {
           directive.createBy
         } send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendHdfsCsvStartDirective(flowId, streamId, sourceNs, jsonCompact(flow_start_ums))
-      }else if (functionType == "routing") {
+      } else if (functionType == "routing") {
         val (instance, db, _) = namespaceDal.getNsDetail(sinkNs)
         val tuple = Seq(streamId, flowId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase, sourceIncrementTopic, if (flowOpt.nonEmpty) flowOpt.get.priorityId else 0L)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
@@ -1237,8 +1259,9 @@ object FlowUtils extends RiderLogger {
       }
       case None => ""
     }
+    val extUmsSchema = if (sourceNsObj.extSourceSchema.isDefined) sourceNsObj.extSourceSchema.get else ""
 
-    val base64Tuple = Seq(flow.streamId, flow.id, currentNodMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
+    val base64Tuple = Seq(flow.streamId, flow.id, currentNodMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), base64byte2s(extUmsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
       base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),base64byte2s(flow.config.get.trim.getBytes))
     val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk.address, currentSec, flow.updateBy)), minTimeOut)
     //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
@@ -1281,6 +1304,11 @@ object FlowUtils extends RiderLogger {
          |},
          |{
          |"name": "data_parse",
+         |"type": "string",
+         |"nullable": true
+         |},
+         |{
+         |"name": "ext_data_parse",
          |"type": "string",
          |"nullable": true
          |},
@@ -1334,11 +1362,13 @@ object FlowUtils extends RiderLogger {
       }", "${
         base64Tuple(8)
       }", "${
-        base64Tuple(9)}"]
+        base64Tuple(9)
+      }", "${
+        base64Tuple(10)}"]
          |}
          |]
          |}
-        """.stripMargin.replaceAll("\n", "")
+        """.stripMargin.replaceAll("\n", "").replaceAll("\r", "")
     jsonCompact(flow_start_ums)
   }
 

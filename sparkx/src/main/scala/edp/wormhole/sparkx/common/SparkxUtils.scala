@@ -29,6 +29,7 @@ import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.{StreamSpecialConfig, WormholeConfig}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
+import edp.wormhole.ums.ext.{ExtSchemaConfig, ExtSchemaParser}
 import edp.wormhole.util.DateUtils
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
@@ -101,12 +102,20 @@ object SparkxUtils extends EdpLogging{
   }
 
 
-  def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]): (Seq[UmsField], Seq[UmsTuple]) = {
+  def rawGetValue(namespace: String, protocolType: UmsProtocolType, raw: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])], extJsonSourceParseMap: Map[(UmsProtocolType, String), ExtSchemaConfig]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
-      (mapValue._1, JsonParseUtils.dataParse(json, mapValue._2, mapValue._3))
+      // add ext format
+      if (extJsonSourceParseMap.contains((protocolType, namespace))) {
+        val extSchemaConfig: ExtSchemaConfig = extJsonSourceParseMap((protocolType, namespace))
+        val fields = mapValue._1.filter(item => !item.name.startsWith("ums_"))
+        val json = ExtSchemaParser.extFormat(raw, fields, extSchemaConfig)
+        (mapValue._1, JsonParseUtils.dataParse(json, mapValue._2, mapValue._3))
+      } else {
+        (mapValue._1, JsonParseUtils.dataParse(raw, mapValue._2, mapValue._3))
+      }
     } else {
-      val ums = UmsCommonUtils.json2Ums(json)
+      val ums = UmsCommonUtils.json2Ums(raw)
       (ums.schema.fields_get, ums.payload_get)
     }
   }

@@ -91,6 +91,7 @@
   "rider.containers.Namespace.Modal.configure.json.sample.notnull.msg": "JSON Sample is not null!",
   "rider.containers.Namespace.Modal.configure.json.sample.null.msg": "JSON Sample is null!",
   "rider.containers.Namespace.Modal.configure.json.sample.format": "Format!",
+  "rider.containers.Namespace.Modal.configure.json.sample.ext": "Ext Config!",
   "rider.containers.Namespace.Modal.configure.json.sample.clear": "Clear",
   "rider.containers.Namespace.Modal.configure.rename.repeat.msg": "Please modify duplicated items of Rename column!",
   "rider.containers.Namespace.Modal.configure.type.repeat.msg": "Only one array type contained!",

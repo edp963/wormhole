@@ -4,8 +4,9 @@ import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.sparkx.directive.Directive
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
+import edp.wormhole.ums.ext.ExtSchemaConfig
 import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 
 object HdfsDirective extends Directive {
   override def flowStartProcess(ums: Ums): String = {
@@ -20,6 +21,10 @@ object HdfsDirective extends Directive {
     val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty)
       new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString))
     else null
+    val extDataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "ext_data_parse")
+    val extDataParseStr = if (extDataParseEncoded != null && !extDataParseEncoded.toString.isEmpty)
+      new String(new sun.misc.BASE64Decoder().decodeBuffer(extDataParseEncoded.toString))
+    else null
     val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
     val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
     val hourDuration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
@@ -28,10 +33,14 @@ object HdfsDirective extends Directive {
         JsonSourceConf.parse(dataParseStr)
       } else RegularJsonSchema(null,null,null)
 
-      if(ums.protocol.`type`.toString.toLowerCase.contains("hdfscsv")){
-        ConfMemoryStorage.hdfscsvMap(namespace_rule) = HdfsFlowConfig(data_type, parseResult, flowId, sourceIncrementTopicList, hourDuration)
+      val extSchemaConfig: ExtSchemaConfig = if (extDataParseStr != null) {
+        JsonUtils.json2caseClass(extDataParseStr)
+      } else null
+
+      if (ums.protocol.`type`.toString.toLowerCase.contains("hdfscsv")){
+        ConfMemoryStorage.hdfscsvMap(namespace_rule) = HdfsFlowConfig(data_type, parseResult, extSchemaConfig, flowId, sourceIncrementTopicList, hourDuration)
       } else if(ums.protocol.`type`.toString.toLowerCase.contains("hdfslog")){
-        ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsFlowConfig(data_type, parseResult, flowId, sourceIncrementTopicList, hourDuration)
+        ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsFlowConfig(data_type, parseResult, extSchemaConfig, flowId, sourceIncrementTopicList, hourDuration)
       }
 
       feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, flowId, "")
