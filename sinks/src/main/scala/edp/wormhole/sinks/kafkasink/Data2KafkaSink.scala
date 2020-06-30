@@ -49,7 +49,7 @@ class Data2KafkaSink extends SinkProcessor {
     val sinkNamespaceSeq = sinkNamespaceOrg.split("\\.")
     //val sourceNamespaceSeq = sourceNamespace.split("\\.")
     val sinkVersion = schemaHash(schemaList)
-    val sinkNamespace = s"${sinkNamespaceSeq(0)}.${sinkNamespaceSeq(1)}.${sinkNamespaceSeq(2)}.${sinkNamespaceSeq(3)}.$sinkVersion.0.0}"
+    val sinkNamespace = s"${sinkNamespaceSeq(0)}.${sinkNamespaceSeq(1)}.${sinkNamespaceSeq(2)}.${sinkNamespaceSeq(3)}.$sinkVersion.0.0"
 
     if(tupleList.nonEmpty) {
       logger.info(s"In Data2KafkaSink ${tupleList.head}, size is ${tupleList.size}")

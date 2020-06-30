@@ -213,6 +213,14 @@ object BatchflowDirective extends Directive {
       case e: Throwable =>
         logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
         feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, flowId, e.getMessage)
+        //todo
+      /*
+      SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
+                topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
+                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                flowConfig.flowId, ErrorPattern.StreamError)
+       */
+
     }
   }
 }
