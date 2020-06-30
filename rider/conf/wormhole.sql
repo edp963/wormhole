@@ -125,6 +125,7 @@ alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) 
 alter table `stream` add column `jvm_driver_config` VARCHAR(1000) NULL;
 alter table `stream` add column `jvm_executor_config` VARCHAR(1000) NULL;
 alter table `stream` add column `others_config` VARCHAR(1000) NULL;
+alter table `stream` add column `monitor_config` VARCHAR(1000) NULL default '{"monitorToEmail":false,"monitorToRestart":false,"monitorToDingding":""}' after `special_config`;
 
 CREATE TABLE IF NOT EXISTS `project` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

@@ -28,7 +28,8 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
 import slick.jdbc.MySQLProfile.api._
-import scala.collection.mutable.ArrayBuffer
+
+import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -80,5 +81,12 @@ class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUse
   def updateWithoutPwd(user: User): Future[Int] = {
     db.run(userTable.filter(_.id === user.id).map(user => (user.name, user.preferredLanguage, user.roleType, user.updateTime, user.updateBy))
       .update((user.name, user.preferredLanguage, user.roleType, user.updateTime, user.updateBy)))
+  }
+
+  def getUserEmailInfo(): Map[Long, String] = {
+    val user = Await.result(super.findAll, minTimeOut)
+    val data = Map[Long, String]()
+    user.map(user => data(user.id) = user.email)
+    return data
   }
 }

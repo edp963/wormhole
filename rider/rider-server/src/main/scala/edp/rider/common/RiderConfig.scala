@@ -23,7 +23,7 @@ package edp.rider.common
 import java.util.concurrent.TimeUnit
 
 import edp.rider.RiderStarter.modules.config
-import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig}
+import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig, MonitorConfig}
 import edp.rider.wormhole.{FlinkCheckpoint, FlinkCommonConfig}
 import org.apache.kafka.common.serialization.StringDeserializer
 
@@ -164,6 +164,12 @@ case class RiderKerberos(kafkaEnabled: Boolean,
 
 case class Monitor(databaseType: String)
 
+case class RiderSMTPConfig(smtpHost: String,
+                           smtpPort: String,
+                           smtpUsername: String,
+                           smtpPassword: String,
+                           fromAddress: String)
+
 //it will be combined with case class RiderMonitor during a follow-up operation
 
 object RiderConfig {
@@ -293,6 +299,11 @@ object RiderConfig {
     streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, metricsConfPath,
     getIntConfig("spark.yarn.web-proxy.port", 0))
 
+  lazy val monitorConfig = MonitorConfig(
+    monitorToEmail = false,
+    monitorToRestart = false,
+    monitorToDingding = "")
+
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
       RiderEs(config.getString("elasticSearch.http.url"),
@@ -359,7 +370,7 @@ object RiderConfig {
 
   //set default flink stream config
 
-  lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
+  lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "", monitorConfig)
 
   lazy val flink = RiderFlink(
     config.getString("flink.home"),
@@ -382,6 +393,18 @@ object RiderConfig {
   lazy val flinkConfig = FlinkCommonConfig(getStringConfig("flink.stateBackend", ""))
 
   lazy val monitor = Monitor(getStringConfig("monitor.database.type", "ES"))
+
+  // smtp配置
+  lazy val smtpConfig = RiderSMTPConfig(
+    getStringConfig("smtp.smtpHost", ""),
+    getStringConfig("smtp.smtpPort", ""),
+    getStringConfig("smtp.smtpUsername", ""),
+    getStringConfig("smtp.smtpPassword", ""),
+    getStringConfig("smtp.fromAddress", "")
+  )
+
+  // 钉钉机器人配置
+  lazy val dingdingRobotSendUrl = getStringConfig("dingding.robot.send.url", "")
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
