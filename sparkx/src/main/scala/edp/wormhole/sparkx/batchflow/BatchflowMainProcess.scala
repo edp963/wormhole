@@ -21,7 +21,7 @@
 
 package edp.wormhole.sparkx.batchflow
 
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
@@ -119,13 +119,15 @@ object BatchflowMainProcess extends EdpLogging {
       } catch {
         case e: KafkaException=>
           logError("kafka consumer error,"+e.getMessage, e)
-          if(e.getMessage.contains("Failed to construct kafka consumer")){
+          if (e.getMessage.contains("Failed to construct kafka consumer")){
             logError("kafka consumer error ,stop spark streaming")
 
-            SparkxUtils.setFlowErrorMessage(List.empty[String],
-              topicPartitionOffset, config, "testkerberos", "testkerberos", -1,
-              e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
-              -config.spark_config.stream_id, ErrorPattern.StreamError)
+            if (!config.debug) {
+              SparkxUtils.setFlowErrorMessage(List.empty[String],
+                topicPartitionOffset, config, "testkerberos", "testkerberos", -1,
+                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                -config.spark_config.stream_id, ErrorPattern.StreamError)
+            }
 
             stream.stop()
 
@@ -135,12 +137,14 @@ object BatchflowMainProcess extends EdpLogging {
         case e: Throwable =>
           logAlert("batch error", e)
 
-          ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
-            sinks.foreach { case (sinkNamespace, flowConfig) =>
-              SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
-                topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
-                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
-                flowConfig.flowId, ErrorPattern.StreamError)
+          if (!config.debug) {
+            ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
+              sinks.foreach { case (sinkNamespace, flowConfig) =>
+                SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
+                  topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
+                  e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                  flowConfig.flowId, ErrorPattern.StreamError)
+              }
             }
           }
       }
@@ -330,48 +334,50 @@ object BatchflowMainProcess extends EdpLogging {
               afterUnionDf = unionDf
             }
 
-            val sinkTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
+            if (!config.debug) {
+              val sinkTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
 
-            //get session namespace config
-            val namespaceConfigKey = sourceNamespace + "&" + sinkNamespace
-            val newSourceNamespace = if(session.sessionState.conf.contains(namespaceConfigKey)) {
-              val namespaceConfigValue = session.sessionState.conf.getConfString(namespaceConfigKey)
-              if(!namespaceConfigValue.isEmpty) {
-                val processedSourceNs = JSON.parseObject(namespaceConfigValue).getString("sourceNamespace")
-                log.info(s"namespace Config Key $namespaceConfigKey, namespace Config value $namespaceConfigValue, processed source namespace: $processedSourceNs")
-                processedSourceNs
+              //get session namespace config
+              val namespaceConfigKey = sourceNamespace + "&" + sinkNamespace
+              val newSourceNamespace = if (session.sessionState.conf.contains(namespaceConfigKey)) {
+                val namespaceConfigValue = session.sessionState.conf.getConfString(namespaceConfigKey)
+                if (!namespaceConfigValue.isEmpty) {
+                  val processedSourceNs = JSON.parseObject(namespaceConfigValue).getString("sourceNamespace")
+                  log.info(s"namespace Config Key $namespaceConfigKey, namespace Config value $namespaceConfigValue, processed source namespace: $processedSourceNs")
+                  processedSourceNs
+                }
+                else {
+                  log.info(s"namespace Config Key $namespaceConfigKey, namespace Config value $namespaceConfigValue")
+                  sourceNamespace
+                }
+              } else sourceNamespace
+              if (newSourceNamespace != sourceNamespace) {
+                log.info(s"original source namespace is sourceNamespace, new source namespace is $newSourceNamespace")
               }
-              else {
-                log.info(s"namespace Config Key $namespaceConfigKey, namespace Config value $namespaceConfigValue")
-                sourceNamespace
-              }
-            } else sourceNamespace
-            if(newSourceNamespace != sourceNamespace) {
-              log.info(s"original source namespace is sourceNamespace, new source namespace is $newSourceNamespace")
+
+              if (sinkRDD != null) {
+                try {
+                  validityAndSinkProcess(protocolType, newSourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)
+                }
+                catch {
+                  case e: Throwable =>
+                    logAlert("sink,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
+
+                    SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
+                      topicPartitionOffset, config, sourceNamespace, sinkNamespace, count,
+                      e, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
+                }
+              } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
+
+              if (afterUnionDf != null) afterUnionDf.unpersist()
+              val doneTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
+              processedSourceNamespace.add(sourceNamespace)
+              WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
+                UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime,
+                  config.spark_config.stream_id, batchId, sinkNamespace, topicPartitionOffset.toJSONString,
+                  count, maxTs, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs, flow._2.flowId),
+                Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flow._2.flowId), config.kafka_output.brokers)
             }
-
-            if (sinkRDD != null) {
-              try {
-                validityAndSinkProcess(protocolType, newSourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)
-              }
-              catch {
-                case e: Throwable =>
-                  logAlert("sink,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
-
-                  SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
-                    topicPartitionOffset, config, sourceNamespace, sinkNamespace, count,
-                    e, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
-              }
-            } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
-
-            if (afterUnionDf != null) afterUnionDf.unpersist()
-            val doneTs = DateUtils.dt2string(DateUtils.currentDateTime, DtFormat.TS_DASH_MILLISEC)
-            processedSourceNamespace.add(sourceNamespace)
-            WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime,
-                config.spark_config.stream_id, batchId, sinkNamespace, topicPartitionOffset.toJSONString,
-                count, maxTs, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs, flow._2.flowId),
-              Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flow._2.flowId), config.kafka_output.brokers)
           }
         }
         )
@@ -428,8 +434,18 @@ object BatchflowMainProcess extends EdpLogging {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
     val sourceDf = createSourceDf(session, sourceNamespace, umsFields, sourceTupleRDD)
     val dataSetShow = swiftsProcessConfig.get.datasetShow
-    if (dataSetShow.get) {
-      sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
+    if (config.debug) {
+      println(s"${DateUtils.dt2string(new Date, DtFormat.TS_DASH_SEC)} start debug process $sourceNamespace->$sinkNamespace")
+      println(s"result for batch: $batchId")
+      if (dataSetShow.get) {
+        sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
+      } else {
+        sourceDf.show()
+      }
+    } else {
+      if (dataSetShow.get) {
+        sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
+      }
     }
 
     val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache

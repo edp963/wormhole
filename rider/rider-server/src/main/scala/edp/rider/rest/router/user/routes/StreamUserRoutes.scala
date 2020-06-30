@@ -33,7 +33,7 @@ import io.swagger.annotations.{ApiResponses, _}
 @Path("/user")
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
-    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getTopics ~ getJvmConf ~
+    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ debugRoute ~ stopDebugRoute ~ deleteStream ~ getSparkConf ~ getTopics ~ getJvmConf ~
     postUserDefinedTopic ~ getUdfs ~ postTopicsOffset ~ getDefaultConfig ~ getYarnUi ~ getFlowPrioritiesByStreamId ~
     updateFlowOrder
   //  ~ deleteUserDefinedTopic
@@ -108,7 +108,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   def postStreamRoute: Route = modules.streamUserService.postRoute(basePath)
 
-  @Path("/projects/{id}/streams/{streamId}/logs/")
+  @Path("/projects/{id}/streams/{streamId}/logs")
   @ApiOperation(value = "get stream log by stream id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
@@ -139,6 +139,40 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def startRoute: Route = modules.streamUserService.startRoute(basePath)
+
+  @Path("/projects/{id}/streams/{streamId}/debug")
+  @ApiOperation(value = "start stream by id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamDirective", value = "topics offset and udfs information", required = false, dataType = "edp.rider.rest.persistence.entities.StreamDirective", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def debugRoute: Route = modules.streamUserService.debugRoute(basePath)
+
+  @Path("/projects/{id}/streams/{streamId}/stopDebug")
+  @ApiOperation(value = "stop stream by id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "debugLogInfo", value = "debug Log Info", required = false, dataType = "edp.rider.common.DebugLogInfo", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def stopDebugRoute: Route = modules.streamUserService.stopDebugRoute(basePath)
 
   @Path("/projects/{id}/streams/{streamId}/stop")
   @ApiOperation(value = "stop stream by id", notes = "", nickname = "", httpMethod = "PUT")

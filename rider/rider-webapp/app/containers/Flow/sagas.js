@@ -57,7 +57,8 @@ import {
   LOAD_FLOW_PERFORMANCE,
   LOAD_RECHARGE_HISTORY,
   COMFIRM_RECHARGE,
-  LOAD_FLOW_ERROR_LIST
+  LOAD_FLOW_ERROR_LIST,
+  DEBUG_FLOWS
 } from './constants'
 
 import {
@@ -262,8 +263,25 @@ export function* addFlow ({ payload }) {
   }
 }
 
+export function* debugFlow ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectUserList}/${payload.values.simpleFlow.projectId}/debug`,
+      data: payload.values
+    })
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'debugFlow')
+  }
+}
+
 export function* addFlowWatcher () {
   yield fork(takeEvery, ADD_FLOWS, addFlow)
+}
+
+export function* debugFlowWatcher () {
+  yield fork(takeEvery, DEBUG_FLOWS, debugFlow)
 }
 
 export function* operateUserFlow ({ payload }) {
@@ -886,5 +904,6 @@ export default [
   postPerformanceWatcher,
   getRechargeHistoryWatcher,
   reChangeConfirmWatcher,
-  getErrorListWatcher
+  getErrorListWatcher,
+  debugFlowWatcher
 ]

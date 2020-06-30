@@ -45,7 +45,7 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfResponse], userId: Long) = {
+  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfResponse], userId: Long, debug: Boolean = false) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       udfSeq.foreach({
@@ -109,7 +109,7 @@ object UdfUtils extends RiderLogger {
                |
           """.stripMargin.replaceAll("\\n", "")
           riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directive $msg")
-          PushDirective.sendUdfDirective(streamId, udfInfo(2), JsonUtils.jsonCompact(msg))
+          PushDirective.sendUdfDirective(streamId, udfInfo(2), JsonUtils.jsonCompact(msg), debug)
       })
       riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directives success.")
     } catch {
@@ -130,9 +130,9 @@ object UdfUtils extends RiderLogger {
   //    }
   //  }
 
-  def removeUdfDirective(streamId: Long, userId: Long): Unit = {
+  def removeUdfDirective(streamId: Long, userId: Long, debug: Boolean): Unit = {
     try {
-      PushDirective.removeUdfDirective(streamId)
+      PushDirective.removeUdfDirective(streamId, debug)
       riderLogger.info(s"user $userId remove udf directive success.")
     } catch {
       case ex: Exception =>

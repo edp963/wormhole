@@ -40,23 +40,27 @@ object DirectiveFlowWatch extends EdpLogging {
 
   def initFlow(config: WormholeConfig, appId: String): Unit = {
     logInfo("init flow,appId=" + appId)
-    val watchPath = config.zookeeper_path + "/" + config.spark_config.stream_id + flowRelativePath
+    val watchPath = if (config.debug) {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + "/debug" + flowRelativePath
+    } else {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + flowRelativePath
+    }
     if (!WormholeZkClient.checkExist(config.zookeeper_address, watchPath)) WormholeZkClient.createPath(config.zookeeper_address, watchPath)
     val flowList = WormholeZkClient.getChildren(config.zookeeper_address, watchPath)
     flowList.toArray.foreach(flow => {
       val flowContent = WormholeZkClient.getData(config.zookeeper_address, watchPath + "/" + flow)
-      add(config.zookeeper_address, config.zookeeper_path)(watchPath + "/" + flow, new String(flowContent))
+      add(config.zookeeper_address, config.zookeeper_path, config.debug)(watchPath + "/" + flow, new String(flowContent))
     })
 
-    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, watchPath, add(config.zookeeper_address, config.zookeeper_path), remove(config.zookeeper_address), update(config.zookeeper_address, config.zookeeper_path))
+    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, watchPath, add(config.zookeeper_address, config.zookeeper_path, config.debug), remove(config.zookeeper_address), update(config.zookeeper_address, config.zookeeper_path, config.debug))
   }
 
-  def add(zkUrl: String, zkRootPath: String)(path: String, data: String, time: Long = 1): Unit = {
+  def add(zkUrl: String, zkRootPath: String, debug: Boolean)(path: String, data: String, time: Long = 1): Unit = {
     try {
       logInfo("add" + data)
       if (path.contains("flow")) {
         val dataSplit = path.split("/")
-        val streamId = dataSplit(dataSplit.length - 3)
+        val streamId = if (debug) dataSplit(dataSplit.length - 4) else dataSplit(dataSplit.length - 3)
         val flowInfo = dataSplit.last
         val flowDirectivePath = s"$zkRootPath$flowFeedbackRelativePath/$streamId/$flowInfo"
         if (!data.startsWith("{")) {
@@ -66,7 +70,9 @@ object DirectiveFlowWatch extends EdpLogging {
           ums.protocol.`type` match {
             case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
               val feedbackMes = BatchflowDirective.flowStartProcess(ums)
-              createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
+              if (!debug) {
+                createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
+              }
             case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
               val feedbackMes = RouterDirective.flowStartProcess(ums)
               createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
@@ -98,10 +104,10 @@ object DirectiveFlowWatch extends EdpLogging {
     }
   }
 
-  def update(zkUrl: String, zkRootPath: String)(path: String, data: String, time: Long): Unit = {
+  def update(zkUrl: String, zkRootPath: String, debug: Boolean)(path: String, data: String, time: Long): Unit = {
     try {
       logInfo("update" + data)
-      add(zkUrl, zkRootPath)(path, data, time)
+      add(zkUrl, zkRootPath, debug)(path, data, time)
     } catch {
       case e: Throwable => logAlert("flow update error:" + data, e)
     }

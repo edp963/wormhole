@@ -63,12 +63,13 @@ import FlowEtpStrategyForm from './FlowEtpStrategyForm'
 import FlowTransformForm from './FlowTransformForm'
 import JobTransformForm from './JobTransformForm'
 import StreamConfigForm from './StreamConfigForm'
+import DebugLogs from './DebugLogs'
 // import StreamDagModal from './StreamDagModal'
 // import FlowDagModal from './FlowDagModal'
 
 import {
   loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace,
-  loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql
+  loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql, debugFlowAction
 } from '../Flow/action'
 
 import {
@@ -235,7 +236,9 @@ export class Workbench extends React.Component {
       flowSourceNsSys: '',
       jobSourceNsSys: '',
       sourceNsVersionList: [],
-      globalLoading: false
+      globalLoading: false,
+      debugLogPath: '',
+      debugLogsModalVisible: false
     }
   }
 
@@ -854,7 +857,11 @@ export class Workbench extends React.Component {
         } catch (error) {
           console.error('warn: parse error')
         }
+        const { id, projectId, sourceNs, sinkNs, status, active,
+          createTime, createBy, updateTime, updateBy, startedTime, stoppedTime } = result
+
         this.workbenchFlowForm.setFieldsValue({
+          flowId: id,
           flowStreamId: streamId,
           streamName: streamName,
           streamType: streamType,
@@ -866,8 +873,6 @@ export class Workbench extends React.Component {
           time_characteristic: tranConfigParse.time_characteristic || ''
         })
 
-        const { id, projectId, sourceNs, sinkNs, status, active,
-          createTime, createBy, updateTime, updateBy, startedTime, stoppedTime } = result
         this.setState({
           formStep: 0,
           pipelineStreamId: streamId,
@@ -1655,7 +1660,10 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideFlowWorkbench = () => this.setState({ flowMode: '' })
+  hideFlowWorkbench = () => {
+    this.setState({ flowMode: '' })
+    this.handleStopDebug()
+  }
   hideStreamWorkbench = () => this.setState({ streamMode: '' })
   hideJobWorkbench = () => this.setState({ jobMode: '' })
 
@@ -2185,6 +2193,7 @@ export class Workbench extends React.Component {
       }, () => {
         this.hideFlowSubmit()
         this.hideFlowDefaultSubmit()
+        this.handleStopDebug()
       })
     } else if (flowMode === 'edit') {
       const editData = {
@@ -2206,6 +2215,7 @@ export class Workbench extends React.Component {
       }, () => {
         this.hideFlowSubmit()
         this.hideFlowDefaultSubmit()
+        this.handleStopDebug()
       })
     }
   }
@@ -3605,6 +3615,137 @@ export class Workbench extends React.Component {
   //   })
   // }
 
+  onDebugFlow = (record) => (e) => {
+    const { flowFormTranTableSource, flowSubPanelKey, projectId, resultFiledsOutput, etpStrategyRequestValue, flowSourceNsSys } = this.state
+    const values = this.workbenchFlowForm.getFieldsValue()
+    let tranRequestTempArr = []
+    let transformTableRequestValue
+    let pushdownConnectRequestValue
+    let dataframeShowOrNot
+    flowFormTranTableSource.map(i => {
+      if (i.order <= record['order']) {
+        let isCep = i.transformConfigInfoRequest.split('=')[0].indexOf('cep') > -1
+        if (isCep) {
+          tranRequestTempArr.push(`${i.transformConfigInfoRequest}`)
+        } else {
+          tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest))
+        }
+      }
+    })
+    const tranRequestTempString = tranRequestTempArr.join('')
+    if (flowSubPanelKey === 'flink') {
+      let timeCharacteristic = this.workbenchFlowForm.getFieldsValue(['time_characteristic'])
+      transformTableRequestValue = tranRequestTempString === '' ? {} : Object.assign({'action': tranRequestTempString}, timeCharacteristic)
+      // transformTableConfirmValue = tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+      // timeCharacteristic = timeCharacteristic.time_characteristic
+    } else if (flowSubPanelKey === 'spark') {
+      transformTableRequestValue = tranRequestTempString === '' ? {} : {'action': tranRequestTempString}
+      // transformTableConfirmValue = tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+    }
+
+    // 只有 lookup sql 才有 pushdownConnection
+    let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection['name_space'])
+
+    let pushConnTemp = []
+    for (let item of tempSource) {
+      pushConnTemp.push(item.pushdownConnection)
+    }
+
+    pushdownConnectRequestValue = pushConnTemp === '' ? {} : {'pushdown_connection': pushConnTemp}
+
+    this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
+      if (!err) {
+        if (values.dataframeShow === 'true') {
+          dataframeShowOrNot = {
+            'dataframe_show': 'true',
+            'dataframe_show_num': values.dataframeShowNum
+          }
+        }
+      }
+    })
+
+    let sinkConfigRequest = ''
+    if (values.resultFields === 'all') {
+      sinkConfigRequest = values.sinkConfig
+        ? `{"sink_specific_config":${values.sinkConfig}}`
+        : ''
+    } else {
+      sinkConfigRequest = values.sinkConfig
+        ? `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
+        : JSON.stringify(resultFiledsOutput)
+    }
+
+    let tranConfigRequest = {}
+    if (!transformTableRequestValue['action']) {
+      tranConfigRequest = ''
+    } else {
+      const objectTemp = Object.assign(etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
+      const tranConfigRequestTemp = values.flowSpecialConfig
+        ? Object.assign(objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+        : objectTemp
+      tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
+    }
+    const isCheckpoint = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.checkpoint : null
+    const checkpoint = { enable: isCheckpoint, checkpoint_interval_ms: 300000, stateBackend: 'hdfs://flink-checkpoint' }
+    const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+    const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+    const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
+    const config = {
+      parallelism,
+      checkpoint
+    }
+    const submitFlowData = {
+      projectId: Number(projectId),
+      streamId: Number(values.flowStreamId),
+      sourceNs: sourceDataInfo,
+      sinkNs: sinkDataInfo,
+      consumedProtocol: values.protocol.join(','),
+      sinkConfig: `${sinkConfigRequest}`,
+      tranConfig: tranConfigRequest,
+      config: JSON.stringify(config),
+      flowName: values.flowName,
+      tableKeys: values.tableKeys,
+      desc: null
+    }
+    if (values.streamType === 'spark') {
+      this.props.onDebugFlowAction({
+        simpleFlow: submitFlowData
+      }, (payload) => {
+        this.setState({
+          debugLogPath: values.debugLogPath,
+          debugLogsModalVisible: true
+        })
+      })
+    } else {
+      this.props.onDebugFlowAction({
+        simpleFlow: submitFlowData,
+        flowDirective: values.flinkFlowDirective
+      }, (payload) => {
+        this.setState({
+          debugLogPath: payload[0]['_2'],
+          debugLogsModalVisible: true
+        })
+      })
+    }
+  }
+
+  handleDebugLogsCancel = (e) => {
+    this.setState({
+      debugLogsModalVisible: false
+    })
+  }
+
+  handleStopDebug = () => {
+    const { projectId } = this.state
+    const streamIdGeted = this.workbenchFlowForm.getFieldValue('flowStreamId')
+    const debugLogPath = this.workbenchFlowForm.getFieldValue('debugLogPath')
+    if (debugLogPath) {
+      this.props.onStopDebug(projectId, streamIdGeted, debugLogPath, () => {
+        this.workbenchFlowForm.setFieldsValue({debugLogPath: ''})
+      })
+    }
+  }
+
   render () {
     const {
       flowMode, projectId, streamMode, jobMode, formStep, isWormhole, flowClassHide,
@@ -3612,7 +3753,7 @@ export class Workbench extends React.Component {
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
       etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
       jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern,
-      outputType, outputFieldList
+      outputType, outputFieldList, debugLogsModalVisible, debugLogPath
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
@@ -3726,6 +3867,9 @@ export class Workbench extends React.Component {
                       flowSubPanelKey={this.state.flowSubPanelKey}
                       emitFlowFunctionType={this.getFlowFunctionType}
 
+                      locale={this.props.locale}
+                      onDebugFlow={this.onDebugFlow}
+
                       ref={(f) => { this.workbenchFlowForm = f }}
                   />
                     {/* Flow Transform Modal */}
@@ -3821,6 +3965,21 @@ export class Workbench extends React.Component {
                 </div>
               </div> */}
               </div>
+              {debugLogsModalVisible === true ? (
+                <Modal
+                  title="Logs"
+                  visible={debugLogsModalVisible}
+                  onCancel={this.handleDebugLogsCancel}
+                  wrapClassName="ant-modal-xlarge ant-modal-no-footer"
+                  footer={<span></span>}
+                >
+                  <DebugLogs
+                    logPath={debugLogPath}
+                  />
+                </Modal>
+              ) : (
+                ''
+              )}
             </TabPane>
             {/* Stream Panel */}
             <TabPane tab="Stream" key="stream" style={{height: `${paneHeight}px`}}>
@@ -4123,7 +4282,9 @@ Workbench.propTypes = {
   activeKey: PropTypes.string,
   onChangeTabs: PropTypes.func,
   jumpStreamToFlowFilter: PropTypes.func,
-  onLoadSourceNsVersion: PropTypes.func
+  onLoadSourceNsVersion: PropTypes.func,
+  onDebugFlowAction: PropTypes.func,
+  onStopDebug: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -4163,7 +4324,9 @@ export function mapDispatchToProps (dispatch) {
     onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve)),
     onChangeTabs: (key) => dispatch(changeTabs(key)),
     jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
-    onLoadSourceNsVersion: (projectId, namespace, resolve) => dispatch(getSourceNsVersion(projectId, namespace, resolve))
+    onLoadSourceNsVersion: (projectId, namespace, resolve) => dispatch(getSourceNsVersion(projectId, namespace, resolve)),
+    onDebugFlowAction: (values, resolve) => dispatch(debugFlowAction(values, resolve)),
+    onStopDebug: (projectId, id, logPath, resolve) => dispatch(stopDebug(projectId, id, logPath, resolve))
   }
 }
 

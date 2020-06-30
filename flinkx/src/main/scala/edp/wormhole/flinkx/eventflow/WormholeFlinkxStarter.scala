@@ -24,7 +24,7 @@ import edp.wormhole.flinkx.common.WormholeFlinkxConfig
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.{Ums, UmsSchemaUtils}
 import edp.wormhole.util.JsonUtils
-import org.apache.log4j.Logger
+import org.apache.log4j.{Level, Logger}
 
 object WormholeFlinkxStarter extends App {
 
@@ -33,6 +33,13 @@ object WormholeFlinkxStarter extends App {
   println(args(1) + " --------------flow start")
   val config: WormholeFlinkxConfig = JsonUtils.json2caseClass[WormholeFlinkxConfig](args(0))
   val umsFlowStart: Ums = UmsSchemaUtils.toUms(args(1))
+  if (config.debug) {
+    Logger.getLogger("org").setLevel(Level.ERROR)
+    Logger.getLogger("com").setLevel(Level.ERROR)
+    Logger.getLogger("kafka").setLevel(Level.ERROR)
+    Logger.getLogger("edp").setLevel(Level.ERROR)
+  }
+
   WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kafka_output.kerberos)
 
   WormholeFlinkxFlowDirective.initFlow(umsFlowStart,config)

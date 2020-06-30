@@ -202,7 +202,8 @@ case class StartResponse(id: Long,
                          hideActions: String,
                          appId: Option[String] = None,
                          startedTime: Option[String] = None,
-                         stoppedTime: Option[String] = None
+                         stoppedTime: Option[String] = None,
+                         logPath: Option[String] = None
                         )
 
 

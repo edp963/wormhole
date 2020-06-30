@@ -26,6 +26,7 @@
   "rider.app.table.sure.delete": "确定删除吗？",
   "rider.app.table.sure.stop": "确定停止吗？",
   "rider.app.table.sure.start": "确定开始吗？",
+  "rider.app.table.sure.debug": "确定调试吗？",
   "rider.app.table.sure.renew": "确定生效吗？",
   "rider.app.table.exists": "存在",
   "rider.app.help": "帮助",
@@ -147,5 +148,12 @@
   "rider.containers.Workbench.tranformation.cep.strategy": "数据处理方式：NO_SKIP->Every possible match will be emitted；SKIP_PAST_LAST_EVENT->Discards every partial match that contains event of the match",
   "rider.containers.Workbench.tranformation.cep.keyby": "分组，可指定一个或多个字段，“,”分割",
   "rider.containers.Workbench.tranformation.cep.operator": "规则衔接方式，Begin：第一个规则只能是Begin/Next：符合下一规则的数据必须紧邻符合上一规则的数据/FollowedBy：可以与符合上一个规则的数据间隔其他数据/NotNext：与next相反/NotFllowedBy：与FllowedBy相反",
-  "rider.containers.Workbench.tranformation.cep.quantifier": "匹配规则数据出现条数，符合即进入下一个规则。OneOrMore->一次或多次；Times->固定次数；TimesOrMore->大于等于指定次数"
+  "rider.containers.Workbench.tranformation.cep.quantifier": "匹配规则数据出现条数，符合即进入下一个规则。OneOrMore->一次或多次；Times->固定次数；TimesOrMore->大于等于指定次数",
+  "rider.containers.Workbench.debug.view.btn": "查看",
+  "rider.containers.Workbench.debug.reset.btn": "还原",
+  "rider.containers.Workbench.debug.cancel.btn": "取消",
+  "rider.containers.Workbench.debug.rate": "条/秒",
+  "rider.containers.Workbench.debug.apply": "应用",
+  "rider.containers.Workbench.debug.apply.all": "一键应用",
+  "rider.containers.Workbench.flow.view": "查看"
 }

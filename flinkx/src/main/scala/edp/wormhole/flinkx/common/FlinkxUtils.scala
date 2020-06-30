@@ -20,14 +20,12 @@
 
 package edp.wormhole.flinkx.common
 
-import com.alibaba.fastjson.{JSONArray, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils, UmsWatermark}
 import edp.wormhole.util.DateUtils
 import org.apache.log4j.Logger
 
-import scala.collection.mutable
 
 object FlinkxUtils {
 
@@ -65,6 +63,53 @@ object FlinkxUtils {
       streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
       UmsWatermark(ts), errorCount, errorMsg, batchId, null, protocolType,
       flowId, errorPattern)
+  }
+
+  def getDefaultKeyConfig(specialConfig: Option[StreamSpecialConfig]): Boolean = {
+    //log.info(s"stream special config is $specialConfig")
+    try {
+      specialConfig match {
+        case Some(_) =>
+          specialConfig.get.useDefaultKey.getOrElse(false)
+        case None =>
+          false
+      }
+    } catch {
+      case e: Throwable =>
+        logger.error("parse stream specialConfig error, ", e)
+        false
+    }
+  }
+
+  def getDefaultKey(key: String, namespace: String, defaultKey: Boolean): String = {
+    /*if (key != null) {
+      log.info(s"getDefaultKey: key $key")
+    } else {
+      log.info(s"getDefaultKey: key null")
+    }
+    if(namespaces != null) {
+      log.info(s"getDefaultKey: namespaces $namespaces, defaultKey $defaultKey")
+    } else {
+      log.info(s"getDefaultKey: namespaces null, $defaultKey")
+    }*/
+    if (!isRightKey(key) && null != namespace && namespace.nonEmpty && defaultKey) {
+      //log.info(s"getDefaultKey: use default namespace ${namespaces.head} as kafka key, all namespace is $namespaces")
+      UmsProtocolType.DATA_INCREMENT_DATA.toString + "." + namespace
+    } else {
+      key
+    }
+  }
+
+  def isRightKey(key: String): Boolean = {
+    if (null == key || key.isEmpty) {
+      false
+    } else {
+      if (key.split(".").length < 5) {
+        false
+      } else {
+        true
+      }
+    }
   }
 
 }

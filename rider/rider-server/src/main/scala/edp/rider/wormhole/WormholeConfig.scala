@@ -107,7 +107,7 @@ case class KafkaFlinkTopic(topic_name: String,
 
 case class KafkaInput(kafka_base_config: KafkaBaseConfig, kafka_topics: Seq[KafkaFlinkTopic])
 
-case class WhFlinkConfig(flow_name: String, kafka_input: KafkaInput, kafka_output: KafkaOutputConfig, commonConfig: FlinkCommonConfig, zookeeper_address: String, udf_config: Seq[FlowUdfResponse], feedback_enabled: Boolean, feedback_state_count: Int, feedback_interval: Int, kerberos: Boolean = false)
+case class WhFlinkConfig(flow_name: String, kafka_input: KafkaInput, kafka_output: KafkaOutputConfig, commonConfig: FlinkCommonConfig, zookeeper_address: String, udf_config: Seq[FlowUdfResponse], feedback_enabled: Boolean, feedback_state_count: Int, feedback_interval: Int, kerberos: Boolean = false, special_config: Option[StreamSpecialConfig] = None)
 
 case class FlinkCommonConfig(stateBackend: String)
 

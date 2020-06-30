@@ -42,8 +42,6 @@ import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.JsonUtils
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -202,26 +200,30 @@ object StreamUtils extends RiderLogger {
     if (RiderConfig.riderServer.clusterId != "") s"wormhole_${RiderConfig.riderServer.clusterId}_${projectName}_$name"
     else s"wormhole_${projectName}_$name"
 
-  def getStreamConfig(stream: Stream) = {
+  def getStreamConfig(stream: Stream, debug: Boolean) = {
     val startConfig = json2caseClass[StartConfig](stream.startConfig)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
     val inputKafkaInstance = getKafkaDetailByStreamId(stream.id)
     val inputKafkaKerberos = InstanceUtils.getKafkaKerberosConfig(inputKafkaInstance._2.getOrElse(""), RiderConfig.kerberos.kafkaEnabled)
+    val group_id = if (debug) stream.name + "_debug" else stream.name
+    val durations = if (debug) 5 else launchConfig.durations.toInt
+    val stream_name = if (debug) stream.name + "_debug" else stream.name
+    val master = if (debug) "local[*]" else "yarn"
 
     val config =
       RiderConfig.spark.remoteHdfsRoot match {
         case Some(_) =>
-          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+          BatchFlowConfig(KafkaInputBaseConfig(group_id, durations, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled),
-            SparkConfig(stream.id, stream.name, "yarn", startConfig.executorNums * startConfig.perExecutorCores),
+            SparkConfig(stream.id, stream_name, master, startConfig.executorNums * startConfig.perExecutorCores),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
             RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.kafkaEnabled, RiderConfig.spark.remoteHdfsNamenodeHosts,
             RiderConfig.spark.remoteHdfsNamenodeIds, Option(false))
         case None =>
          // val (hdfsNameNodeIds,hdfsNameNodeHosts)=getNameNodeInfoFromLocalHadoop()
-          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+          BatchFlowConfig(KafkaInputBaseConfig(group_id, durations, inputKafkaInstance._1, inputKafkaKerberos, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers, RiderConfig.kerberos.kafkaEnabled),
-            SparkConfig(stream.id, stream.name, "yarn", launchConfig.partitions.toInt),
+            SparkConfig(stream.id, stream_name, master, launchConfig.partitions.toInt),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, getStreamSpecialConfig(stream.specialConfig),
             Some(RiderConfig.spark.hdfsRoot), RiderConfig.kerberos.kafkaEnabled, None, None, None)
       }
@@ -254,14 +256,23 @@ object StreamUtils extends RiderLogger {
   }
 */
 
-  def startStream(stream: Stream, logPath: String): (Boolean, Option[String]) = {
+  def startStream(stream: Stream, logPath: String, debug: Boolean = false): (Boolean, Option[String]) = {
     StreamType.withName(stream.streamType) match {
       case StreamType.SPARK =>
-        val args = getStreamConfig(stream)
+        val args = getStreamConfig(stream, debug)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
-        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
+        val commandSh =
+          if (debug) {
+            generateDebugSparkStreamStartSh(args, stream.name, logPath, stream.functionType)
+          } else {
+            generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
+          }
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
-        ShellUtils.runShellCommand(commandSh, logPath)
+        if (debug) {
+          ShellUtils.runDebugShellCommand(commandSh, logPath)
+        } else {
+          ShellUtils.runShellCommand(commandSh, logPath)
+        }
       case StreamType.FLINK =>
         val commandSh = SubmitYarnJob.generateFlinkStreamStartSh(stream)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
@@ -269,17 +280,28 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def genUdfsStartDirective(streamId: Long, udfIds: Seq[Long], userId: Long): Unit = {
+  def genUdfsStartDirective(streamId: Long, udfIds: Seq[Long], userId: Long, debug: Boolean): Unit = {
     if (udfIds.nonEmpty) {
-      val deleteUdfIds = relStreamUdfDal.getDeleteUdfIds(streamId, udfIds)
-      Await.result(relStreamUdfDal.deleteByFilter(udf => udf.streamId === streamId && udf.udfId.inSet(deleteUdfIds)), minTimeOut)
-      val insertUdfs = udfIds.map(
-        id => RelStreamUdf(0, streamId, id, currentSec, userId, currentSec, userId)
-      )
-      Await.result(relStreamUdfDal.insertOrUpdate(insertUdfs).mapTo[Int], minTimeOut)
-      sendUdfDirective(streamId, relStreamUdfDal.getStreamUdf(Seq(streamId)), userId)
+      if (debug) {
+        val udfsSeq = Await.result(udfDal.findByFilter(_.id inSet udfIds), minTimeOut)
+        var streamUdfResponseList = List[StreamUdfResponse]()
+        udfsSeq.foreach(udf => {
+          streamUdfResponseList = streamUdfResponseList :+ StreamUdfResponse(-1, streamId, udf.functionName, udf.fullClassName, udf.jarName)
+        })
+        sendUdfDirective(streamId, streamUdfResponseList, userId, debug)
+      } else {
+        val deleteUdfIds = relStreamUdfDal.getDeleteUdfIds(streamId, udfIds)
+        Await.result(relStreamUdfDal.deleteByFilter(udf => udf.streamId === streamId && udf.udfId.inSet(deleteUdfIds)), minTimeOut)
+        val insertUdfs = udfIds.map(
+          id => RelStreamUdf(0, streamId, id, currentSec, userId, currentSec, userId)
+        )
+        Await.result(relStreamUdfDal.insertOrUpdate(insertUdfs).mapTo[Int], minTimeOut)
+        sendUdfDirective(streamId, relStreamUdfDal.getStreamUdf(Seq(streamId)), userId, debug)
+      }
     } else {
-      Await.result(relStreamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+      if (!debug) {
+        Await.result(relStreamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+      }
     }
   }
 
@@ -291,33 +313,33 @@ object StreamUtils extends RiderLogger {
       Await.result(relStreamUdfDal.insertOrUpdate(insertUdfs).mapTo[Int], minTimeOut)
       sendUdfDirective(streamId,
         relStreamUdfDal.getStreamUdf(Seq(streamId)).filter(udf => udfIds.contains(udf.id)),
-        userId)
+        userId, false)
     }
   }
 
-  def genTopicsStartDirective(streamId: Long, putTopicOpt: Option[PutStreamTopic], userId: Long): Unit = {
+  def genTopicsStartDirective(streamId: Long, putTopicOpt: Option[PutStreamTopic], userId: Long, debug: Boolean): Unit = {
     putTopicOpt match {
       case Some(putTopic) =>
         val autoRegisteredTopics = putTopic.autoRegisteredTopics
         val userdefinedTopics = putTopic.userDefinedTopics
-        // update auto registered topics
-        streamInTopicDal.updateByStartOrRenew(streamId, autoRegisteredTopics, userId)
-        // delete user defined topics by start
-        streamUdfTopicDal.deleteByStartOrRenew(streamId, userdefinedTopics)
-        // insert or update user defined topics by start
-        streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
-        // send topics start directive
-        //val topics = autoRegisteredTopics ++: userdefinedTopics
-        //val addHeartbeatTopic = if (topics.isEmpty) true else false
-        val addDefaultTopicFlag =
-        if (autoRegisteredTopics.nonEmpty || userdefinedTopics.nonEmpty)
-          false
-        else
-          true
-        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, addDefaultTopicFlag)
+        if (!debug) {
+          // update auto registered topics
+          streamInTopicDal.updateByStartOrRenew(streamId, autoRegisteredTopics, userId)
+          // delete user defined topics by start
+          streamUdfTopicDal.deleteByStartOrRenew(streamId, userdefinedTopics)
+          // insert or update user defined topics by start
+          streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
+          // send topics start directive
+          //val topics = autoRegisteredTopics ++: userdefinedTopics
+          //val addHeartbeatTopic = if (topics.isEmpty) true else false
+        }
+        val addDefaultTopicFlag = if (autoRegisteredTopics.nonEmpty || userdefinedTopics.nonEmpty) false else true
+        sendTopicDirective(streamId, autoRegisteredTopics, Some(userdefinedTopics), userId, addDefaultTopicFlag, debug)
       case None =>
-        // delete all user defined topics by stream id
-        Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+        if (!debug) {
+          // delete all user defined topics by stream id
+          Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+        }
     }
   }
 
@@ -343,12 +365,12 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def sendTopicDirective(streamId: Long, incrementTopicSeq: Seq[PutTopicDirective], initialTopicSeq: Option[Seq[PutTopicDirective]], userId: Long, addDefaultTopic: Boolean = true) = {
+  def sendTopicDirective(streamId: Long, incrementTopicSeq: Seq[PutTopicDirective], initialTopicSeq: Option[Seq[PutTopicDirective]], userId: Long, addDefaultTopic: Boolean = true, debug: Boolean = false) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk.address
-      (incrementTopicSeq ++: initialTopicSeq.getOrElse(mutable.ArraySeq.empty[PutTopicDirective])).filter(_.rate == 0).map(
-        topic => sendUnsubscribeTopicDirective(streamId, topic.name, userId)
+      (incrementTopicSeq ++: initialTopicSeq.getOrElse(mutable.ArraySeq.empty[PutTopicDirective])).filter(_.rate == 0).foreach(
+        topic => sendUnsubscribeTopicDirective(streamId, topic.name, userId, debug)
       )
       if (initialTopicSeq.nonEmpty) initialTopicSeq.get.filter(_.rate != 0).foreach({
         topic =>
@@ -431,7 +453,7 @@ object StreamUtils extends RiderLogger {
           jsonCompact(ums)
       }).mkString("\n")
       if (topicUms.nonEmpty) {
-        PushDirective.sendTopicDirective(streamId, topicUms)
+        PushDirective.sendTopicDirective(streamId, topicUms, debug)
         riderLogger.info(s"user $userId send topic directive $topicUms success.")
       } else {
         riderLogger.info(s"topic offsets don't need update.")
@@ -447,7 +469,7 @@ object StreamUtils extends RiderLogger {
     topicsName.foreach(topic => sendUnsubscribeTopicDirective(streamId, topic, userId))
   }
 
-  def sendUnsubscribeTopicDirective(streamId: Long, topicName: String, userId: Long): Unit = {
+  def sendUnsubscribeTopicDirective(streamId: Long, topicName: String, userId: Long, debug: Boolean = false): Unit = {
     try {
       val zkConURL: String = RiderConfig.zk.address
       val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
@@ -490,7 +512,7 @@ object StreamUtils extends RiderLogger {
            |  ]
            |}
           """.stripMargin.replaceAll("[\\n\\t\\r]+", "")
-      PushDirective.sendTopicDirective(streamId, jsonCompact(topicUms))
+      PushDirective.sendTopicDirective(streamId, jsonCompact(topicUms), debug)
       riderLogger.info(s"user $userId send topic directive $topicUms success.")
     } catch {
       case ex: Exception =>
@@ -661,7 +683,12 @@ object StreamUtils extends RiderLogger {
     (instance.get.connUrl, instance.get.connConfig)
   }
 
-  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/streams/$appName-${CommonUtils.currentNodSec}.log"
+  def getLogPath(appName: String, debug: Boolean = false) =
+    if (debug) {
+      s"${RiderConfig.spark.clientLogRootPath}/streams/debug/$appName-${CommonUtils.currentNodSec}.log"
+    } else {
+      s"${RiderConfig.spark.clientLogRootPath}/streams/$appName-${CommonUtils.currentNodSec}.log"
+    }
 
   def getStreamTime(time: Option[String]) = {
     val timeValue = time.getOrElse("")

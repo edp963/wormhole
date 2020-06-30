@@ -1,7 +1,7 @@
 package edp.wormhole.flinkx.eventflow
 
 import java.io.Serializable
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
@@ -10,7 +10,7 @@ import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.ums.ext.{ExtSchemaConfig, ExtSchemaParser}
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
@@ -85,6 +85,9 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     } catch {
       case ex: Throwable =>
         logger.error("in UmsProcessElement ", ex)
+        if (config.debug) {
+          System.exit(-1)
+        }
         //out.collect(new Row(0))
         //        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(ex.getMessage)
         val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
@@ -105,6 +108,11 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     val row = new Row(tuple.size)
     for (i <- tuple.indices)
       row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
+    if (config.debug) {
+      println()
+      println(s"${DateUtils.dt2string(new Date, DtFormat.TS_DASH_SEC)} start debug process")
+      println(s"source > $row")
+    }
     out.collect(row)
     if (config.feedback_enabled) moinitorRow(tuple, protocolType, schema)
   }

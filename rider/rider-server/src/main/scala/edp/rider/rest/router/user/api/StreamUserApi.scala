@@ -25,7 +25,7 @@ import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
-import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
+import edp.rider.common._
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities.{FlowPriorities, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
@@ -34,7 +34,7 @@ import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.{AuthorizationProvider, InstanceUtils, StreamUtils}
 import edp.rider.yarn.SubmitYarnJob._
-import edp.rider.yarn.YarnClientLog
+import edp.rider.yarn.{ProcessKeeper, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.util.JsonUtils
 import edp.rider.kafka.WormholeGetOffsetUtils._
@@ -399,18 +399,74 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       }
   }
 
-  private def startStreamDirective(streamId: Long, streamDirectiveOpt: Option[StreamDirective], userId: Long) = {
+
+  def debugRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "debug") {
+    (id, streamId) =>
+      put {
+        entity(as[Option[StreamDirective]]) {
+          streamDirective =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${
+                    session.userId
+                  } has no permission to access it.")
+                  //complete(OK, getHeader(403, session))
+                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                }
+                else {
+                  debugResponse(id, streamId, streamDirective, session)
+                }
+            }
+        }
+      }
+  }
+
+  def stopDebugRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "stopDebug") {
+    (id, _) =>
+      put {
+        entity(as[DebugLogInfo]) {
+          debugLogInfo: DebugLogInfo =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${
+                    session.userId
+                  } has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  if (session.projectIdList.contains(id)) {
+                    ProcessKeeper.shutdown(debugLogInfo.logPath)
+                    complete(OK, getHeader(200, session))
+                  }
+                  else {
+                    riderLogger.error(s"user ${
+                      session.userId
+                    } doesn't have permission to access the project $id.")
+                    complete(OK, getHeader(403, session))
+                  }
+                }
+            }
+        }
+      }
+  }
+
+  private def startStreamDirective(streamId: Long, streamDirectiveOpt: Option[StreamDirective], userId: Long, debug: Boolean = false) = {
+    if (debug) {
+      PushDirective. removeFlowDirective(streamId, debug)
+    }
     // delete pre stream zk udf/topic node
-    PushDirective.removeTopicDirective(streamId)
-    PushDirective.removeUdfDirective(streamId)
+    PushDirective.removeTopicDirective(streamId, debug)
+    PushDirective.removeUdfDirective(streamId, debug)
     // set new stream directive
     if (streamDirectiveOpt.nonEmpty) {
       val streamDirective = streamDirectiveOpt.get
-      genUdfsStartDirective(streamId, streamDirective.udfInfo, userId)
-      genTopicsStartDirective(streamId, streamDirective.topicInfo, userId)
+      genUdfsStartDirective(streamId, streamDirective.udfInfo, userId, debug)
+      genTopicsStartDirective(streamId, streamDirective.topicInfo, userId, debug)
     } else {
-      genUdfsStartDirective(streamId, Seq(), userId)
-      genTopicsStartDirective(streamId, None, userId)
+      genUdfsStartDirective(streamId, Seq(), userId, debug)
+      genTopicsStartDirective(streamId, None, userId, debug)
     }
   }
 
@@ -481,6 +537,46 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           }
         case None =>
           riderLogger.info(s"user ${session.userId} start stream $streamId failed caused by stream not found.")
+          complete(OK, setFailedResponse(session, "stream not found."))
+      }
+
+    } else {
+      riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+      complete(OK, setFailedResponse(session, "Insufficient Permission"))
+    }
+  }
+
+  private def debugResponse(projectId: Long, streamId: Long, streamDirectiveOpt: Option[StreamDirective], session: SessionClass): Route = {
+    if (session.projectIdList.contains(projectId)) {
+      val streamOpt = Await.result(streamDal.findById(streamId), minTimeOut)
+      streamOpt match {
+        case Some(stream) =>
+          try {
+            if (StreamType.withName(stream.streamType) == StreamType.SPARK)
+              startStreamDirective(streamId, streamDirectiveOpt, session.userId, debug = true)
+            val logPath = getLogPath(stream.name, debug = true)
+            val (result, _) = startStream(stream, logPath, debug = true)
+            riderLogger.info(s"user ${session.userId} debug stream $streamId")
+            val status =
+              if (result)
+                StreamStatus.STARTING.toString
+              else
+                StreamStatus.FAILED.toString
+            val startResponse = StartResponse(streamId,
+              status,
+              getDisableActions(stream.streamType, status),
+              getHideActions(stream.streamType),
+              stream.sparkAppid, stream.startedTime, stream.stoppedTime,
+              Some(logPath)
+            )
+            complete(OK, ResponseJson[StartResponse](getHeader(200, session), startResponse))
+          } catch {
+            case ex: Exception =>
+              riderLogger.error(s"user ${session.userId} debug stream failed", ex)
+              complete(OK, setFailedResponse(session, ex.getMessage))
+          }
+        case None =>
+          riderLogger.info(s"user ${session.userId} debug stream $streamId failed caused by stream not found.")
           complete(OK, setFailedResponse(session, "stream not found."))
       }
 

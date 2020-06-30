@@ -21,8 +21,10 @@
 
 package edp.rider.rest.persistence.dal
 
+import java.util.Date
+
 import edp.rider.RiderStarter.modules._
-import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus, StreamType}
+import edp.rider.common._
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -30,6 +32,7 @@ import edp.rider.rest.router.ActionClass
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.{CommonUtils, FlowUtils}
+import edp.wormhole.util.{DateUtils, DtFormat}
 import edp.wormhole.util.DateUtils.dt2long
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
@@ -68,6 +71,25 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       genFlowStreamByAction(FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.config, flowStream.consumedProtocol, flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType, flowStream.functionType), flowStream.topicInfo, flowStream.currentUdf, flowStream.msg), action)
     }))
 
+  }
+
+  def debugGetAll(flows: Seq[Flow], flowDirective: Option[FlowDirective], action: String = "debug"): Future[Seq[(FlowStream, Option[String])]] = {
+
+    val streamIds = flows.map(_.streamId).distinct
+
+    val streamMap = streamDal.refreshStreamStatus(None, Some(streamIds))
+      .map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status)))
+      .toMap[Long, StreamInfo]
+
+    val flowStreams = flows.map(flow => FlowStream(flow.id, flow.flowName, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.config, flow.consumedProtocol,
+      flow.sinkConfig, flow.tranConfig, flow.tableKeys, flow.desc, flow.status, flow.startedTime, flow.stoppedTime, flow.logPath, flow.active, flow.createTime,
+      flow.createBy, flow.updateTime, flow.updateBy, streamMap(flow.streamId).name, streamMap(flow.streamId).appId, streamMap(flow.streamId).status, streamMap(flow.streamId).streamType, streamMap(flow.streamId).functionType, "", "", None, Seq(), ""))
+
+    Future(flowStreams.map(flowStream => {
+      val (flowStatus, logPath) = actionRule(flowStream, flowDirective, action)
+      val flow = FlowStream(flowStream.id, flowStream.flowName, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.config, flowStream.consumedProtocol, flowStream.sinkConfig, flowStream.tranConfig, flowStream.tableKeys, flowStream.desc, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStatus.disableActions, flowStream.hideActions, flowStream.topicInfo, flowStream.currentUdf, flowStatus.msg)
+      (flow, logPath)
+    }))
   }
 
   def getById(flowId: Long): Future[Option[FlowStream]] = {
@@ -183,7 +205,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
 
   def genFlowStreamByAction(flowStream: FlowStream, action: String): FlowStream = {
     try {
-      val flowStatus = actionRule(flowStream, action)
+      val (flowStatus, _) = actionRule(flowStream, None, action)
 
       updateStatusByAction(flowStream.id, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime, flowStatus.update)
 
@@ -220,6 +242,21 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         } flow ${
           flowAction.flowIds
         } failed", ex)
+        throw ex
+    }
+  }
+
+  def debugFlowAction(flowAction: ActionClass, debugRequest: DebugRequest, userId: Long): Future[Seq[(FlowStream, Option[String])]] = {
+    try {
+      val simpleFlow = debugRequest.simpleFlow
+      val flowDirective = debugRequest.flowDirective
+      val now = DateUtils.dt2string(new Date, DtFormat.TS_DASH_SEC)
+      val flows: Seq[Flow] = Seq(simpleFlow).map(f => Flow(Math.abs(f.flowName.hashCode), f.flowName, f.projectId, f.streamId, -1, f.sourceNs, f.sinkNs, f.config, f.consumedProtocol,
+        f.sinkConfig, f.tranConfig, f.tableKeys, f.desc, flowAction.action, Some(now), None, None, active = true, now, userId, now, userId))
+      debugGetAll(flows, flowDirective, flowAction.action)
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user $userId ${flowAction.action} flow ${flowAction.flowIds} failed", ex)
         throw ex
     }
   }

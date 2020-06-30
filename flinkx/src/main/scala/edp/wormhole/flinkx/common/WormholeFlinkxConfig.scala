@@ -32,7 +32,10 @@ case class WormholeFlinkxConfig(flow_name: String,
                                 feedback_enabled: Boolean,
                                 feedback_state_count: Int,
                                 feedback_interval: Int,
-                                kerberos: Boolean)
+                                kerberos: Boolean,
+                                special_config: Option[StreamSpecialConfig]) {
+  lazy val debug = kafka_input.groupId.endsWith(".debug")
+}
 
 case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 
@@ -83,6 +86,10 @@ case class ExceptionConfig(streamId: Long,
                            sourceNamespace: String,
                            sinkNamespace: String,
                            exceptionProcessMethod: ExceptionProcessMethod)
+
+case class StreamSpecialConfig(
+                                useDefaultKey: Option[Boolean]
+                              )
 
 object ExceptionProcessMethod extends Enumeration with Serializable {
   type ExceptionProcessMethod = Value

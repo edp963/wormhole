@@ -31,8 +31,14 @@ const selectActiveKey = () => createSelector(
   (workbenchState) => workbenchState.get('activeKey')
 )
 
+const selectDebugModalLoading = () => createSelector(
+  selectWorkbench(),
+  (workbenchState) => workbenchState.get('debugModalLoading')
+)
+
 export {
   selectWorkbench,
   selectSourceNamespaces,
-  selectActiveKey
+  selectActiveKey,
+  selectDebugModalLoading
 }

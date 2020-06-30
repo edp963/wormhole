@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/user/projects")
 class ActionUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = actionRoute
+  lazy val routes: Route = actionRoute ~ debugRoute ~ topicRoute
 
   lazy val basePath = "projects"
 
@@ -49,5 +49,35 @@ class ActionUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def actionRoute: Route = modules.actionUserService.putRoute(basePath)
+
+  @Path("/{id}/topics")
+  @ApiOperation(value = "topic offset for debug flink flow of the project", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "sourceNs", value = "Source Namespace", required = true, dataType = "string", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def topicRoute: Route = modules.actionUserService.topicRoute(basePath)
+
+  @Path("/{id}/debug")
+  @ApiOperation(value = "debug flow of the project", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "debugRequest", value = "Debug Request", required = true, dataType = "edp.rider.common.DebugRequest", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def debugRoute: Route = modules.actionUserService.debugRoute(basePath)
 }
 
