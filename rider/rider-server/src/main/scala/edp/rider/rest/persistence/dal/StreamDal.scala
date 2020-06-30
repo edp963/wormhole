@@ -32,12 +32,15 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.{InstanceUtils, StreamUtils}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.yarn.{ShellUtils, SubmitYarnJob}
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.JsonUtils._
+import edp.wormhole.util.dingding.DingDingUtils
+import edp.wormhole.util.email.{Email, MailSender}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -56,6 +59,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     val streamMap = streams.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
     val streamPidMap = streams.map(stream => (stream.id, stream.sparkAppid)).toMap
     val refreshStreamSeq: Seq[Stream] = getStreamYarnAppStatus(streams, appInfoMap, userId)
+    // stream监控
+    monitorStream(refreshStreamSeq)
     val updateStreamSeq = refreshStreamSeq.filter(stream => {
       if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
         false
@@ -70,6 +75,73 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     //riderLogger.info(s"updateStreamSeq ${updateStreamSeq}")
     updateByRefresh(updateStreamSeq)
     refreshStreamSeq.map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status))).toMap
+  }
+
+  def monitorStream(streams: Seq[Stream]): Unit ={
+    // 用户列表
+    val userEmailInfo = userDal.getUserEmailInfo()
+    val emailToSend = mutable.HashMap[String, ListBuffer[String]]()
+    val dingdingToSend = mutable.Map[String, ListBuffer[String]]()
+    val streamToRestart = ListBuffer[String]()
+    streams.map(stream => {
+      if(stream.status.equals("failed")){
+        val monitorConfig = JsonUtils.json2caseClass[MonitorConfig](stream.monitorConfig)
+        if(monitorConfig.monitorToEmail){
+          val email = userEmailInfo(stream.userTimeInfo.createBy)
+          val streamList = emailToSend.getOrElse(email, ListBuffer[String]())
+          streamList += stream.name
+          emailToSend(email) = streamList
+        }
+        if(monitorConfig.monitorToDingding.nonEmpty){
+          val streamList = dingdingToSend.getOrElse(monitorConfig.monitorToDingding, ListBuffer[String]())
+          streamList += stream.name
+          dingdingToSend(monitorConfig.monitorToDingding) = streamList
+        }
+        if(monitorConfig.monitorToRestart){
+          streamToRestart += stream.name
+        }
+      }
+    })
+    if(emailToSend.nonEmpty){
+      if(RiderConfig.smtpConfig.smtpHost.nonEmpty){
+        emailToSend.foreach(entry => {
+          val email = new Email(RiderConfig.smtpConfig.smtpHost, RiderConfig.smtpConfig.smtpPort, RiderConfig.smtpConfig.smtpUsername, RiderConfig.smtpConfig.smtpPassword, RiderConfig.smtpConfig.fromAddress)
+          email.setToAddress(entry._1)
+          email.setValidate(true)
+          email.setSubject("Wormhole任务告警")
+          email.setContent(getMonitorContent(entry._2))
+          try {
+            MailSender.sendTextMail(email)
+          } catch  {
+            case e : Exception => riderLogger.error(s"Send email to user failed.", e)
+          }
+        })
+      }
+    }
+    if(dingdingToSend.nonEmpty){
+      if(RiderConfig.dingdingRobotSendUrl.nonEmpty){
+        dingdingToSend.foreach(entry => {
+          val url = RiderConfig.dingdingRobotSendUrl + entry._1
+          val content = getMonitorContent(entry._2)
+          try {
+            DingDingUtils.sendMessage(content, url, "wormhole任务告警")
+          } catch  {
+            case e : Exception => riderLogger.error(s"Send email to user failed.", e)
+          }
+        })
+      }
+    }
+    if(streamToRestart.nonEmpty){
+      // todo
+    }
+  }
+
+  def getMonitorContent(streamList: ListBuffer[String]) : String = {
+    var content = "以下stream任务异常，请及时处理：\n"
+    streamList.foreach(streamName => {
+      content = content + streamName + "\n"
+    })
+    content
   }
 
   def refreshStreamStatus(streamId: Long): Option[Stream] = {
@@ -163,8 +235,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
     db.run(streamTable.filter(_.id === putStream.id)
-      .map(stream => (stream.desc, stream.jvmDriverConfig, stream.jvmExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.specialConfig, stream.updateTime, stream.updateBy))
-      .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, putStream.specialConfig, currentSec, userId)).mapTo[Int]
+      .map(stream => (stream.desc, stream.jvmDriverConfig, stream.jvmExecutorConfig, stream.othersConfig, stream.startConfig, stream.launchConfig, stream.specialConfig, stream.monitorConfig, stream.updateTime, stream.updateBy))
+      .update(putStream.desc, putStream.JVMDriverConfig, putStream.JVMExecutorConfig, putStream.othersConfig, putStream.startConfig, putStream.launchConfig, putStream.specialConfig, putStream.monitorConfig, currentSec, userId)).mapTo[Int]
   }
 
   def updateStatusByStart(streamId: Long, status: String, userId: Long, logPath: String, pid: Option[String]): Future[Int] = {

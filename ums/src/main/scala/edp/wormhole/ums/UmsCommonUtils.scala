@@ -52,6 +52,21 @@ object UmsCommonUtils extends Serializable {
     }
   }
 
+  def getProtocolFromKafkaKey(key: String): UmsProtocolType = {
+    try {
+      if (null == key) {
+        UmsProtocolType.DATA_INCREMENT_DATA
+      } else {
+        val keys = key.split("\\.")
+        if (keys.length == 8) UmsProtocolType.umsProtocolType(keys(0).toLowerCase)
+        else UmsProtocolType.DATA_INCREMENT_DATA
+      }
+    } catch {
+      case e: Throwable => logger.error("in getTypeNamespaceFromKafkaKey ", e)
+        UmsProtocolType.DATA_INCREMENT_DATA
+    }
+  }
+
   def json2Ums(json: String): Ums = {
     try {
       toUms(json)

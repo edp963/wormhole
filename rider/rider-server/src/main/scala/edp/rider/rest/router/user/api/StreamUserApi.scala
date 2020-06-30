@@ -75,7 +75,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
           val streamName = genStreamNameByProjectName(projectName, simpleStream.name)
           val insertStream = Stream(0, streamName, simpleStream.desc, projectId,
-            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig, simpleStream.specialConfig,
+            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig, simpleStream.specialConfig, simpleStream.monitorConfig,
             None, None, "new", None, None, active = true, UserTimeInfo(currentSec, session.userId, currentSec, session.userId))
           if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
             onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
@@ -924,7 +924,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                     val sparkResource = SparkResourceConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum,
                       RiderConfig.spark.executorCores, RiderConfig.spark.executorMemory, RiderConfig.spark.batchDurationSec, RiderConfig.spark.parallelismPartition, RiderConfig.spark.maxPartitionFetchMb)
                     val othersConfig = RiderConfig.spark.sparkConfig
-                    val defaultConfig = SparkDefaultConfig(jvm.JVMDriverConfig, jvm.JVMExecutorConfig, sparkResource, othersConfig)
+                    val monitorConfig = RiderConfig.monitorConfig
+                    val defaultConfig = SparkDefaultConfig(jvm.JVMDriverConfig, jvm.JVMExecutorConfig, sparkResource, othersConfig, monitorConfig)
                     complete(OK, ResponseJson[SparkDefaultConfig](getHeader(200, session), defaultConfig))
                   case StreamType.FLINK =>
                     val defaultConfig = RiderConfig.defaultFlinkConfig

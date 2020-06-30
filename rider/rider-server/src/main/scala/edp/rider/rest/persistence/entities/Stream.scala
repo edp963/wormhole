@@ -39,6 +39,7 @@ case class Stream(id: Long,
                   startConfig: String,
                   launchConfig: String,
                   specialConfig: Option[String] = None,
+                  monitorConfig: String,
                   sparkAppid: Option[String] = None,
                   logPath: Option[String] = None,
                   status: String,
@@ -53,7 +54,7 @@ case class Stream(id: Long,
 
   def updateFromSpark(appInfo: AppInfo) = {
     Stream(this.id, this.name, this.desc, this.projectId, this.instanceId, this.streamType, this.functionType, this.JVMDriverConfig,
-      this.JVMExecutorConfig, this.othersConfig, this.startConfig, this.launchConfig, this.specialConfig,
+      this.JVMExecutorConfig, this.othersConfig, this.startConfig, this.launchConfig, this.specialConfig, this.monitorConfig,
       Option(appInfo.appId), this.logPath, appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime),
       this.active, this.userTimeInfo)
   }
@@ -144,7 +145,8 @@ case class SimpleStream(name: String,
                         othersConfig: Option[String] = None,
                         startConfig: String,
                         launchConfig: String,
-                        specialConfig: Option[String] = None) extends SimpleBaseEntity
+                        specialConfig: Option[String] = None,
+                        monitorConfig: String) extends SimpleBaseEntity
 
 case class PutStream(id: Long,
                      desc: Option[String] = None,
@@ -153,7 +155,8 @@ case class PutStream(id: Long,
                      othersConfig: Option[String] = None,
                      startConfig: String,
                      launchConfig: String,
-                     specialConfig: Option[String] = None)
+                     specialConfig: Option[String] = None,
+                     monitorConfig: String)
 
 case class StartConfig(driverCores: Int,
                        driverMemory: Int,
@@ -165,6 +168,10 @@ case class StartConfig(driverCores: Int,
 case class LaunchConfig(maxRecords: String,
                         partitions: String,
                         durations: String)
+
+case class MonitorConfig(monitorToEmail: Boolean,
+                         monitorToRestart: Boolean,
+                         monitorToDingding: String)
 
 case class StreamCacheMap(streamId: Long, streamName: String, projectId: Long)
 
@@ -219,30 +226,29 @@ case class SparkResourceConfig(driverCores: Int,
                                partitions: Int,
                                maxRecords: Int)
 
-case class SparkDefaultConfig(JVMDriverConfig: String, JVMExecutorConfig: String, spark: SparkResourceConfig, othersConfig: String)
+case class SparkDefaultConfig(JVMDriverConfig: String, JVMExecutorConfig: String, spark: SparkResourceConfig, othersConfig: String, monitorConfig : MonitorConfig)
 
 case class FlinkResourceConfig(jobManagerMemoryGB: Int,
                                taskManagersNumber: Int,
                                perTaskManagerSlots: Int,
                                perTaskManagerMemoryGB: Int)
 
-case class FlinkDefaultConfig(jvm: String, flink: FlinkResourceConfig, others: String)
+case class FlinkDefaultConfig(jvm: String, flink: FlinkResourceConfig, others: String, monitorConfig : MonitorConfig)
 
 case class RiderJVMConfig(JVMDriverConfig: String,
                           JVMExecutorConfig: String)
 
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
-  def * = (id, name, desc, projectId, instanceId, streamType, functionType,jvmDriverConfig , jvmExecutorConfig, othersConfig, startConfig, launchConfig, specialConfig,
+  def * = (id, name, desc, projectId, instanceId, streamType, functionType,jvmDriverConfig , jvmExecutorConfig, othersConfig, startConfig, launchConfig, specialConfig, monitorConfig,
     sparkAppid, logPath, status, startedTime, stoppedTime, active, (createTime, createBy, updateTime, updateBy)).shaped <> ({
-    case (id, name, desc, projectId, instanceId, streamType, functionType, jvmDriverConfig, jvmExecutorConfig, othersConfig, startConfig, launchConfig, specialConfig,
-  sparkAppid, logPath, status, startedTime, stoppedTime, active, userTimeInfo) =>
-      Stream(id, name, desc, projectId, instanceId, streamType, functionType, jvmDriverConfig, jvmExecutorConfig, othersConfig, startConfig, launchConfig, specialConfig,
-    sparkAppid, logPath, status, startedTime, stoppedTime, active, UserTimeInfo.tupled.apply(userTimeInfo))},
+    case (id, name, desc, projectId, instanceId, streamType, functionType, jvmDriverConfig, jvmExecutorConfig, othersConfig, startConfig, launchConfig, specialConfig, monitorConfig,
+    sparkAppid, logPath, status, startedTime, stoppedTime, active, userTimeInfo) =>
+      Stream(id, name, desc, projectId, instanceId, streamType, functionType, jvmDriverConfig, jvmExecutorConfig, othersConfig, startConfig, launchConfig, specialConfig, monitorConfig,
+        sparkAppid, logPath, status, startedTime, stoppedTime, active, UserTimeInfo.tupled.apply(userTimeInfo))},
     { s: Stream => def f1(c: UserTimeInfo) = UserTimeInfo.unapply(c).get
-    Some((s.id, s.name, s.desc, s.projectId, s.instanceId, s.streamType, s.functionType, s.JVMDriverConfig, s.JVMExecutorConfig, s.othersConfig,
-      s.startConfig, s.launchConfig, s.specialConfig, s.sparkAppid, s.logPath, s.status, s.startedTime, s.stoppedTime, s.active, f1(s.userTimeInfo)))
-  })
-
+      Some((s.id, s.name, s.desc, s.projectId, s.instanceId, s.streamType, s.functionType, s.JVMDriverConfig, s.JVMExecutorConfig, s.othersConfig,
+        s.startConfig, s.launchConfig, s.specialConfig, s.monitorConfig, s.sparkAppid, s.logPath, s.status, s.startedTime, s.stoppedTime, s.active, f1(s.userTimeInfo)))
+    })
 
   val name: Rep[String] = column[String]("name", O.Length(200, varying = true))
   val desc: Rep[Option[String]] = column[Option[String]]("desc", O.Length(1000, varying = true), O.Default(None))
@@ -266,6 +272,8 @@ class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream")
   val launchConfig: Rep[String] = column[String]("launch_config", O.Length(1000, varying = true))
   /** Database column special_config SqlType(VARCHAR), Length(1000,true), Default(None) */
   val specialConfig: Rep[Option[String]] = column[Option[String]]("special_config", O.Length(1000, varying = true), O.Default(None))
+  /** Database column monitor_config SqlType(VARCHAR), Length(1000,true) */
+  val monitorConfig: Rep[String] = column[String]("monitor_config", O.Length(1000, varying = true))
   /** Database column spark_appid SqlType(VARCHAR), Length(200,true) */
   val sparkAppid: Rep[Option[String]] = column[Option[String]]("spark_appid", O.Length(200, varying = true), O.Default(None))
   /** Database column logPath SqlType(VARCHAR), Length(200,true) */

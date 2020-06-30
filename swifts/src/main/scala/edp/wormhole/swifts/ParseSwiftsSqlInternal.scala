@@ -135,13 +135,13 @@ object ParseSwiftsSqlInternal {
         }).toMap
       if (!selectFields.contains("*")) {
         if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectFields.contains(UmsSysField.TS.toString)) {
-          sql = sql + UmsSysField.TS.toString + ", "
+          // sql = sql + UmsSysField.TS.toString + ", "
         }
         if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectFields.contains(UmsSysField.ID.toString)) {
-          sql = sql + UmsSysField.ID.toString + ", "
+          // sql = sql + UmsSysField.ID.toString + ", "
         }
         if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && !selectFields.contains(UmsSysField.OP.toString)) {
-          sql = sql + UmsSysField.OP.toString + ", "
+          // sql = sql + UmsSysField.OP.toString + ", "
         }
         if ((dataType == "ums" || (dataType != "ums" && mutation != "i")) && validity && !selectFields.contains(UmsSysField.UID.toString)) {
           sql = sql + UmsSysField.UID.toString + ", "
