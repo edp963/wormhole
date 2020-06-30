@@ -88,6 +88,7 @@ alter table `namespace` add column `sink_info` LONGTEXT default null;
 alter table `namespace`  modify column `ums_info` LONGTEXT;
 drop index `namespace_UNIQUE` on `namespace`;
 alter table `namespace` add UNIQUE index `namespace_UNIQUE` (`ns_sys` ASC, `ns_instance` ASC, `ns_database` ASC, `ns_table` ASC, `ns_version` ASC, `ns_dbpar` ASC, `ns_tablepar` ASC);
+alter table `namespace` add column `ext_ums_info` LONGTEXT NULL AFTER `ums_info`;
 
 CREATE TABLE IF NOT EXISTS `stream` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -124,6 +125,7 @@ alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) 
 alter table `stream` add column `jvm_driver_config` VARCHAR(1000) NULL;
 alter table `stream` add column `jvm_executor_config` VARCHAR(1000) NULL;
 alter table `stream` add column `others_config` VARCHAR(1000) NULL;
+alter table `stream` add column `monitor_config` VARCHAR(1000) NULL default '{"monitorToEmail":false,"monitorToRestart":false,"monitorToDingding":""}' after `special_config`;
 
 CREATE TABLE IF NOT EXISTS `project` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

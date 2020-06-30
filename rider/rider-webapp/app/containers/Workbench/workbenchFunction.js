@@ -184,16 +184,17 @@ export function generateTransformSinkNamespaceHierarchy (system, result) {
 export function showSinkConfigMsg (value) {
   let sinkConfigMsgTemp = ''
   if (value === 'cassandra') {
-    sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
+    sinkConfigMsgTemp = 'For example: {"mutation_type":"i"}'
   } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql' || value === 'kudu') {
-    sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
+    sinkConfigMsgTemp = 'For example: {"mutation_type":"i"}'
   } else if (value === 'es') {
-    sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
+    sinkConfigMsgTemp = 'For example: {"mutation_type":"i", "_id": "id,name"}'
   } else if (value === 'hbase') {
-    const temp = "'_'"
-    sinkConfigMsgTemp = `For example: {"mutation_type":"iud","hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":"hash(id1)+${temp}+value(id2)"}`
+    // const temp = "'_'"
+    // sinkConfigMsgTemp = `For example: {"mutation_type":"iud","hbase.default.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":"hash(id1)+${temp}+value(id2)"}`
+    sinkConfigMsgTemp = `默认使用hbase.default.columnFamily作为列族进行put操作。多列族append、incr操作的，需要配置在hbase.columns列表中。 For example: {"hbase.default.columnFamily":"f","hbase.rowKey":"sub(md5(item_id),8)+'_'+value(item_id)","hbase.columns":[{"name":"f:id","actionType":"incr"},{"name":"c:city","actionType":"append"}]}`
   } else if (value === 'mongodb') {
-    sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
+    sinkConfigMsgTemp = 'For example: {"mutation_type":"i", "_id": "id,name"}'
   } else {
     sinkConfigMsgTemp = ''
   }

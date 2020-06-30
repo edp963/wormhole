@@ -199,6 +199,23 @@ object SubmitYarnJob extends App with RiderLogger {
     submitPre + "/bin/spark-submit " + startCommand
   }
 
+  def generateDebugSparkStreamStartSh(args: String, streamName: String, logPath: String, functionType: String): String = {
+    val submitPre = "java -Dfile.encoding=utf-8 -cp "
+    val realJarPath =
+      if (RiderConfig.spark.kafka08StreamNames.nonEmpty && RiderConfig.spark.kafka08StreamNames.contains(streamName))
+        RiderConfig.spark.kafka08JarPath
+      else RiderConfig.spark.jarPath
+
+    val mainClass = functionType match {
+      case "default" => s" edp.wormhole.sparkx.batchflow.BatchflowStarter "
+      case "hdfslog" => s" edp.wormhole.sparkx.hdfs.hdfslog.HdfsLogStarter "
+      case "hdfscsv" => s" edp.wormhole.sparkx.hdfs.hdfscsv.HdfsCsvStarter "
+      case "routing" => s" --class edp.wormhole.sparkx.router.RouterStarter "
+      case "job" => s" --class edp.wormhole.sparkx.batchjob.BatchJobStarter "
+    }
+    submitPre + realJarPath + mainClass + args + " > " + logPath + " 2>&1"
+  }
+
   //ssh -p22 user@host ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
   def generateFlinkStreamStartSh(stream: Stream): String = {
     val resourceConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)

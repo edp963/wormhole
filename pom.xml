@@ -92,6 +92,7 @@
         <spark.extension.version>2.2</spark.extension.version>
         <!--<json4s.version>3.5.3</json4s.version>-->
         <json4s.version>3.2.11</json4s.version>
+        <javax.mail.api.version>1.6.1</javax.mail.api.version>
 
         <guava.version>19.0</guava.version>
         <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>

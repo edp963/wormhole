@@ -51,10 +51,16 @@ import { loadSourceSinkTypeNamespace, loadSinkTypeNamespace } from '../Flow/acti
 import DataSystemSelector from '../../components/DataSystemSelector'
 
 import {
-  prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn
+  prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn, transformStringWithDot
 } from '../../utils/util'
 import { sourceDataSystemData, sinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import { generateSourceSinkNamespaceHierarchy, generateHdfslogNamespaceHierarchy } from './workbenchFunction'
+import Modal from 'antd/lib/modal'
+import WorkbenchDebugForm from './WorkbenchDebugForm'
+import message from 'antd/lib/message'
+import { loadUdfs, loadSingleUdf, loadLastestOffset, startDebug, stopDebug } from './action'
+import { createStructuredSelector } from 'reselect'
+import { selectDebugModalLoading } from './selectors'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -67,7 +73,16 @@ export class WorkbenchFlowForm extends React.Component {
       hdfslogSourceNsData: [],
       hdfslogSinkDSValue: '',
       routingNsData: [],
-      sinkNamespaceResult: []
+      sinkNamespaceResult: [],
+      debugModalVisible: false,
+      debugFormData: [],
+      autoRegisteredTopics: [],
+      userDefinedTopics: [],
+      startUdfVals: [],
+      currentUdfVal: [],
+      unValidate: false,
+      tempUserTopics: [],
+      debugRunning: false
     }
   }
 
@@ -80,6 +95,9 @@ export class WorkbenchFlowForm extends React.Component {
         s.key = uuid()
         return s
       })
+    }
+    if (!props.flowMode && this.state.debugRunning) {
+      this.handleStopDebug()
     }
   }
 
@@ -178,6 +196,343 @@ export class WorkbenchFlowForm extends React.Component {
     })
   }
 
+  handleStartDebug = (e) => {
+    const { form, projectIdGeted, locale, flowMode, flowSourceNsSys } = this.props
+    const values = form.getFieldsValue()
+    this.setState({
+      debugModalVisible: true
+    })
+
+    // 单条查询接口获得回显的topic Info，回显选中的UDFs
+    if (values.streamType === 'spark') {
+      this.props.onLoadUdfs(projectIdGeted, 'streams', values.flowStreamId, 'user', (result) => {
+        // 回显选中的 topic，必须有 id
+        const currentUdfTemp = result
+        let topicsSelectValue = []
+        for (let i = 0; i < currentUdfTemp.length; i++) {
+          topicsSelectValue.push(`${currentUdfTemp[i].id}`)
+        }
+        this.workbenchDebugForm.setFieldsValue({ udfs: topicsSelectValue })
+      })
+    } else {
+      if (flowMode === 'edit') {
+        this.props.onLoadUdfs(projectIdGeted, 'flows', values.flowId, 'user', (result) => {
+          // 回显选中的 topic，必须有 id
+          const currentUdfTemp = result
+          let topicsSelectValue = []
+          for (let i = 0; i < currentUdfTemp.length; i++) {
+            topicsSelectValue.push(`${currentUdfTemp[i].id}`)
+          }
+          this.workbenchDebugForm.setFieldsValue({ udfs: topicsSelectValue })
+        })
+      }
+    }
+
+    // 与user UDF table相同的接口获得全部的UDFs
+    this.props.onLoadSingleUdf(projectIdGeted, 'user', (result) => {
+      const allOptionVal = {
+        createBy: 1,
+        createTime: '',
+        desc: '',
+        fullClassName: '',
+        functionName: locale === 'en' ? 'Select all' : '全选',
+        id: -1,
+        jarName: '',
+        pubic: false,
+        updateBy: 1,
+        updateTime: ''
+      }
+      result.unshift(allOptionVal)
+      this.setState({ startUdfVals: result })
+    }, values.streamType)
+
+    // 显示 Latest offset
+    if (values.streamType === 'spark') {
+      this.props.onLoadLastestOffset(projectIdGeted, 'streams', values.flowStreamId, null, (result) => {
+        if (result) {
+          let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+            v.name = transformStringWithDot(v.name)
+            return v
+          })
+          let userDefinedTopics = result.userDefinedTopics.map(v => {
+            v.name = transformStringWithDot(v.name)
+            return v
+          })
+          this.setState({
+            autoRegisteredTopics: autoRegisteredTopics,
+            userDefinedTopics: userDefinedTopics,
+            debugFormData: autoRegisteredTopics
+          })
+        } else {
+          this.setState({
+            debugFormData: []
+          })
+        }
+      })
+    } else {
+      if (flowMode === 'edit') {
+        this.props.onLoadLastestOffset(projectIdGeted, 'flows', values.flowId, null, (result) => {
+          if (result) {
+            let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+              v.name = transformStringWithDot(v.name)
+              return v
+            })
+            let userDefinedTopics = result.userDefinedTopics.map(v => {
+              v.name = transformStringWithDot(v.name)
+              return v
+            })
+            this.setState({
+              autoRegisteredTopics: autoRegisteredTopics,
+              userDefinedTopics: userDefinedTopics,
+              debugFormData: autoRegisteredTopics
+            })
+          } else {
+            this.setState({
+              debugFormData: []
+            })
+          }
+        })
+      } else {
+        const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+        this.props.onLoadLastestOffset(projectIdGeted, null, null, sourceDataInfo, (result) => {
+          if (result) {
+            let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+              v.name = transformStringWithDot(v.name)
+              return v
+            })
+            let userDefinedTopics = result.userDefinedTopics.map(v => {
+              v.name = transformStringWithDot(v.name)
+              return v
+            })
+            this.setState({
+              autoRegisteredTopics: autoRegisteredTopics,
+              userDefinedTopics: userDefinedTopics,
+              debugFormData: autoRegisteredTopics
+            })
+          } else {
+            this.setState({
+              debugFormData: []
+            })
+          }
+        })
+      }
+    }
+  }
+
+  handleEditDebugOk = (e) => {
+    const { projectIdGeted, locale, form } = this.props
+    const { debugFormData, userDefinedTopics, startUdfVals } = this.state
+    const streamIdGeted = form.getFieldValue('flowStreamId')
+
+    const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
+    this.setState(
+      {unValidate: true},
+      () => {
+        this.workbenchDebugForm.validateFieldsAndScroll((err, values) => {
+          if (!err || err.newTopicName) {
+            let requestVal = {}
+            if (!debugFormData) {
+              if (!values.udfs) {
+                requestVal = {}
+              } else {
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
+                } else {
+                  requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
+                }
+              }
+            } else {
+              const mergedData = {}
+              const autoRegisteredData = this.formatTopicInfo(debugFormData, 'auto', values, offsetText)
+              const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+              mergedData.autoRegisteredTopics = autoRegisteredData || []
+              mergedData.userDefinedTopics = userDefinedData || []
+              mergedData.autoRegisteredTopics.forEach(v => {
+                v.name = transformStringWithDot(v.name, false)
+              })
+              mergedData.userDefinedTopics.forEach(v => {
+                v.name = transformStringWithDot(v.name, false)
+              })
+              if (!values.udfs) {
+                requestVal = { topicInfo: mergedData }
+              } else {
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = {
+                    udfInfo: startUdfValsOrigin.map(p => p.id),
+                    topicInfo: mergedData
+                  }
+                } else {
+                  requestVal = {
+                    udfInfo: values.udfs.map(q => Number(q)),
+                    topicInfo: mergedData
+                  }
+                }
+              }
+            }
+
+            let actionTypeRequest = 'debug'
+            let actionTypeMsg = locale === 'en' ? 'Debug Successfully!' : '启动成功！'
+
+            if (form.getFieldValue('streamType') === 'spark') {
+              this.props.onStartDebug(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, (result) => {
+                this.setState({
+                  debugModalVisible: false,
+                  debugFormData: [],
+                  userDefinedData: [],
+                  tempUserTopics: [],
+                  unValidate: false,
+                  debugRunning: true
+                })
+                message.success(actionTypeMsg, 3)
+                form.setFieldsValue({debugLogPath: result['logPath']})
+              }, (result) => {
+                const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
+                message.error(`${failText} ${result}`, 3)
+                this.setState({unValidate: false})
+              })
+            } else {
+              form.setFieldsValue({flinkFlowDirective: requestVal})
+              this.setState({
+                debugModalVisible: false,
+                debugFormData: [],
+                userDefinedData: [],
+                tempUserTopics: [],
+                unValidate: false,
+                debugRunning: true
+              })
+              message.success(actionTypeMsg, 3)
+            }
+          }
+        })
+      }
+    )
+  }
+
+  handleDebugCancel = (e) => {
+    this.setState({
+      debugModalVisible: false
+    }, () => {
+      this.setState({
+        debugFormData: []
+      })
+    })
+    this.workbenchDebugForm.resetFields()
+  }
+
+  handleStopDebug = (e) => {
+    const { projectIdGeted, form, locale } = this.props
+    const streamIdGeted = form.getFieldValue('flowStreamId')
+    const debugLogPath = form.getFieldValue('debugLogPath')
+    const actionTypeMsg = locale === 'en' ? 'Stop Debug Successfully!' : '停止成功！'
+    if (debugLogPath) {
+      this.props.onStopDebug(projectIdGeted, streamIdGeted, debugLogPath, () => {
+        this.setState({
+          debugRunning: false
+        })
+        form.setFieldsValue({debugLogPath: ''})
+        message.success(actionTypeMsg, 3)
+      })
+    } else {
+      this.setState({
+        debugRunning: false
+      })
+      form.setFieldsValue({flinkStreamDirective: ''})
+      message.success(actionTypeMsg, 3)
+    }
+  }
+
+  queryLastestoffset = (e) => {
+    const { projectIdGeted, form, flowMode } = this.props
+    const { userDefinedTopics, autoRegisteredTopics } = this.state
+    let topics = {}
+    topics.userDefinedTopics = userDefinedTopics.map((v, i) => v.name)
+    topics.autoRegisteredTopics = autoRegisteredTopics.map((v, i) => v.name)
+    if (form.getFieldValue('streamType') === 'spark') {
+      this.loadLastestOffsetFunc(projectIdGeted, 'streams', form.getFieldValue('flowStreamId'), 'post', topics)
+    } else {
+      if (flowMode === 'edit') {
+        this.loadLastestOffsetFunc(projectIdGeted, 'flows', form.getFieldValue('flowId'), 'post', topics)
+      }
+    }
+  }
+
+  // Load Latest Offset
+  loadLastestOffsetFunc (projectId, type, id, method, topics) {
+    this.props.onLoadLastestOffset(projectId, type, id, null, (result) => {
+      let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+        v.name = transformStringWithDot(v.name)
+        return v
+      })
+      let userDefinedTopics = result.userDefinedTopics.map(v => {
+        v.name = transformStringWithDot(v.name)
+        return v
+      })
+      this.setState({
+        autoRegisteredTopics: autoRegisteredTopics,
+        userDefinedTopics: userDefinedTopics,
+        tempUserTopics: userDefinedTopics,
+        debugFormData: autoRegisteredTopics
+      })
+    }, method, topics)
+  }
+
+  onChangeEditSelect = () => {
+    const { debugFormData, userDefinedTopics } = this.state
+
+    for (let i = 0; i < debugFormData.length; i++) {
+      const partitionAndOffset = debugFormData[i].consumedLatestOffset.split(',')
+
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.workbenchDebugForm.setFieldsValue({
+          [`${debugFormData[i].name}_${j}_auto`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${debugFormData[i].name}_${debugFormData[i].rate}_rate`]: debugFormData[i].rate
+        })
+      }
+    }
+    for (let i = 0; i < userDefinedTopics.length; i++) {
+      const partitionAndOffset = userDefinedTopics[i].consumedLatestOffset.split(',')
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.workbenchDebugForm.setFieldsValue({
+          [`${userDefinedTopics[i].name}_${j}_user`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${userDefinedTopics[i].name}_${userDefinedTopics[i].rate}_rate`]: userDefinedTopics[i].rate
+        })
+      }
+    }
+  }
+
+  formatTopicInfo (data = [], type = 'auto', values, offsetText) {
+    if (data.length === 0) return
+    return data.map((i) => {
+      const parOffTemp = i.consumedLatestOffset
+      const partitionTemp = parOffTemp.split(',')
+
+      const offsetArr = []
+      for (let r = 0; r < partitionTemp.length; r++) {
+        const offsetArrTemp = values[`${i.name}_${r}_${type}`]
+        offsetArrTemp === ''
+          ? message.warning(offsetText, 3)
+          : offsetArr.push(`${r}:${offsetArrTemp}`)
+      }
+      const offsetVal = offsetArr.join(',')
+
+      const robj = {
+        // id: i.id,
+        name: i.name,
+        partitionOffsets: offsetVal,
+        rate: Number(values[`${i.name}_${i.rate}_rate`])
+      }
+      return robj
+    })
+  }
+
+  getStartFormDataFromSub = (userDefinedTopics) => {
+    this.setState({ userDefinedTopics })
+  }
+
   render () {
     const {
       step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfsSinkNsValue, routingSourceNsValue,
@@ -187,13 +542,13 @@ export class WorkbenchFlowForm extends React.Component {
       step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass,
       selectStreamKafkaTopicValue, routingSinkTypeNsData, sinkConfigCopy,
       initResultFieldClass, initDataShowClass, onInitStreamNameSelect, initialDefaultCascader,
-      initialHdfslogCascader, initialRoutingCascader, initialRoutingSinkCascader, flowSourceNsSys
+      initialHdfslogCascader, initialRoutingCascader, initialRoutingSinkCascader, flowSourceNsSys, onDebugFlow, projectIdGeted
     } = this.props
 
     const { getFieldDecorator } = form
 
     const { flowMode, sinkConfigClass, defaultSourceNsData, defaultSinkNsData, hdfslogSourceNsData,
-      hdfslogSinkDSValue, routingNsData } = this.state
+      hdfslogSinkDSValue, routingNsData, debugModalVisible, debugFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, currentUdfVal, debugRunning } = this.state
 
     // edit 时，不能修改部分元素
     const flowDisabledOrNot = flowMode === 'edit'
@@ -371,12 +726,14 @@ export class WorkbenchFlowForm extends React.Component {
       render: (text, record) => {
         const transformUpHide = record.order === 1 ? 'hide' : ''
         const transformDownHide = record.order === transformTableSource.length ? 'hide' : ''
+        const flowDebugHide = debugRunning ? '' : 'hide'
         const addFormat = <FormattedMessage {...messages.workbenchTransAdd} />
         const modifyFormat = <FormattedMessage {...messages.workbenchTransModify} />
         const deleteFormat = <FormattedMessage {...messages.workbenchTransDelete} />
         const sureDeleteFormat = <FormattedMessage {...messages.workbenchTransSureDelete} />
         const upFormat = <FormattedMessage {...messages.workbenchTransUp} />
         const downFormat = <FormattedMessage {...messages.workbenchTransDown} />
+        const viewFormat = <FormattedMessage {...messages.workbenchFlowView} />
 
         return (
           <span className="ant-table-action-column">
@@ -409,6 +766,11 @@ export class WorkbenchFlowForm extends React.Component {
                 <i className="iconfont icon-down"></i>
               </Button>
             </Tooltip>
+
+            <Tooltip title={viewFormat}>
+              {/* <Button icon="eye" shape="circle" type="ghost" onClick={onDebugFlow(record)} ></Button> */}
+              <Button icon="eye" shape="circle" type="ghost" onClick={onDebugFlow(record)} className={flowDebugHide}></Button>
+            </Tooltip>
           </span>
         )
       }
@@ -438,12 +800,30 @@ export class WorkbenchFlowForm extends React.Component {
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, timeCharacteristic } = this.props
+    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, timeCharacteristic, debugModalLoading } = this.props
 
     // let maxParallelism = 0
     // for (let v of selectStreamKafkaTopicValue) {
     //   if (v.id === streamId) maxParallelism = v.maxParallelism
     // }
+
+    const workbenchDebugForm = debugModalVisible
+      ? (
+        <WorkbenchDebugForm
+          data={debugFormData}
+          autoRegisteredTopics={autoRegisteredTopics}
+          userDefinedTopics={userDefinedTopics}
+          emitStartFormDataFromSub={this.getStartFormDataFromSub}
+          startUdfValsOption={startUdfVals}
+          currentUdfVal={currentUdfVal}
+          projectIdGeted={projectIdGeted}
+          streamIdGeted={form.getFieldValue('flowStreamId')}
+          unValidate={this.state.unValidate}
+          ref={(f) => { this.workbenchDebugForm = f }}
+        />
+      )
+      : ''
+
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
@@ -498,6 +878,13 @@ export class WorkbenchFlowForm extends React.Component {
                       <RadioButton value="hdfscsv" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Hdfscsv</RadioButton>
                     )}
                   </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24} className="hide">
+              <FormItem label="">
+                {getFieldDecorator('flowId', {})(
+                  <Input />
                 )}
               </FormItem>
             </Col>
@@ -964,6 +1351,77 @@ export class WorkbenchFlowForm extends React.Component {
               </FormItem>
             </Col>
           ) : ''}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24} className="hide">
+              <FormItem>
+                {getFieldDecorator('flinkFlowDirective', {
+                  hidden: flowSubPanelKey === 'spark'
+                })(<Input />)}
+              </FormItem>
+            </Col>
+          ) : ''}
+          <Col span={24}>
+            <FormItem label="Debug" {...itemStyle}>
+              {getFieldDecorator('debugLogPath', {
+                hidden: stepHiddens[1] || streamTypeHiddens[0]
+              })(
+                <div className="debug">
+                  <Button type="ghost" className="next" onClick={this.handleStartDebug} loading={debugRunning} size="default">
+                    {debugRunning ? 'Running' : 'Start'}
+                  </Button>
+                  &nbsp;
+                  {debugRunning ? (
+                    <Button type="danger" className="next" onClick={this.handleStopDebug} size="default">
+                      {'Stop'}
+                    </Button>) : (
+                    ''
+                  )}
+                </div>
+              )}
+            </FormItem>
+          </Col>
+          <Modal
+            title={<FormattedMessage {...messages.workbenchSureDebug} />}
+            visible={debugModalVisible}
+            wrapClassName="ant-modal-large stream-start-renew-modal"
+            onCancel={this.handleDebugCancel}
+            footer={[
+              <Button
+                className={`query-offset-btn`}
+                key="query"
+                size="large"
+                onClick={this.queryLastestoffset}
+              >
+                <FormattedMessage {...messages.workbenchModalView} /> Latest Offset
+              </Button>,
+              <Button
+                className={`edit-topic-btn`}
+                type="default"
+                onClick={this.onChangeEditSelect}
+                key="renewEdit"
+                size="large">
+                <FormattedMessage {...messages.workbenchModalReset} />
+              </Button>,
+              <Button
+                key="cancel"
+                size="large"
+                onClick={this.handleDebugCancel}
+              >
+                <FormattedMessage {...messages.workbenchModalCancel} />
+              </Button>,
+              <Button
+                key="submit"
+                size="large"
+                type="primary"
+                loading={debugModalLoading}
+                onClick={this.handleEditDebugOk}
+              >
+                <FormattedMessage {...messages.workbenchTableStart} />
+              </Button>
+            ]}
+          >
+            {workbenchDebugForm}
+          </Modal>
         </Row>
         {/* Step 3 */}
         <Row gutter={8} className={`ri-workbench-confirm-step ${stepClassNames[2]}`}>
@@ -1245,14 +1703,31 @@ WorkbenchFlowForm.propTypes = {
   changeStreamType: PropTypes.func,
   flowSubPanelKey: PropTypes.string,
   emitFlowFunctionType: PropTypes.func,
-  timeCharacteristic: PropTypes.string
+  timeCharacteristic: PropTypes.string,
+  locale: PropTypes.string,
+  onDebugFlow: PropTypes.func,
+  onLoadUdfs: PropTypes.func,
+  onLoadSingleUdf: PropTypes.func,
+  onLoadLastestOffset: PropTypes.func,
+  onStartDebug: PropTypes.func,
+  onStopDebug: PropTypes.func,
+  debugModalLoading: PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
     onLoadSourceSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSourceSinkTypeNamespace(projectId, streamId, value, type, resolve)),
-    onLoadSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSinkTypeNamespace(projectId, streamId, value, type, resolve))
+    onLoadSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSinkTypeNamespace(projectId, streamId, value, type, resolve)),
+    onLoadUdfs: (projectId, type, id, roleType, resolve) => dispatch(loadUdfs(projectId, type, id, roleType, resolve)),
+    onLoadSingleUdf: (projectId, roleType, resolve, type) => dispatch(loadSingleUdf(projectId, roleType, resolve, type)),
+    onLoadLastestOffset: (projectId, type, id, sourceNs, resolve, method, topics) => dispatch(loadLastestOffset(projectId, type, id, sourceNs, resolve, method, topics)),
+    onStartDebug: (projectId, id, topicResult, action, resolve, reject) => dispatch(startDebug(projectId, id, topicResult, action, resolve, reject)),
+    onStopDebug: (projectId, id, logPath, resolve) => dispatch(stopDebug(projectId, id, logPath, resolve))
   }
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(WorkbenchFlowForm))
+const mapStateToProps = createStructuredSelector({
+  debugModalLoading: selectDebugModalLoading()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(WorkbenchFlowForm))

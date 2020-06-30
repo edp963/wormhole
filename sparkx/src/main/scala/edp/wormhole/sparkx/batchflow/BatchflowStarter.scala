@@ -36,10 +36,10 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
 
 object BatchflowStarter extends App with EdpLogging {
-  SparkContextUtils.setLoggerLevel()
-
-  logInfo("swiftsConfig:" + args(0))
+  println("swiftsConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
+  SparkContextUtils.setLoggerLevel(config.debug)
+
   val appId = SparkUtils.getAppId
   WormholeKafkaProducer.initWithoutAcksAll(config.kafka_output.brokers, config.kafka_output.config,config.kafka_output.kerberos)
   val sparkConf = new SparkConf()

@@ -36,6 +36,7 @@ case class Namespace(id: Long,
                      nsTablepar: String,
                      keys: Option[String],
                      sourceSchema: Option[String],
+                     extSourceSchema: Option[String],
                      sinkSchema: Option[String],
                      nsDatabaseId: Long,
                      nsInstanceId: Long,
@@ -175,7 +176,7 @@ case class PushDownConnection(name_space: String,
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
   def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, keys,
-    umsInfo, sinkInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
+    umsInfo, extUmsInfo, sinkInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
 
   val nsSys: Rep[String] = column[String]("ns_sys", O.Length(100, varying = true))
   /** Database column ns_instance SqlType(VARCHAR), Length(100,true) */
@@ -193,6 +194,7 @@ class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "na
   /** Database column keys SqlType(VARCHAR), Length(1000,true), Default(None) */
   val keys: Rep[Option[String]] = column[Option[String]]("keys", O.Length(1000, varying = true), O.Default(None))
   val umsInfo: Rep[Option[String]] = column[Option[String]]("ums_info")
+  val extUmsInfo: Rep[Option[String]] = column[Option[String]]("ext_ums_info")
   val sinkInfo: Rep[Option[String]] = column[Option[String]]("sink_info")
   /** Database column ns_database_id SqlType(BIGINT) */
   val nsDatabaseId: Rep[Long] = column[Long]("ns_database_id")

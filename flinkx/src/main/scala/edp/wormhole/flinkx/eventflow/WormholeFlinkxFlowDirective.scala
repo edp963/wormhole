@@ -8,6 +8,8 @@ import edp.wormhole.flinkx.util.FlinkSchemaUtils.findJsonSchema
 import edp.wormhole.flinkx.util.UmsFlowStartUtils.extractVersion
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import edp.wormhole.ums._
+import edp.wormhole.ums.ext.ExtSchemaConfig
+import edp.wormhole.util.JsonUtils
 
 
 object WormholeFlinkxFlowDirective {
@@ -20,6 +22,8 @@ object WormholeFlinkxFlowDirective {
     val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
     val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
     val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+    val extDataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "ext_data_parse")
+    val extDataParseStr = if (extDataParseEncoded != null && !extDataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(extDataParseEncoded.toString)) else null
     val consumption = JSON.parseObject(consumptionDataStr)
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
     val increment = consumption.getString(InputDataProtocolBaseType.INCREMENT.toString).trim.toLowerCase.toBoolean
@@ -33,6 +37,17 @@ object WormholeFlinkxFlowDirective {
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
       if (batch)
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+
+      if (extDataParseStr != null) {
+        val extSchemaConfig: ExtSchemaConfig = JsonUtils.json2caseClass[ExtSchemaConfig](extDataParseStr)
+        if (initial)
+          ConfMemoryStorage.registerExtJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, sourceNamespace, extSchemaConfig)
+        if (increment)
+          ConfMemoryStorage.registerExtJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, extSchemaConfig)
+        if (batch)
+          ConfMemoryStorage.registerExtJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, sourceNamespace, extSchemaConfig)
+      }
+
       FlinkSchemaUtils.setSourceSchemaMap(UmsSchema(sourceNamespace, Some(parseResult.schemaField)))
     } else {
       FlinkSchemaUtils.setSourceSchemaMap(getJsonSchema(config, ums))

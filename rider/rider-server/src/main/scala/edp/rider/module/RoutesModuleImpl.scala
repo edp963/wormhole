@@ -45,7 +45,7 @@ trait RoutesModuleImpl {
   lazy val namespaceUserService = new NamespaceUserApi(namespaceDal, relProjectNsDal)
   lazy val streamUserService = new StreamUserApi(jobDal, streamDal, projectDal, relStreamUdfDal, streamInTopicDal, flowDal)
   lazy val flowUserService = new FlowUserApi(flowDal, streamDal, flowUdfDal, feedbackErrDal, rechargeResultLogDal)
-  lazy val actionUserService = new ActionUserApi(streamDal, flowDal)
+  lazy val actionUserService = new ActionUserApi(streamDal, flowDal, namespaceDal)
   lazy val monitorUserService = new MonitorUserApi(streamDal)
   lazy val instanceUserService = new InstanceUserApi(relProjectNsDal)
   lazy val databaseUserService = new NsDatabaseUserApi(databaseDal)

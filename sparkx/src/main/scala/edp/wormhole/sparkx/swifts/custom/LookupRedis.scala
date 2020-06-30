@@ -76,8 +76,12 @@ object LookupRedis extends EdpLogging {
     }
 
     val joinedRow: RDD[Row] = df.rdd.mapPartitions(partition => {
-      val params: Seq[KVConfig] = connectionConfig.parameters.get
-      val mode = params.filter(_.key == "mode").map(_.value).head
+      // 默认shared模式
+      var mode = "shared"
+      if(connectionConfig.parameters.nonEmpty){
+        val params: Seq[KVConfig] = connectionConfig.parameters.get
+        mode = params.filter(_.key == "mode").map(_.value).head
+      }
       val resultData = ListBuffer.empty[Row]
 
       val originalData: ListBuffer[Row] = partition.to[ListBuffer]

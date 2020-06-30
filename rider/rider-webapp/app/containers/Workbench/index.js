@@ -63,12 +63,14 @@ import FlowEtpStrategyForm from './FlowEtpStrategyForm'
 import FlowTransformForm from './FlowTransformForm'
 import JobTransformForm from './JobTransformForm'
 import StreamConfigForm from './StreamConfigForm'
+import StreamMonitorForm from './StreamMonitorForm'
+import DebugLogs from './DebugLogs'
 // import StreamDagModal from './StreamDagModal'
 // import FlowDagModal from './FlowDagModal'
 
 import {
   loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace,
-  loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql
+  loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql, debugFlowAction
 } from '../Flow/action'
 
 import {
@@ -89,7 +91,8 @@ import { selectResources } from '../Resource/selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectActiveKey } from './selectors'
-import { changeTabs } from './action'
+import { changeTabs, stopDebug } from './action'
+import sqlFormatter from 'sql-formatter'
 
 export class Workbench extends React.Component {
   constructor (props) {
@@ -143,8 +146,10 @@ export class Workbench extends React.Component {
 
       etpStrategyCheck: false,
       streamConfigModalVisible: false,
+      streamMonitorModalVisible: false,
       sparkConfigModalVisible: false,
       streamConfigCheck: false,
+      streamMonitorCheck: false,
       sparkConfigCheck: false,
 
       kafkaValues: [],
@@ -153,6 +158,7 @@ export class Workbench extends React.Component {
       flowKafkaTopicValue: '',
 
       streamConfigValues: {},
+      streamMonitorValues: {},
       streamQueryValues: {},
       streamSubPanelKey: 'spark',
 
@@ -235,7 +241,9 @@ export class Workbench extends React.Component {
       flowSourceNsSys: '',
       jobSourceNsSys: '',
       sourceNsVersionList: [],
-      globalLoading: false
+      globalLoading: false,
+      debugLogPath: '',
+      debugLogsModalVisible: false
     }
   }
 
@@ -854,7 +862,11 @@ export class Workbench extends React.Component {
         } catch (error) {
           console.error('warn: parse error')
         }
+        const { id, projectId, sourceNs, sinkNs, status, active,
+          createTime, createBy, updateTime, updateBy, startedTime, stoppedTime } = result
+
         this.workbenchFlowForm.setFieldsValue({
+          flowId: id,
           flowStreamId: streamId,
           streamName: streamName,
           streamType: streamType,
@@ -866,8 +878,6 @@ export class Workbench extends React.Component {
           time_characteristic: tranConfigParse.time_characteristic || ''
         })
 
-        const { id, projectId, sourceNs, sinkNs, status, active,
-          createTime, createBy, updateTime, updateBy, startedTime, stoppedTime } = result
         this.setState({
           formStep: 0,
           pipelineStreamId: streamId,
@@ -1324,16 +1334,19 @@ export class Workbench extends React.Component {
     // 显示 jvm 数据，从而获得初始的 sparkConfig
     this.setState({
       streamMode: 'add',
-      streamConfigCheck: false
+      streamConfigCheck: false,
+      streamMonitorCheck: false
     })
     const streamType = this.state.streamSubPanelKey
     this.workbenchStreamForm.setFieldsValue({streamType})
     Promise.all(this.loadConfig(streamType)).then((values) => {
       let startConfigJson = {}
       let launchConfigJson = {}
+      let monitorConfigJson = {}
 
       if (streamType === 'spark') {
         const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores, durations, partitions, maxRecords } = values[0].spark
+        const { monitorToEmail, monitorToRestart, monitorToDingding } = values[0].monitorConfig
 
         startConfigJson = {
           driverCores,
@@ -1347,8 +1360,14 @@ export class Workbench extends React.Component {
           partitions,
           maxRecords
         }
+        monitorConfigJson = {
+          monitorToEmail,
+          monitorToRestart,
+          monitorToDingding
+        }
       } else if (streamType === 'flink') {
         const { jobManagerMemoryGB, taskManagersNumber, perTaskManagerSlots, perTaskManagerMemoryGB } = values[0].flink
+        const { monitorToEmail, monitorToRestart, monitorToDingding } = values[0].monitorConfig
 
         startConfigJson = {
           jobManagerMemoryGB,
@@ -1357,6 +1376,11 @@ export class Workbench extends React.Component {
           perTaskManagerMemoryGB
         }
         launchConfigJson = ''
+        monitorConfigJson = {
+          monitorToEmail,
+          monitorToRestart,
+          monitorToDingding
+        }
       }
 
       this.setState({
@@ -1366,7 +1390,11 @@ export class Workbench extends React.Component {
           othersConfig: values[0].othersConfig,
           // streamConfig: `${values[0].jvm},${values[0].others}`,
           startConfig: `${JSON.stringify(startConfigJson)}`,
-          launchConfig: launchConfigJson !== '' ? `${JSON.stringify(launchConfigJson)}` : ''
+          launchConfig: launchConfigJson !== '' ? `${JSON.stringify(launchConfigJson)}` : '',
+          monitorConfig: `${JSON.stringify(monitorConfigJson)}`
+        },
+        streamMonitorValues: {
+          monitorConfig: `${JSON.stringify(monitorConfigJson)}`
         }
       })
     })
@@ -1379,7 +1407,8 @@ export class Workbench extends React.Component {
     const { projectId } = this.state
     this.setState({
       streamMode: 'edit',
-      streamConfigCheck: true
+      streamConfigCheck: true,
+      streamMonitorCheck: true
     })
     this.workbenchStreamForm.resetFields()
 
@@ -1394,7 +1423,7 @@ export class Workbench extends React.Component {
         currentUdf: currentUdf,
         usingUdf: usingUdf
       })
-      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId, specialConfig } = resultVal
+      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, monitorConfig, id, projectId, specialConfig } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamType,
         streamName: name,
@@ -1411,6 +1440,10 @@ export class Workbench extends React.Component {
           othersConfig,
           startConfig,
           launchConfig
+        },
+
+        streamMonitorValues: {
+          monitorConfig
         },
 
         streamQueryValues: {
@@ -1481,6 +1514,29 @@ export class Workbench extends React.Component {
     })
   }
 
+  // Stream Monitor Modal
+  onShowMonitorModal = () => {
+    let { streamMonitorValues, streamSubPanelKey: streamType, streamMonitorCheck } = this.state
+    streamType = this.workbenchStreamForm.getFieldValue('streamType')
+    this.setState({
+      streamSubPanelKey: streamType,
+      streamMonitorModalVisible: true
+    }, () => {
+      if (!streamMonitorCheck) this.streamMonitorForm.resetFields()
+
+      const monitorConfigTemp = JSON.parse(streamMonitorValues.monitorConfig)
+
+      if (streamType === 'spark' || streamType === 'flink') {
+        const { monitorToEmail, monitorToRestart, monitorToDingding } = monitorConfigTemp
+        this.streamMonitorForm.setFieldsValue({
+          monitorToEmail,
+          monitorToRestart,
+          monitorToDingding
+        })
+      }
+    })
+  }
+
   // Spark Config Modal
   onShowSparkConfigModal = () => {
     const { jobSparkConfigValues } = this.state
@@ -1518,6 +1574,7 @@ export class Workbench extends React.Component {
   }
 
   hideConfigModal = () => this.setState({ streamConfigModalVisible: false })
+  hideMonitorModal = () => this.setState({ streamMonitorModalVisible: false })
   hideSparkConfigModal = () => this.setState({ sparkConfigModalVisible: false })
 
   onConfigModalOk = () => {
@@ -1601,6 +1658,30 @@ export class Workbench extends React.Component {
     })
   }
 
+  onMonitorModalOk = () => {
+    const { streamSubPanelKey } = this.state
+    this.streamMonitorForm.validateFieldsAndScroll((err, values) => {
+      if (!err) {
+        let monitorConfigJson = {}
+        if (streamSubPanelKey === 'spark' || streamSubPanelKey === 'flink') {
+          const { monitorToEmail, monitorToRestart, monitorToDingding } = values
+          monitorConfigJson = {
+            monitorToEmail: monitorToEmail,
+            monitorToRestart: monitorToRestart,
+            monitorToDingding: monitorToDingding
+          }
+        }
+        this.setState({
+          streamMonitorCheck: true,
+          streamMonitorValues: {
+            monitorConfig: JSON.stringify(monitorConfigJson)
+          }
+        })
+        this.hideMonitorModal()
+      }
+    })
+  }
+
   onSparkConfigModalOk = () => {
     const { locale } = this.props
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
@@ -1655,7 +1736,10 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideFlowWorkbench = () => this.setState({ flowMode: '' })
+  hideFlowWorkbench = () => {
+    this.setState({ flowMode: '' })
+    this.handleStopDebug()
+  }
   hideStreamWorkbench = () => this.setState({ streamMode: '' })
   hideJobWorkbench = () => this.setState({ jobMode: '' })
 
@@ -2185,6 +2269,7 @@ export class Workbench extends React.Component {
       }, () => {
         this.hideFlowSubmit()
         this.hideFlowDefaultSubmit()
+        this.handleStopDebug()
       })
     } else if (flowMode === 'edit') {
       const editData = {
@@ -2206,6 +2291,7 @@ export class Workbench extends React.Component {
       }, () => {
         this.hideFlowSubmit()
         this.hideFlowDefaultSubmit()
+        this.handleStopDebug()
       })
     }
   }
@@ -2329,7 +2415,7 @@ export class Workbench extends React.Component {
   hideFlowSubmit = () => this.setState({ flowMode: '' })
 
   submitStreamForm = () => {
-    const { projectId, streamMode, streamConfigValues, streamConfigCheck, streamQueryValues } = this.state
+    const { projectId, streamMode, streamConfigValues, streamConfigCheck, streamMonitorValues, streamMonitorCheck, streamQueryValues } = this.state
 
     this.workbenchStreamForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -2349,7 +2435,7 @@ export class Workbench extends React.Component {
               specialConfig
             }
 
-            this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
+            this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues, streamMonitorValues), () => {
               message.success(operateLanguageSuccessMessage('Stream', 'create'), 3)
               this.setState({
                 streamMode: ''
@@ -2358,12 +2444,15 @@ export class Workbench extends React.Component {
               if (streamConfigCheck) {
                 this.streamConfigForm.resetFields()
               }
+              if (streamMonitorCheck) {
+                this.streamMonitorForm.resetFields()
+              }
               this.hideStreamSubmit()
             })
             break
           case 'edit':
             const editValues = { desc: values.desc, specialConfig }
-            const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
+            const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues, streamMonitorValues)
 
             this.props.onEditStream(requestEditValues, () => {
               message.success(operateLanguageSuccessMessage('Stream', 'modify'), 3)
@@ -2379,7 +2468,8 @@ export class Workbench extends React.Component {
   hideStreamSubmit = () => {
     this.setState({
       isWormhole: true,
-      streamConfigCheck: false
+      streamConfigCheck: false,
+      streamMonitorCheck: false
     })
   }
 
@@ -2579,7 +2669,7 @@ export class Workbench extends React.Component {
               lookupSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
               transformSinkDataSystem: tranLookupVal1.substring(0, tranLookupVal1.indexOf('.'))
             })
-            this.cmLookupSql.doc.setValue(tranLookupVal4)
+            this.cmLookupSql.doc.setValue(sqlFormatter.format(tranLookupVal4))
 
             setTimeout(() => {
               this.flowTransformForm.setFieldsValue({
@@ -2591,10 +2681,10 @@ export class Workbench extends React.Component {
             }, 50)
             break
           case 'sparkSql':
-            this.cmSparkSql.doc.setValue(record.transformConfigInfo)
+            this.cmSparkSql.doc.setValue(sqlFormatter.format(record.transformConfigInfo))
             break
           case 'flinkSql':
-            this.cmFlinkSql.doc.setValue(record.transformConfigInfo)
+            this.cmFlinkSql.doc.setValue(sqlFormatter.format(record.transformConfigInfo))
             break
           case 'streamJoinSql':
             // 以"."为分界线
@@ -2611,7 +2701,7 @@ export class Workbench extends React.Component {
             })
 
             this.loadTransNs()
-            this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
+            this.cmStreamJoinSql.doc.setValue(sqlFormatter.format(tranStreamJoinVal2))
             break
           case 'transformClassName':
             this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
@@ -2636,7 +2726,7 @@ export class Workbench extends React.Component {
       const { jobTransValue } = this.state
       if (jobTransValue === 'sparkSql') {
         this.makeJobSqlCodeMirrorInstance()
-        this.cmJobSparkSql.doc.setValue(record.transformConfigInfo)
+        this.cmJobSparkSql.doc.setValue(sqlFormatter.format(record.transformConfigInfo))
       } else if (jobTransValue === 'transformClassName') {
         this.jobTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
       }
@@ -2668,6 +2758,24 @@ export class Workbench extends React.Component {
         editTransformId: record.order
       })
     })
+  }
+
+  formatTransformSql = () => {
+    if (this.cmLookupSql) {
+      this.cmLookupSql.doc.setValue(sqlFormatter.format(this.cmLookupSql.doc.getValue()))
+    }
+    if (this.cmSparkSql) {
+      this.cmSparkSql.doc.setValue(sqlFormatter.format(this.cmSparkSql.doc.getValue()))
+    }
+    if (this.cmStreamJoinSql) {
+      this.cmStreamJoinSql.doc.setValue(sqlFormatter.format(this.cmStreamJoinSql.doc.getValue()))
+    }
+    if (this.cmFlinkSql) {
+      this.cmFlinkSql.doc.setValue(sqlFormatter.format(this.cmFlinkSql.doc.getValue()))
+    }
+    if (this.cmJobSparkSql) {
+      this.cmJobSparkSql.doc.setValue(sqlFormatter.format(this.cmJobSparkSql.doc.getValue()))
+    }
   }
 
   hideTransformModal = () => {
@@ -2720,7 +2828,7 @@ export class Workbench extends React.Component {
             if (!cmJobSparkSqlVal) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const sparkSqlVal = cmJobSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '') // 去掉字符串前后空格
+              const sparkSqlVal = cmJobSparkSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '') // 去掉字符串前后空格
 
               transformConfigInfoString = sparkSqlVal
               transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
@@ -2847,7 +2955,7 @@ export class Workbench extends React.Component {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
               // 去掉字符串前后的空格
-              const lookupSqlValTemp = cmLookupSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const lookupSqlValTemp = cmLookupSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const lookupSqlVal = preProcessSql(lookupSqlValTemp)
 
               let lookupSqlTypeOrigin = ''
@@ -2889,7 +2997,7 @@ export class Workbench extends React.Component {
             if (!cmSparkSqlVal) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const sparkSqlValTemp = cmSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const sparkSqlValTemp = cmSparkSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const sparkSqlVal = preProcessSql(sparkSqlValTemp)
 
               transformConfigInfoString = sparkSqlVal
@@ -2906,7 +3014,7 @@ export class Workbench extends React.Component {
             if (!cmStreamJoinSqlVal) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const streamJoinSqlValTemp = cmStreamJoinSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const streamJoinSqlValTemp = cmStreamJoinSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const streamJoinSqlVal = preProcessSql(streamJoinSqlValTemp)
 
               let streamJoinSqlTypeOrigin = ''
@@ -2955,7 +3063,7 @@ export class Workbench extends React.Component {
             if (!cmFlinkSql) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const flinkSqlValTemp = cmFlinkSql.replace(/(^\s*)|(\s*$)/g, '')
+              const flinkSqlValTemp = cmFlinkSql.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const flinkSqlVal = preProcessSql(flinkSqlValTemp)
 
               transformConfigInfoString = flinkSqlVal
@@ -3605,26 +3713,250 @@ export class Workbench extends React.Component {
   //   })
   // }
 
+  onDebugFlow = (record) => (e) => {
+    const { flowFormTranTableSource, flowSubPanelKey, projectId, resultFiledsOutput, etpStrategyRequestValue, flowSourceNsSys } = this.state
+    const values = this.workbenchFlowForm.getFieldsValue()
+    let tranRequestTempArr = []
+    let transformTableRequestValue
+    let pushdownConnectRequestValue
+    let dataframeShowOrNot
+    flowFormTranTableSource.map(i => {
+      if (i.order <= record['order']) {
+        let isCep = i.transformConfigInfoRequest.split('=')[0].indexOf('cep') > -1
+        if (isCep) {
+          tranRequestTempArr.push(`${i.transformConfigInfoRequest}`)
+        } else {
+          tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest))
+        }
+      }
+    })
+    const tranRequestTempString = tranRequestTempArr.join('')
+    if (flowSubPanelKey === 'flink') {
+      let timeCharacteristic = this.workbenchFlowForm.getFieldsValue(['time_characteristic'])
+      transformTableRequestValue = tranRequestTempString === '' ? {} : Object.assign({'action': tranRequestTempString}, timeCharacteristic)
+      // transformTableConfirmValue = tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+      // timeCharacteristic = timeCharacteristic.time_characteristic
+    } else if (flowSubPanelKey === 'spark') {
+      transformTableRequestValue = tranRequestTempString === '' ? {} : {'action': tranRequestTempString}
+      // transformTableConfirmValue = tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+    }
+
+    // 只有 lookup sql 才有 pushdownConnection
+    let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection['name_space'])
+
+    let pushConnTemp = []
+    for (let item of tempSource) {
+      pushConnTemp.push(item.pushdownConnection)
+    }
+
+    pushdownConnectRequestValue = pushConnTemp === '' ? {} : {'pushdown_connection': pushConnTemp}
+
+    this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
+      if (!err) {
+        if (values.dataframeShow === 'true') {
+          dataframeShowOrNot = {
+            'dataframe_show': 'true',
+            'dataframe_show_num': values.dataframeShowNum
+          }
+        }
+      }
+    })
+
+    let sinkConfigRequest = ''
+    if (values.resultFields === 'all') {
+      sinkConfigRequest = values.sinkConfig
+        ? `{"sink_specific_config":${values.sinkConfig}}`
+        : ''
+    } else {
+      sinkConfigRequest = values.sinkConfig
+        ? `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
+        : JSON.stringify(resultFiledsOutput)
+    }
+
+    let tranConfigRequest = {}
+    if (!transformTableRequestValue['action']) {
+      tranConfigRequest = ''
+    } else {
+      const objectTemp = Object.assign(etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
+      const tranConfigRequestTemp = values.flowSpecialConfig
+        ? Object.assign(objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+        : objectTemp
+      tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
+    }
+    const isCheckpoint = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.checkpoint : null
+    const checkpoint = { enable: isCheckpoint, checkpoint_interval_ms: 300000, stateBackend: 'hdfs://flink-checkpoint' }
+    const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+    const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+    const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
+    const config = {
+      parallelism,
+      checkpoint
+    }
+    const submitFlowData = {
+      projectId: Number(projectId),
+      streamId: Number(values.flowStreamId),
+      sourceNs: sourceDataInfo,
+      sinkNs: sinkDataInfo,
+      consumedProtocol: values.protocol.join(','),
+      sinkConfig: `${sinkConfigRequest}`,
+      tranConfig: tranConfigRequest,
+      config: JSON.stringify(config),
+      flowName: values.flowName,
+      tableKeys: values.tableKeys,
+      desc: null
+    }
+    if (values.streamType === 'spark') {
+      this.props.onDebugFlowAction({
+        simpleFlow: submitFlowData
+      }, (payload) => {
+        this.setState({
+          debugLogPath: values.debugLogPath,
+          debugLogsModalVisible: true
+        })
+      })
+    } else {
+      this.props.onDebugFlowAction({
+        simpleFlow: submitFlowData,
+        flowDirective: values.flinkFlowDirective
+      }, (payload) => {
+        this.setState({
+          debugLogPath: payload[0]['_2'],
+          debugLogsModalVisible: true
+        })
+      })
+    }
+  }
+
+  handleDebugLogsCancel = (e) => {
+    this.setState({
+      debugLogsModalVisible: false
+    })
+  }
+
+  handleStopDebug = () => {
+    const { projectId } = this.state
+    const streamIdGeted = this.workbenchFlowForm.getFieldValue('flowStreamId')
+    const debugLogPath = this.workbenchFlowForm.getFieldValue('debugLogPath')
+    if (debugLogPath) {
+      this.props.onStopDebug(projectId, streamIdGeted, debugLogPath, () => {
+        this.workbenchFlowForm.setFieldsValue({debugLogPath: ''})
+      })
+    }
+  }
+
   render () {
     const {
       flowMode, projectId, streamMode, jobMode, formStep, isWormhole, flowClassHide,
       flowFormTranTableSource, jobFormTranTableSource, namespaceClassHide, userClassHide,
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
-      etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
+      etpStrategyModalVisible, streamConfigModalVisible, streamMonitorModalVisible, sparkConfigModalVisible,
       jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern,
-      outputType, outputFieldList
+      outputType, outputFieldList, debugLogsModalVisible, debugLogPath, tabPanelKey, transformValue, jobTransValue
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
     const sidebarPrefixes = {
       add: locale === 'zh' ? '新增' : 'Create',
       edit: locale === 'zh' ? '修改' : 'Modify',
-      copy: locale === 'zh' ? '复制' : 'Copy'
+      copy: locale === 'zh' ? '复制' : 'Copy',
+      format: locale === 'zh' ? '格式化' : 'Format',
+      cancel: locale === 'zh' ? '取消' : 'Cancel',
+      save: locale === 'zh' ? '保存' : 'Save'
     }
 
     const stepButtons = this.generateStepButtons()
 
     const paneHeight = document.documentElement.clientHeight - 64 - 50 - 48
+
+    let flowModalFooter = []
+    let jobModalFooter = []
+
+    if ((tabPanelKey === 'flow' && (transformValue !== '' && transformValue !== 'cep' && transformValue !== 'transformClassName')) ||
+      (tabPanelKey === 'job' && (jobTransValue !== '' && jobTransValue !== 'transformClassName'))) {
+      flowModalFooter = [
+        <Button
+          key="sqlFormat"
+          type="primary"
+          className={`json-format`}
+          size={'large'}
+          onClick={this.formatTransformSql}
+        >
+          {sidebarPrefixes.format}
+        </Button>, <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideTransformModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onTransformModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+
+      jobModalFooter = [
+        <Button
+          key="sqlFormat"
+          type="primary"
+          className={`json-format`}
+          size={'large'}
+          onClick={this.formatTransformSql}
+        >
+          {sidebarPrefixes.format}
+        </Button>, <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideJobTransModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onJobTransModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+    } else {
+      flowModalFooter = [
+        <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideTransformModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onTransformModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+
+      jobModalFooter = [
+        <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideJobTransModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onJobTransModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+    }
 
     return (
       <div className="workbench-main-body">
@@ -3726,6 +4058,9 @@ export class Workbench extends React.Component {
                       flowSubPanelKey={this.state.flowSubPanelKey}
                       emitFlowFunctionType={this.getFlowFunctionType}
 
+                      locale={this.props.locale}
+                      onDebugFlow={this.onDebugFlow}
+
                       ref={(f) => { this.workbenchFlowForm = f }}
                   />
                     {/* Flow Transform Modal */}
@@ -3734,8 +4069,8 @@ export class Workbench extends React.Component {
                       okText="保存"
                       wrapClassName="transform-form-style"
                       visible={transformModalVisible}
-                      onOk={this.onTransformModalOk}
-                      onCancel={this.hideTransformModal}>
+                      onCancel={this.hideTransformModal}
+                      footer={flowModalFooter}>
                       <FlowTransformForm
                         ref={this.setFlowTransformFormRef}
                         projectIdGeted={projectId}
@@ -3821,6 +4156,21 @@ export class Workbench extends React.Component {
                 </div>
               </div> */}
               </div>
+              {debugLogsModalVisible === true ? (
+                <Modal
+                  title="Logs"
+                  visible={debugLogsModalVisible}
+                  onCancel={this.handleDebugLogsCancel}
+                  wrapClassName="ant-modal-xlarge ant-modal-no-footer"
+                  footer={<span></span>}
+                >
+                  <DebugLogs
+                    logPath={debugLogPath}
+                  />
+                </Modal>
+              ) : (
+                ''
+              )}
             </TabPane>
             {/* Stream Panel */}
             <TabPane tab="Stream" key="stream" style={{height: `${paneHeight}px`}}>
@@ -3848,7 +4198,9 @@ export class Workbench extends React.Component {
                       streamSubPanelKey={this.state.streamSubPanelKey}
 
                       onShowConfigModal={this.onShowConfigModal}
+                      onShowMonitorModal={this.onShowMonitorModal}
                       streamConfigCheck={this.state.streamConfigCheck}
+                      streamMonitorCheck={this.state.streamMonitorCheck}
                       topicEditValues={this.state.topicEditValues}
                       changeStreamType={this.changeStreamType}
 
@@ -3866,6 +4218,22 @@ export class Workbench extends React.Component {
                         tabPanelKey={this.state.tabPanelKey}
                         streamSubPanelKey={this.state.streamSubPanelKey}
                         ref={(f) => { this.streamConfigForm = f }}
+                      />
+                    </Modal>
+                    {/* Monitor Modal */}
+                    <Modal
+                      title="Monitors"
+                      okText="保存"
+                      wrapClassName="ant-modal-large"
+                      /* width="100px" */
+                      style={{height: 300, width: 300}}
+                      visible={streamMonitorModalVisible}
+                      onOk={this.onMonitorModalOk}
+                      onCancel={this.hideMonitorModal}>
+                      <StreamMonitorForm
+                        tabPanelKey={this.state.tabPanelKey}
+                        streamSubPanelKey={this.state.streamSubPanelKey}
+                        ref={(f) => { this.streamMonitorForm = f }}
                       />
                     </Modal>
                     <div className="ri-workbench-step-button-area">
@@ -3996,8 +4364,8 @@ export class Workbench extends React.Component {
                       okText="保存"
                       wrapClassName="job-transform-form-style"
                       visible={jobTransModalVisible}
-                      onOk={this.onJobTransModalOk}
-                      onCancel={this.hideJobTransModal}>
+                      onCancel={this.hideJobTransModal}
+                      footer={jobModalFooter}>
                       <JobTransformForm
                         ref={(f) => { this.jobTransformForm = f }}
                         projectIdGeted={projectId}
@@ -4123,7 +4491,9 @@ Workbench.propTypes = {
   activeKey: PropTypes.string,
   onChangeTabs: PropTypes.func,
   jumpStreamToFlowFilter: PropTypes.func,
-  onLoadSourceNsVersion: PropTypes.func
+  onLoadSourceNsVersion: PropTypes.func,
+  onDebugFlowAction: PropTypes.func,
+  onStopDebug: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -4163,7 +4533,9 @@ export function mapDispatchToProps (dispatch) {
     onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve)),
     onChangeTabs: (key) => dispatch(changeTabs(key)),
     jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
-    onLoadSourceNsVersion: (projectId, namespace, resolve) => dispatch(getSourceNsVersion(projectId, namespace, resolve))
+    onLoadSourceNsVersion: (projectId, namespace, resolve) => dispatch(getSourceNsVersion(projectId, namespace, resolve)),
+    onDebugFlowAction: (values, resolve) => dispatch(debugFlowAction(values, resolve)),
+    onStopDebug: (projectId, id, logPath, resolve) => dispatch(stopDebug(projectId, id, logPath, resolve))
   }
 }
 

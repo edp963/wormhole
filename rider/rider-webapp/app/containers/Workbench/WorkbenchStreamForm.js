@@ -73,7 +73,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
   }
 
   render () {
-    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues, locale, streamSubPanelKey } = this.props
+    const { isWormhole, onShowConfigModal, onShowMonitorModal, streamConfigCheck, streamMonitorCheck, kafkaValues, locale, streamSubPanelKey } = this.props
     const { streamMode } = this.state
     const { getFieldDecorator } = this.props.form
     const itemStyle = {
@@ -95,6 +95,18 @@ export class WorkbenchStreamForm extends React.PureComponent {
         </Tag>
       )
 
+    const streamMonitorTag = streamMonitorCheck
+      ? (
+        <Tag color="#7CB342" onClick={onShowMonitorModal}>
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
+        </Tag>
+      )
+      : (
+        <Tag onClick={onShowMonitorModal}>
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
+        </Tag>
+      )
+
     const warningMsg = (
       <span>
         Configs
@@ -104,6 +116,24 @@ export class WorkbenchStreamForm extends React.PureComponent {
             content={
               <div style={{ width: '221px', height: '25px' }}>
                 <p><FormattedMessage {...messages.workbenchTransResource} /></p>
+              </div>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+
+    const monitorMsg = (
+      <span>
+        Monitors
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '221px', height: '25px' }}>
+                <p><FormattedMessage {...messages.workbenchStreamMonitor} /></p>
               </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
@@ -206,6 +236,18 @@ export class WorkbenchStreamForm extends React.PureComponent {
               </div>
             </div>
           </Col>
+
+          <Col span={24}>
+            <div className="ant-col-6 ant-form-item-label">
+              <label htmlFor="#" className="sink-config-class">{monitorMsg}</label>
+            </div>
+            <div className="ant-col-17">
+              <div className="ant-form-item-control">
+                {streamMonitorTag}
+              </div>
+            </div>
+          </Col>
+
           <Col span={24}>
             <FormItem label="Special Config" {...itemStyle}>
               {getFieldDecorator('specialConfig', {})(
@@ -281,8 +323,10 @@ WorkbenchStreamForm.propTypes = {
   isWormhole: PropTypes.bool,
   kafkaValues: PropTypes.array,
   onShowConfigModal: PropTypes.func,
+  onShowMonitorModal: PropTypes.func,
   onLoadStreamNameValue: PropTypes.func,
   streamConfigCheck: PropTypes.bool,
+  streamMonitorCheck: PropTypes.bool,
   projectId: PropTypes.string,
   locale: PropTypes.string,
   changeStreamType: PropTypes.func,

@@ -36,7 +36,11 @@ object DirectiveOffsetWatch extends EdpLogging {
   def offsetWatch(config: WormholeConfig, appId: String): Unit = {
     logInfo("appId=" + appId)
 
-    val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
+    val offsetPath = if (config.debug) {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + "/debug" + OffsetPersistenceManager.offsetRelativePath
+    } else {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
+    }
 
     val watchPath = offsetPath + "/" + watchRelativePath
     logInfo("offsetWatch:"+watchPath)

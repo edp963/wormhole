@@ -86,13 +86,14 @@ object SqlProcessor {
 
     keysTupleMap.foreach(keysTuple => {
       val (keysId, tuple) = keysTuple
-      if (rsKeyUmsIdMap.contains(keysId)) {
+      /*if (rsKeyUmsIdMap.contains(keysId)) {
         val tupleId = umsFieldValue(tuple(renameSchemaMap(sysIdName)._1), UmsFieldType.LONG).asInstanceOf[Long]
         val rsId = rsKeyUmsIdMap(keysId)
         if (tupleId > rsId)
           updateList.append(tuple)
       } else
-        insertList.append(tuple)
+        insertList.append(tuple)*/
+      updateList.append(tuple)
     })
     (insertList.toList, updateList.toList)
   }
@@ -252,6 +253,16 @@ object SqlProcessor {
     sql
   }
 
+  def getInsertOrUpdateSql(dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String], updateFieldNames: Seq[String], tableKeyNames: Seq[String], sysIdName: String, insertSql: String): String = {
+    val fields = getSqlField(updateFieldNames, systemRenameMap, UmsOpType.UPDATE, dataSys)
+    val sql = dataSys match {
+      // INSERT INTO `table` (`a`, `b`, `c`) VALUES (1, 2, 3) ON DUPLICATE KEY UPDATE `c`=3;
+      case UmsDataSystem.MYSQL => insertSql + " ON DUPLICATE KEY UPDATE " + updateFieldNames.map(key => s"`$key`=?").mkString(" AND ")
+      case _ => s"UPDATE ${tableName.toUpperCase()} SET " + fields + " WHERE " + tableKeyNames.map(key => s"$key=?").mkString(" AND ") + s" AND $sysIdName<? "
+    }
+    logger.info("@update sql " + sql)
+    sql
+  }
 
   private def psSetValue(fieldName: String, parameterIndex: Int, tuple: Seq[String], ps: PreparedStatement,
                          schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Unit = {
@@ -275,11 +286,13 @@ object SqlProcessor {
       parameterIndex += 1
     }
     if (opType == UPDATE) {
-      for (i <- tableKeyNames.indices) {
-        psSetValue(tableKeyNames(i), parameterIndex, tuple, ps, renameSchema)
-        parameterIndex += 1
+      for (i <- fieldNames.indices) {
+        if(!tableKeyNames.contains(fieldNames(i))){
+          psSetValue(fieldNames(i), parameterIndex, tuple, ps, renameSchema)
+          parameterIndex += 1
+        }
       }
-      psSetValue(sysIdName, parameterIndex, tuple, ps, renameSchema)
+      // psSetValue(sysIdName, parameterIndex, tuple, ps, renameSchema)
     }
   }
 

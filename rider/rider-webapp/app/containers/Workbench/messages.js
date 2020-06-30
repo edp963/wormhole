@@ -37,10 +37,20 @@ export default defineMessages({
   workbenchSubmit: { id: 'rider.app.modal.submit' },
   workbenchJobFormAdd: { id: 'rider.containers.Namespace.Modal.tables.add' },
   workbenchTransResource: { id: 'rider.containers.Workbench.transformation.resource.configuration' },
+  workbenchStreamMonitor: { id: 'rider.containers.Workbench.stream.monitor.configuration' },
   workbenchFlowTransCepOutput: { id: 'rider.containers.Workbench.tranformation.cep.output' },
   workbenchFlowTransCepWindowtime: { id: 'rider.containers.Workbench.tranformation.cep.windowtime' },
   workbenchFlowTransCepStrategy: { id: 'rider.containers.Workbench.tranformation.cep.strategy' },
   workbenchFlowTransCepKeyby: { id: 'rider.containers.Workbench.tranformation.cep.keyby' },
   workbenchFlowTransCepOperator: { id: 'rider.containers.Workbench.tranformation.cep.operator' },
-  workbenchFlowTransCepQuartifier: { id: 'rider.containers.Workbench.tranformation.cep.quantifier' }
+  workbenchFlowTransCepQuartifier: { id: 'rider.containers.Workbench.tranformation.cep.quantifier' },
+  workbenchSureDebug: { id: 'rider.app.table.sure.debug' },
+  workbenchModalView: { id: 'rider.containers.Workbench.debug.view.btn' },
+  workbenchModalReset: { id: 'rider.containers.Workbench.debug.reset.btn' },
+  workbenchModalCancel: { id: 'rider.containers.Workbench.debug.cancel.btn' },
+  workbenchTableStart: { id: 'rider.app.table.start.action' },
+  workbenchModalRate: { id: 'rider.containers.Workbench.debug.rate' },
+  workbenchModalApply: { id: 'rider.containers.Workbench.debug.apply' },
+  workbenchModalApplyAll: { id: 'rider.containers.Workbench.debug.apply.all' },
+  workbenchFlowView: { id: 'rider.containers.Workbench.flow.view' }
 })

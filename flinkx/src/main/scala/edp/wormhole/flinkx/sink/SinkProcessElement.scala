@@ -35,7 +35,9 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
       val umsTuple = UmsTuple(listBuffer)
 
       val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
-      sinkMethod.invoke(sinkObject, umsFlowStart.schema.namespace, exceptionConfig.sinkNamespace, sinkProcessConfig, schemaMapWithUmsType, Seq(umsTuple.tuple), connectionConfig)
+      if (!config.debug) {
+        sinkMethod.invoke(sinkObject, umsFlowStart.schema.namespace, exceptionConfig.sinkNamespace, sinkProcessConfig, schemaMapWithUmsType, Seq(umsTuple.tuple), connectionConfig)
+      }
       val doneTs = System.currentTimeMillis
 
       //ctx.output(sinkTag, "testtest")
@@ -45,6 +47,9 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
     } catch {
       case ex: Throwable =>
         logger.error("in doFlinkSql table query", ex)
+        if (config.debug) {
+          System.exit(-1)
+        }
 
         val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map {
           case (schemaName, (pos, _, _)) =>
@@ -64,6 +69,9 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
           ErrorPattern.FlowError)
 
         ctx.output(sinkTag, errorMsg)
+    }
+    if (config.debug) {
+      println(s"row > $value")
     }
     out.collect(Seq(value))
   }

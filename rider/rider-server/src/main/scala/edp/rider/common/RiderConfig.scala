@@ -23,7 +23,7 @@ package edp.rider.common
 import java.util.concurrent.TimeUnit
 
 import edp.rider.RiderStarter.modules.config
-import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig}
+import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig, MonitorConfig}
 import edp.rider.wormhole.{FlinkCheckpoint, FlinkCommonConfig}
 import org.apache.kafka.common.serialization.StringDeserializer
 
@@ -136,7 +136,17 @@ case class LdapInfo(enabled: Boolean,
                     connectTimeout: Int,
                     connectPoolEnabled: Boolean)
 
-case class RiderFlink(homePath: String, yarnQueueName: String, feedbackEnabled: Boolean, feedbackStateCount: Int, feedbackInterval: Int, defaultRate: Int, jarPath: String, clientLogPath: String, kafkaSessionTimeOut: Int, kafkaGroupMaxSessionTimeOut: Int)
+case class RiderFlink(homePath: String,
+                      yarnQueueName: String,
+                      feedbackEnabled: Boolean,
+                      feedbackStateCount: Int,
+                      feedbackInterval: Int,
+                      defaultRate: Int,
+                      jarPath: String,
+                      debugJarPath: String,
+                      clientLogPath: String,
+                      kafkaSessionTimeOut: Int,
+                      kafkaGroupMaxSessionTimeOut: Int)
 
 case class RiderZookeeper(address: String, path: String)
 
@@ -153,6 +163,12 @@ case class RiderKerberos(kafkaEnabled: Boolean,
                          javaKrb5Conf: String)
 
 case class Monitor(databaseType: String)
+
+case class RiderSMTPConfig(smtpHost: String,
+                           smtpPort: String,
+                           smtpUsername: String,
+                           smtpPassword: String,
+                           fromAddress: String)
 
 //it will be combined with case class RiderMonitor during a follow-up operation
 
@@ -283,6 +299,11 @@ object RiderConfig {
     streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, metricsConfPath,
     getIntConfig("spark.yarn.web-proxy.port", 0))
 
+  lazy val monitorConfig = MonitorConfig(
+    monitorToEmail = false,
+    monitorToRestart = false,
+    monitorToDingding = "")
+
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
       RiderEs(config.getString("elasticSearch.http.url"),
@@ -349,9 +370,20 @@ object RiderConfig {
 
   //set default flink stream config
 
-  lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
+  lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "", monitorConfig)
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"), getBooleanConfig("flink.feedback.enabled", false), getIntConfig("flink.feedback.state.count", 100), getIntConfig("flink.feedback.interval", 30), 1, getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.7.2-0.6.3-jar-with-dependencies.jar"), getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"), getIntConfig("spark.kafka.session.timeout", 30000), getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000))
+  lazy val flink = RiderFlink(
+    config.getString("flink.home"),
+    config.getString("flink.yarn.queue.name"),
+    getBooleanConfig("flink.feedback.enabled", false),
+    getIntConfig("flink.feedback.state.count", 100),
+    getIntConfig("flink.feedback.interval", 30),
+    1,
+    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.7.2-0.6.3-jar-with-dependencies.jar"),
+    getStringConfig("flink.wormhole.debug.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.7.2-0.6.3-shaded.jar"),
+    getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
+    getIntConfig("spark.kafka.session.timeout", 30000),
+    getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000))
 
 //  lazy val flinkCheckpoint = FlinkCheckpoint(getBooleanConfig("flink.checkpoint.enable", false), getIntConfig("flink.checkpoint.interval", 60000), getStringConfig("flink.stateBackend", ""))
 
@@ -361,6 +393,18 @@ object RiderConfig {
   lazy val flinkConfig = FlinkCommonConfig(getStringConfig("flink.stateBackend", ""))
 
   lazy val monitor = Monitor(getStringConfig("monitor.database.type", "ES"))
+
+  // smtp配置
+  lazy val smtpConfig = RiderSMTPConfig(
+    getStringConfig("smtp.smtpHost", ""),
+    getStringConfig("smtp.smtpPort", ""),
+    getStringConfig("smtp.smtpUsername", ""),
+    getStringConfig("smtp.smtpPassword", ""),
+    getStringConfig("smtp.fromAddress", "")
+  )
+
+  // 钉钉机器人配置
+  lazy val dingdingRobotSendUrl = getStringConfig("dingding.robot.send.url", "")
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")

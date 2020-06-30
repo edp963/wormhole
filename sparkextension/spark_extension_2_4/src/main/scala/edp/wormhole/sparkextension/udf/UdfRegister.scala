@@ -15,6 +15,13 @@ object UdfRegister {
 
   lazy val jarPathMap = mutable.HashMap.empty[String, (Any, Method)]
 
+  try {
+    URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory())
+  } catch {
+    case e: Throwable => println(e.getMessage)
+  }
+  lazy val classLoader = new URLClassLoader(Array())
+
   def getObjectAndMethod(udfName: String, className: String): (Any, Method) = {
     if (!jarPathMap.contains(udfName)) {
       val clazz = Class.forName(className)
@@ -90,17 +97,10 @@ object UdfRegister {
   }
 
   private def loadJar(path: String): Unit = {
-    try {
-      URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory())
-    } catch {
-      case e: Throwable => println(e.getMessage)
-    }
     val url = new URL(path)
-    val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
     val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
     loaderMethod.setAccessible(true)
     loaderMethod.invoke(classLoader, url)
-
   }
 
   private def registerUdf(paramCount: Int, session: SparkSession, udfName: String,functionIdentifier: FunctionIdentifier, udfClassName: String, returnDataType: DataType): Unit = {

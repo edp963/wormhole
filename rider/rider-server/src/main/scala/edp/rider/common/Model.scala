@@ -21,6 +21,8 @@
 
 package edp.rider.common
 
+import edp.rider.rest.persistence.entities.{FlowDirective, SimpleFlow}
+
 case class AppResult(appId: String, appName: String, appStatus: String, finalStatus: String, startedTime: String, finishedTime: String)
 
 case class AppInfo(appId: String, appState: String, startedTime: String, finishedTime: String)
@@ -63,3 +65,9 @@ case class TopicPartitionOffset(topicName: String,
                                 offset: Long)
 
 case class GrafanaConnectionInfo(dashboardUrl: String)
+
+case class DebugRequest(simpleFlow: SimpleFlow, flowDirective: Option[FlowDirective])
+
+case class WsRequest(action: String, logPath: Option[String])
+
+case class DebugLogInfo(logPath: String)

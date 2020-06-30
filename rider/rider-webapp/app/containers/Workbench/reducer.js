@@ -22,13 +22,19 @@ import { fromJS } from 'immutable'
 import {
   LOAD_SOURCE_NAMESPACES,
   LOAD_SOURCE_NAMESPACES_SUCCESS,
-  CHANGE_TABS
+  CHANGE_TABS,
+  LOAD_LASTEST_OFFSET,
+  LOAD_LASTEST_OFFSET_SUCCESS,
+  START_DEBUG,
+  START_DEBUG_SUCCESS,
+  START_DEBUG_ERROR
 } from './constants'
 
 const initialState = fromJS({
   sourceNamespaces: false,
   error: false,
-  activeKey: 'flow'
+  activeKey: 'flow',
+  debugModalLoading: false
 })
 
 export function workbenchReducer (state = initialState, { type, payload }) {
@@ -39,6 +45,16 @@ export function workbenchReducer (state = initialState, { type, payload }) {
       return state.set('sourceNamespaces', payload.sourceNamespaces)
     case CHANGE_TABS:
       return state.set('activeKey', payload.key)
+    case LOAD_LASTEST_OFFSET:
+      return state.set('debugModalLoading', true)
+    case LOAD_LASTEST_OFFSET_SUCCESS:
+      return state.set('debugModalLoading', false)
+    case START_DEBUG:
+      return state.set('debugModalLoading', true)
+    case START_DEBUG_SUCCESS:
+      return state.set('debugModalLoading', false)
+    case START_DEBUG_ERROR:
+      return state.set('debugModalLoading', false)
     default:
       return state
   }

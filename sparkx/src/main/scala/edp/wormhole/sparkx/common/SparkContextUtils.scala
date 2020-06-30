@@ -42,10 +42,17 @@ object SparkContextUtils extends EdpLogging{
     }else false
   }
 
-  def setLoggerLevel(): Unit = {
-    Logger.getLogger("org").setLevel(Level.WARN)
-    Logger.getLogger("com").setLevel(Level.WARN)
-    Logger.getLogger("kafka").setLevel(Level.WARN)
+  def setLoggerLevel(debug: Boolean = false): Unit = {
+    if (debug) {
+      Logger.getLogger("org").setLevel(Level.ERROR)
+      Logger.getLogger("com").setLevel(Level.ERROR)
+      Logger.getLogger("kafka").setLevel(Level.ERROR)
+      Logger.getLogger("edp").setLevel(Level.ERROR)
+    } else {
+      Logger.getLogger("org").setLevel(Level.WARN)
+      Logger.getLogger("com").setLevel(Level.WARN)
+      Logger.getLogger("kafka").setLevel(Level.WARN)
+    }
   }
 
 //  def doSparkStreaming(config:WormholeConfig,appId:String,sparkContext:SparkContext): StreamingContext = {

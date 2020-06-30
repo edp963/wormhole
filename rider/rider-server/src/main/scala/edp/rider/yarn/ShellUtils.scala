@@ -38,7 +38,45 @@ object ShellUtils extends RiderLogger {
       case ex: Exception =>
         val error = s"start command ${processBuilder.command().mkString(" ")} execute failed, ${ex.getMessage}"
         riderLogger.error(error)
-        val fw = new FileWriter(logFile.getAbsoluteFile())
+        val fw = new FileWriter(logFile.getAbsoluteFile)
+        val bw = new BufferedWriter(fw)
+        bw.write(error)
+        bw.close()
+        fw.close()
+        (false, None)
+    }
+  }
+
+  def runDebugShellCommand(cmd: String, logPath: String): (Boolean, Option[String])  = {
+    var command: List[String] = List()
+    val os = System.getProperty("os.name").toLowerCase
+    if (os.startsWith("windows")) {
+      command = cmd.replaceAll("\\\"", "\\\\\"").split(" ").toList
+    } else {
+      command = cmd.split(" ").toList
+    }
+    val processBuilder = new ProcessBuilder(command)
+    val logFile = new File(logPath)
+    try {
+      if (!logFile.exists()) {
+        logFile.getParentFile.mkdirs()
+        logFile.createNewFile()
+      }
+
+      processBuilder.redirectErrorStream(true)
+      processBuilder.redirectOutput(logFile)
+      val process = processBuilder.start()
+
+      ProcessKeeper.push(logPath, process)
+
+      riderLogger.info(s"shell command is $cmd")
+
+      (true, None)
+    } catch {
+      case ex: Exception =>
+        val error = s"start command ${processBuilder.command().mkString(" ")} execute failed, ${ex.getMessage}"
+        riderLogger.error(error)
+        val fw = new FileWriter(logFile.getAbsoluteFile)
         val bw = new BufferedWriter(fw)
         bw.write(error)
         bw.close()

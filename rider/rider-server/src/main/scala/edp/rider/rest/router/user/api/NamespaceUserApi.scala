@@ -194,6 +194,34 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
       }
   }
 
+  def getExtUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespaces" / LongNumber/ "schema" / "ext") {
+    (id, nsId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                onComplete(namespaceDal.getExtUmsInfo(nsId).mapTo[Option[String]]) {
+                  case Success(extUmsInfo) =>
+                    riderLogger.info(s"user ${session.userId} select namespace ext source schema by $nsId success")
+                    complete(OK, ResponseJson[Option[String]](getHeader(200, session), extUmsInfo))
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} select namespace ext source schema by $nsId failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+              }
+            }
+        }
+      }
+  }
+
   def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespaces" / LongNumber / "schema" / "sink") {
     (id, nsId) =>
       get {

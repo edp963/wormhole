@@ -53,8 +53,16 @@ object OffsetPersistenceManager extends EdpLogging {
     logInfo("appId=" + appId)
     val zookeeperAddress = config.zookeeper_address
 
-    val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
-    val appIdPath = config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId
+    val offsetPath = if (config.debug) {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + "/debug" + OffsetPersistenceManager.offsetRelativePath
+    } else {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
+    }
+    val appIdPath = if (config.debug) {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + "/debug" + "/" + appId
+    } else {
+      config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId
+    }
     val persistenceTopicConfig = readFromPersistence(zookeeperAddress, offsetPath)
     var inWatch = true
     //appid exists means spark restart,user config is valid, both use persistence config

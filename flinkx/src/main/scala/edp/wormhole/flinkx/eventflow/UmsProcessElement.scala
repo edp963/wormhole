@@ -1,7 +1,7 @@
 package edp.wormhole.flinkx.eventflow
 
 import java.io.Serializable
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
@@ -9,7 +9,8 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, FlinkxUtils, WormholeFlinkxC
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
+import edp.wormhole.ums.ext.{ExtSchemaConfig, ExtSchemaParser}
+import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
@@ -29,6 +30,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
                         config: WormholeFlinkxConfig,
                         exceptionConfig: ExceptionConfig,
                         jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])],
+                        extJsonSourceParseMap: Map[(UmsProtocolType, String), ExtSchemaConfig],
                         kafkaDataTag: OutputTag[String],
                         mConfig: Configuration) extends ProcessFunction[(String, String, String, Int, Long), Row] {
   //private val outputTag = OutputTag[String]("kafkaDataException")
@@ -54,11 +56,23 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
       if (config.feedback_enabled) startMetricsMoinitoring(protocolType.toString)
       if (jsonSourceParseMap.contains((protocolType, namespace))) {
         val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
-        val umsTuple = JsonParseUtils.dataParse(value._2, mapValue._2, mapValue._3)
-        umsTuple.foreach(tuple => {
-          logger.debug("source tuple:" + tuple.tuple)
-          createRow(tuple.tuple, protocolType.toString, out, mapValue._1)
-        })
+        // add ext format
+        if (extJsonSourceParseMap.contains((protocolType, namespace))) {
+          val extSchemaConfig: ExtSchemaConfig = extJsonSourceParseMap((protocolType, namespace))
+          val fields = mapValue._1.filter(item => !item.name.startsWith("ums_"))
+          val json = ExtSchemaParser.extFormat(value._2, fields, extSchemaConfig)
+          val umsTuple = JsonParseUtils.dataParse(json, mapValue._2, mapValue._3)
+          umsTuple.foreach(tuple => {
+            logger.debug("source tuple:" + tuple.tuple)
+            createRow(tuple.tuple, protocolType.toString, out, mapValue._1)
+          })
+        } else {
+          val umsTuple = JsonParseUtils.dataParse(value._2, mapValue._2, mapValue._3)
+          umsTuple.foreach(tuple => {
+            logger.debug("source tuple:" + tuple.tuple)
+            createRow(tuple.tuple, protocolType.toString, out, mapValue._1)
+          })
+        }
       }
       else {
         val ums = UmsCommonUtils.json2Ums(value._2)
@@ -71,6 +85,9 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     } catch {
       case ex: Throwable =>
         logger.error("in UmsProcessElement ", ex)
+        if (config.debug) {
+          System.exit(-1)
+        }
         //out.collect(new Row(0))
         //        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(ex.getMessage)
         val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
@@ -91,6 +108,11 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     val row = new Row(tuple.size)
     for (i <- tuple.indices)
       row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
+    if (config.debug) {
+      println()
+      println(s"${DateUtils.dt2string(new Date, DtFormat.TS_DASH_SEC)} start debug process")
+      println(s"source > $row")
+    }
     out.collect(row)
     if (config.feedback_enabled) moinitorRow(tuple, protocolType, schema)
   }

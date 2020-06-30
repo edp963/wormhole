@@ -82,6 +82,29 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       }
   }
 
+  def getExtUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "schema" / "ext") {
+    id =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              onComplete(namespaceDal.getExtUmsInfo(id).mapTo[Option[String]]) {
+                case Success(extUmsInfo) =>
+                  riderLogger.info(s"user ${session.userId} select namespace ext source schema by $id success")
+                  complete(OK, ResponseJson[Option[String]](getHeader(200, session), extUmsInfo))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} select namespace ext source schema by $id failed", ex)
+                  complete(OK, getHeader(451, ex.getMessage, session))
+              }
+            }
+        }
+      }
+  }
+
   def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "schema" / "sink") {
     id =>
       get {
@@ -177,7 +200,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                           val nsSeq = new ArrayBuffer[Namespace]
                           simple.nsTables.map(nsTable => {
                             nsSeq += Namespace(0, simple.nsSys.trim, simple.nsInstance.trim, simple.nsDatabase.trim, nsTable.table.trim, "*", "*", "*", nsTable.key,
-                              None, None, simple.nsDatabaseId, simple.nsInstanceId, active = true, currentSec, session.userId, currentSec, session.userId)
+                              None, None, None, simple.nsDatabaseId, simple.nsInstanceId, active = true, currentSec, session.userId, currentSec, session.userId)
                           })
                           onComplete(namespaceDal.insert(nsSeq).mapTo[Seq[Namespace]]) {
                             case Success(seq) =>
@@ -242,7 +265,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               else {
                 if (namePattern.matcher(ns.nsTable).matches()) {
                   val namespace = Namespace(ns.id, ns.nsSys.trim, ns.nsInstance.trim, ns.nsDatabase.trim, ns.nsTable.trim, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                    ns.keys, ns.sourceSchema, ns.sinkSchema, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
+                    ns.keys, ns.sourceSchema, ns.extSourceSchema, ns.sinkSchema, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
                   onComplete(namespaceDal.update(namespace).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update namespace success.")
@@ -299,6 +322,32 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
         }
       }
 
+  }
+
+  def putExtInfoRoute(route: String): Route = path(route / LongNumber / "schema" / "ext") {
+    id =>
+      put {
+        entity(as[String]) {
+          ext =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "admin") {
+                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  onComplete(namespaceDal.updateExtUmsInfo(id, ext, session.userId).mapTo[Int]) {
+                    case Success(_) =>
+                      riderLogger.info(s"user ${session.userId} update namespace ext source schema success.")
+                      complete(OK, getHeader(200, session), ext)
+                    case Failure(ex) =>
+                      riderLogger.error(s"user ${session.userId} update namespace ext source schema failed", ex)
+                      complete(OK, getHeader(451, ex.getMessage, session))
+                  }
+                }
+            }
+        }
+      }
   }
 
   def putSinkInfoRoute(route: String): Route = path(route / LongNumber / "schema" / "sink") {

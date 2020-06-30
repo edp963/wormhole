@@ -3,10 +3,12 @@ package edp.wormhole.flinkx.common
 import java.lang.reflect.Method
 
 import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.flinkx.common.ConfMemoryStorage.ExtJsonSourceParseMap
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import edp.wormhole.ums.ext.ExtSchemaConfig
 import edp.wormhole.util.config.ConnectionConfig
 
 import scala.collection.mutable
@@ -40,6 +42,7 @@ object ConfMemoryStorage extends Serializable {
 
 
   val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
+  val ExtJsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), ExtSchemaConfig]
 
   def existJsonSourceParseMap(protocol: UmsProtocolType, namespace: String) = {
     JsonSourceParseMap.contains((protocol, namespace))
@@ -49,8 +52,16 @@ object ConfMemoryStorage extends Serializable {
     JsonSourceParseMap((protocolType, namespace)) = (umsField, fieldsInfo, twoFieldsArr)
   }
 
+  def registerExtJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, extSchemaConfig: ExtSchemaConfig) = {
+    ExtJsonSourceParseMap((protocolType, namespace)) = extSchemaConfig
+  }
+
   def getAllSourceParseMap = {
     JsonSourceParseMap.toMap
+  }
+
+  def getAllExtSourceParseMap = {
+    ExtJsonSourceParseMap.toMap
   }
 
   def matchNameSpace(namespace1: String, namespace2: String): Boolean = {

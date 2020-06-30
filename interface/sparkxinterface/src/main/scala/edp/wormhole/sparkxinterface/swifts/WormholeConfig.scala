@@ -37,7 +37,9 @@ case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           hdfs_namenode_ids: Option[String],
                           kerberos: Boolean,
                           hdfslog_server_kerberos: Option[Boolean],
-                          special_config: Option[StreamSpecialConfig])
+                          special_config: Option[StreamSpecialConfig]) {
+  lazy val debug = spark_config.master == "local[*]"
+}
 
 //for parquet，data is main namespace or join namespace
 

@@ -156,7 +156,12 @@ object SwiftsTransform extends EdpLogging {
 
         currentDf.cache()
         //logInfo(uuid + ",atfer operation count and then show:" + currentDf.count()) //ui:stage line
-        if (dataSetShow.get) currentDf.show(dataSetShowNum)
+        if (config.debug) {
+          println(s"result for sql: $sql")
+          if (dataSetShow.get) currentDf.show(dataSetShowNum) else currentDf.show()
+        } else {
+          if (dataSetShow.get) currentDf.show(dataSetShowNum)
+        }
         if (firstInLoop) firstInLoop = false else cacheDf.unpersist()
         cacheDf = currentDf
         if (tmpTableNameList.nonEmpty) {
