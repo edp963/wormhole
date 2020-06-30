@@ -90,7 +90,7 @@ import { selectResources } from '../Resource/selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectActiveKey } from './selectors'
-import { changeTabs } from './action'
+import { changeTabs, stopDebug } from './action'
 
 export class Workbench extends React.Component {
   constructor (props) {
