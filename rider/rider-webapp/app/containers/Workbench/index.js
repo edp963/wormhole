@@ -91,6 +91,7 @@ import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectActiveKey } from './selectors'
 import { changeTabs, stopDebug } from './action'
+import sqlFormatter from 'sql-formatter'
 
 export class Workbench extends React.Component {
   constructor (props) {
@@ -2589,7 +2590,7 @@ export class Workbench extends React.Component {
               lookupSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
               transformSinkDataSystem: tranLookupVal1.substring(0, tranLookupVal1.indexOf('.'))
             })
-            this.cmLookupSql.doc.setValue(tranLookupVal4)
+            this.cmLookupSql.doc.setValue(sqlFormatter.format(tranLookupVal4))
 
             setTimeout(() => {
               this.flowTransformForm.setFieldsValue({
@@ -2601,10 +2602,10 @@ export class Workbench extends React.Component {
             }, 50)
             break
           case 'sparkSql':
-            this.cmSparkSql.doc.setValue(record.transformConfigInfo)
+            this.cmSparkSql.doc.setValue(sqlFormatter.format(record.transformConfigInfo))
             break
           case 'flinkSql':
-            this.cmFlinkSql.doc.setValue(record.transformConfigInfo)
+            this.cmFlinkSql.doc.setValue(sqlFormatter.format(record.transformConfigInfo))
             break
           case 'streamJoinSql':
             // 以"."为分界线
@@ -2621,7 +2622,7 @@ export class Workbench extends React.Component {
             })
 
             this.loadTransNs()
-            this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
+            this.cmStreamJoinSql.doc.setValue(sqlFormatter.format(tranStreamJoinVal2))
             break
           case 'transformClassName':
             this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
@@ -2646,7 +2647,7 @@ export class Workbench extends React.Component {
       const { jobTransValue } = this.state
       if (jobTransValue === 'sparkSql') {
         this.makeJobSqlCodeMirrorInstance()
-        this.cmJobSparkSql.doc.setValue(record.transformConfigInfo)
+        this.cmJobSparkSql.doc.setValue(sqlFormatter.format(record.transformConfigInfo))
       } else if (jobTransValue === 'transformClassName') {
         this.jobTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
       }
@@ -2678,6 +2679,24 @@ export class Workbench extends React.Component {
         editTransformId: record.order
       })
     })
+  }
+
+  formatTransformSql = () => {
+    if (this.cmLookupSql) {
+      this.cmLookupSql.doc.setValue(sqlFormatter.format(this.cmLookupSql.doc.getValue()))
+    }
+    if (this.cmSparkSql) {
+      this.cmSparkSql.doc.setValue(sqlFormatter.format(this.cmSparkSql.doc.getValue()))
+    }
+    if (this.cmStreamJoinSql) {
+      this.cmStreamJoinSql.doc.setValue(sqlFormatter.format(this.cmStreamJoinSql.doc.getValue()))
+    }
+    if (this.cmFlinkSql) {
+      this.cmFlinkSql.doc.setValue(sqlFormatter.format(this.cmFlinkSql.doc.getValue()))
+    }
+    if (this.cmJobSparkSql) {
+      this.cmJobSparkSql.doc.setValue(sqlFormatter.format(this.cmJobSparkSql.doc.getValue()))
+    }
   }
 
   hideTransformModal = () => {
@@ -2730,7 +2749,7 @@ export class Workbench extends React.Component {
             if (!cmJobSparkSqlVal) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const sparkSqlVal = cmJobSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '') // 去掉字符串前后空格
+              const sparkSqlVal = cmJobSparkSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '') // 去掉字符串前后空格
 
               transformConfigInfoString = sparkSqlVal
               transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
@@ -2857,7 +2876,7 @@ export class Workbench extends React.Component {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
               // 去掉字符串前后的空格
-              const lookupSqlValTemp = cmLookupSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const lookupSqlValTemp = cmLookupSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const lookupSqlVal = preProcessSql(lookupSqlValTemp)
 
               let lookupSqlTypeOrigin = ''
@@ -2899,7 +2918,7 @@ export class Workbench extends React.Component {
             if (!cmSparkSqlVal) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const sparkSqlValTemp = cmSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const sparkSqlValTemp = cmSparkSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const sparkSqlVal = preProcessSql(sparkSqlValTemp)
 
               transformConfigInfoString = sparkSqlVal
@@ -2916,7 +2935,7 @@ export class Workbench extends React.Component {
             if (!cmStreamJoinSqlVal) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const streamJoinSqlValTemp = cmStreamJoinSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const streamJoinSqlValTemp = cmStreamJoinSqlVal.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const streamJoinSqlVal = preProcessSql(streamJoinSqlValTemp)
 
               let streamJoinSqlTypeOrigin = ''
@@ -2965,7 +2984,7 @@ export class Workbench extends React.Component {
             if (!cmFlinkSql) {
               message.error(operateLanguageSql('fillIn'), 3)
             } else {
-              const flinkSqlValTemp = cmFlinkSql.replace(/(^\s*)|(\s*$)/g, '')
+              const flinkSqlValTemp = cmFlinkSql.replace(/\n\s*/g, ' ').replace(/(^\s*)|(\s*$)/g, '')
               const flinkSqlVal = preProcessSql(flinkSqlValTemp)
 
               transformConfigInfoString = flinkSqlVal
@@ -3753,19 +3772,112 @@ export class Workbench extends React.Component {
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
       etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
       jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern,
-      outputType, outputFieldList, debugLogsModalVisible, debugLogPath
+      outputType, outputFieldList, debugLogsModalVisible, debugLogPath, tabPanelKey, transformValue, jobTransValue
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
     const sidebarPrefixes = {
       add: locale === 'zh' ? '新增' : 'Create',
       edit: locale === 'zh' ? '修改' : 'Modify',
-      copy: locale === 'zh' ? '复制' : 'Copy'
+      copy: locale === 'zh' ? '复制' : 'Copy',
+      format: locale === 'zh' ? '格式化' : 'Format',
+      cancel: locale === 'zh' ? '取消' : 'Cancel',
+      save: locale === 'zh' ? '保存' : 'Save'
     }
 
     const stepButtons = this.generateStepButtons()
 
     const paneHeight = document.documentElement.clientHeight - 64 - 50 - 48
+
+    let flowModalFooter = []
+    let jobModalFooter = []
+
+    if ((tabPanelKey === 'flow' && (transformValue !== '' && transformValue !== 'cep' && transformValue !== 'transformClassName')) ||
+      (tabPanelKey === 'job' && (jobTransValue !== '' && jobTransValue !== 'transformClassName'))) {
+      flowModalFooter = [
+        <Button
+          key="sqlFormat"
+          type="primary"
+          className={`json-format`}
+          size={'large'}
+          onClick={this.formatTransformSql}
+        >
+          {sidebarPrefixes.format}
+        </Button>, <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideTransformModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onTransformModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+
+      jobModalFooter = [
+        <Button
+          key="sqlFormat"
+          type="primary"
+          className={`json-format`}
+          size={'large'}
+          onClick={this.formatTransformSql}
+        >
+          {sidebarPrefixes.format}
+        </Button>, <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideJobTransModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onJobTransModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+    } else {
+      flowModalFooter = [
+        <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideTransformModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onTransformModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+
+      jobModalFooter = [
+        <Button
+          key="cancel"
+          size={'large'}
+          onClick={this.hideJobTransModal}
+        >
+          {sidebarPrefixes.cancel}
+        </Button>, <Button
+          key="save"
+          type="primary"
+          size={'large'}
+          onClick={this.onJobTransModalOk}
+        >
+          {sidebarPrefixes.save}
+        </Button>
+      ]
+    }
 
     return (
       <div className="workbench-main-body">
@@ -3878,8 +3990,8 @@ export class Workbench extends React.Component {
                       okText="保存"
                       wrapClassName="transform-form-style"
                       visible={transformModalVisible}
-                      onOk={this.onTransformModalOk}
-                      onCancel={this.hideTransformModal}>
+                      onCancel={this.hideTransformModal}
+                      footer={flowModalFooter}>
                       <FlowTransformForm
                         ref={this.setFlowTransformFormRef}
                         projectIdGeted={projectId}
@@ -4155,8 +4267,8 @@ export class Workbench extends React.Component {
                       okText="保存"
                       wrapClassName="job-transform-form-style"
                       visible={jobTransModalVisible}
-                      onOk={this.onJobTransModalOk}
-                      onCancel={this.hideJobTransModal}>
+                      onCancel={this.hideJobTransModal}
+                      footer={jobModalFooter}>
                       <JobTransformForm
                         ref={(f) => { this.jobTransformForm = f }}
                         projectIdGeted={projectId}
