@@ -102,6 +102,57 @@ class Data2HbaseSink extends SinkProcessor{
       puts
     }
 
+    def gernerateData(hbaseConfig:HbaseConfig, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): (ListBuffer[Put], ListBuffer[Append], ListBuffer[Increment]) = {
+      val puts: ListBuffer[Put] = new mutable.ListBuffer[Put]
+      val appends: ListBuffer[Append] = new mutable.ListBuffer[Append]
+      val increments: ListBuffer[Increment] = new mutable.ListBuffer[Increment]
+      for (tuple <- filterRowkey2idTuples) {
+        try {
+          val umsOpValue: String = if(schemaMap.contains(OP.toString)){
+            tuple._3(schemaMap(OP.toString)._1)
+          }else ""
+          val rowkeyBytes = Bytes.toBytes(tuple._1)
+          val put:Put = new Put(rowkeyBytes)
+          val append:Append = new Append(rowkeyBytes)
+          val increment:Increment = new Increment(rowkeyBytes)
+          var isPut = false
+          var isAppend = false
+          var isIncr = false
+          schemaMap.keys.foreach { column =>
+            val (index, fieldType, _) = schemaMap(column)
+            val valueString = tuple._3(index)
+            val columnConfig = hbaseConfig.`hbase.columns.map`.getOrElse(column, null)
+            // 获取hbase.columns配置，未配置默认put操作，使用hbase.default.columnFamily作为列族
+            if(columnConfig == null){
+              isPut = true
+              put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+            }
+            else
+              columnConfig.actionType.toString match {
+                case "append" => {
+                  isAppend = true
+                  append.add(Bytes.toBytes(columnConfig.name.split(":")(0)), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+                }
+                case "incr" => {
+                  isIncr = true
+                  increment.addColumn(Bytes.toBytes(columnConfig.name.split(":")(0)), Bytes.toBytes(column), valueString.trim.toLong)
+                }
+                case "put" => {
+                  isPut = true
+                  put.addColumn(Bytes.toBytes(columnConfig.name.split(":")(0)), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+                }
+              }
+          }
+          if(isPut) puts += put
+          if(isAppend) appends += append
+          if(isIncr) increments += increment
+        } catch {
+          case e: Throwable => logger.error("rowkey:" + tuple._1 + ", tuple:" + tuple._3, e)
+        }
+      }
+      (puts, appends, increments)
+    }
+
     val namespace = UmsNamespace(sinkNamespace)
     val hbaseConfig = JsonUtils.json2caseClass[HbaseConfig](sinkProcessConfig.specialConfig.get)
     val zk = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
@@ -144,13 +195,28 @@ class Data2HbaseSink extends SinkProcessor{
         rowkey2IdTuples
     }
 
-    //    logInfo("before generate puts:" + filterRowkey2idTuples.size)
-    val puts = gerneratePuts( hbaseConfig, filterRowkey2idTuples)
-    //    logInfo("before put:" + puts.size)
-    if (puts.nonEmpty) {
-      HbaseConnection.dataPut(namespace.database + ":" + namespace.table, puts, zk._1, zk._2)
-      puts.clear()
-      //      logInfo("after put:" + puts.size)
-    } else logger.info("there is nothing to insert")
+    try {
+      val result:(ListBuffer[Put], ListBuffer[Append], ListBuffer[Increment]) = gernerateData(hbaseConfig, filterRowkey2idTuples)
+      val puts = result._1
+      if (puts.nonEmpty) {
+        HbaseConnection.dataPut(namespace.database + ":" + namespace.table, puts, zk._1, zk._2)
+        puts.clear()
+      } else logger.info("there is nothing to insert")
+
+      val appends = result._2
+      if (appends.nonEmpty) {
+        HbaseConnection.dataAppend(namespace.database + ":" + namespace.table, appends, zk._1, zk._2)
+        appends.clear()
+      } else logger.info("there is nothing to append")
+
+      val increments = result._3
+      if (increments.nonEmpty) {
+        HbaseConnection.dataIncrement(namespace.database + ":" + namespace.table, increments, zk._1, zk._2)
+        increments.clear()
+      } else logger.info("there is nothing to insert")
+    } catch {
+      case e:Throwable => throw new Exception("HBase wirte error: " + e.toString)
+    }
+
   }
 }

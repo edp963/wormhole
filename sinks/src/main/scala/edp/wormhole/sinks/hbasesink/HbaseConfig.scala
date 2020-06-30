@@ -22,24 +22,36 @@
 package edp.wormhole.sinks.hbasesink
 
 import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sinks.SourceMutationType.Value
 import edp.wormhole.ums.UmsSysField
 
-case class HbaseConfig(`hbase.columnFamily`: Option[String] = None,
+case class HbaseConfig(`hbase.default.columnFamily`: Option[String] = None,
                        `hbase.znParent`: Option[String] = None,
                        `hbase.saveAsString`: Option[Boolean] = None,
                        `umsTs.saveAsString`: Option[Boolean] = None,
                        `hbase.version.column`:Option[String] = None,
                        `mutation_type`:Option[String] = None,
-                       `hbase.rowKey`: String //separator","
-
+                       `hbase.rowKey`: String, //separator","
+                       `hbase.columns`: Seq[ColumnConfig]
                       ) {
-  lazy val `hbase.columnFamily.get` = `hbase.columnFamily`.getOrElse("cf")
+  lazy val `hbase.columnFamily.get` = `hbase.default.columnFamily`.getOrElse("cf")
   // lazy val `hbase.znParent.get` = `hbase.znParent`.getOrElse("/hbase")
   lazy val `hbase.valueType.get` = `hbase.saveAsString`.getOrElse(false)
   lazy val `umsTs.valueType.get` = `umsTs.saveAsString`.getOrElse(true)
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
+
+  lazy val `hbase.columns.map` = new scala.collection.mutable.HashMap[String, ColumnConfig]()
+  `hbase.columns`.foreach({
+    config => {
+      val column = config.name.split(":")(1)
+      `hbase.columns.map`(column)=config
+    }
+  })
+
   //lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
 }
+
+case class ColumnConfig(name: String, actionType: String = "put")
 
 //case class RowkeyInfo(name: String, pattern: String)
 

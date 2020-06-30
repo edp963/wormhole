@@ -552,7 +552,7 @@ object BatchflowMainProcess extends EdpLogging {
     val mutationType =
       if (specialConfigJson.containsKey("mutation_type")) specialConfigJson.getString("mutation_type").trim
       else if (sinkProcessConfig.classFullname.contains("Kafka") || sinkProcessConfig.classFullname.contains("Clickhouse")) SourceMutationType.INSERT_ONLY.toString
-      else SourceMutationType.I_U_D.toString
+      else SourceMutationType.INSERT_ONLY.toString
 
     val repartitionRDD = if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
       val ids = if (sinkNamespace.startsWith(UmsDataSystem.ES.toString)) JsonUtils.json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get).`_id.get`.toList
@@ -578,7 +578,8 @@ object BatchflowMainProcess extends EdpLogging {
           sendList
         } else {
           logInfo(uuid + "special config not i, merge happen")
-          SparkUtils.mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
+          // SparkUtils.mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
+          sendList
         }
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
 

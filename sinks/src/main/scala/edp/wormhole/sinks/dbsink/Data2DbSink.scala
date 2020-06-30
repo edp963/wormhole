@@ -169,20 +169,22 @@ class Data2DbSink extends SinkProcessor {
           keysTupleMap(keys) = tuple
         }
 
-        val rsKeyUmsIdMap: mutable.Map[String, Long] = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig, schemaMap)
+        // val rsKeyUmsIdMap: mutable.Map[String, Long] = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig, schemaMap)
+        val rsKeyUmsIdMap: mutable.Map[String, Long] = mutable.Map[String, Long]()
         val (insertList, updateList) = SqlProcessor.splitInsertAndUpdate(rsKeyUmsIdMap, keysTupleMap, tableKeyNames, sysIdName, renameSchema)
 
-        logger.info("insertList all:" + insertList.size)
+        /*logger.info("insertList all:" + insertList.size)
         val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames, sinkSpecificConfig.oracle_sequence_config)
         val insertErrorTupleList = SqlProcessor.executeProcess(insertList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
-          renameSchema, systemRenameMap, tableKeyNames, sysIdName)
+          renameSchema, systemRenameMap, tableKeyNames, sysIdName)*/
         logger.info("updateList all:" + updateList.size)
+        val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames, sinkSpecificConfig.oracle_sequence_config)
         val fieldNamesWithoutParNames = DbHelper.removeFieldNames(allFieldNames.toList, sinkSpecificConfig.partitionKeyList.contains)
         val updateFieldNames = DbHelper.removeFieldNames(fieldNamesWithoutParNames, tableKeyNames.contains)
-        val updateSql = SqlProcessor.getUpdateSql(dataSys, tableName, systemRenameMap, updateFieldNames, tableKeyNames, sysIdName)
-        val updateErrorTupleList = SqlProcessor.executeProcess(updateList, updateSql, batchSize, UmsOpType.UPDATE, sourceMutationType, connectionConfig, updateFieldNames,
+        val insertOrUpdateSql = SqlProcessor.getInsertOrUpdateSql(dataSys, tableName, systemRenameMap, updateFieldNames, tableKeyNames, sysIdName, insertSql)
+        val updateErrorTupleList = SqlProcessor.executeProcess(updateList, insertOrUpdateSql, batchSize, UmsOpType.UPDATE, sourceMutationType, connectionConfig, allFieldNames,
           renameSchema, systemRenameMap, tableKeyNames, sysIdName)
-        (insertErrorTupleList.length + updateErrorTupleList.length, SourceMutationType.I_U_D)
+        (updateErrorTupleList.length, SourceMutationType.I_U_D)
     }
   }
 }

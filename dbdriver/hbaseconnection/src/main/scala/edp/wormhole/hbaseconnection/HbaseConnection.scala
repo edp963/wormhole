@@ -93,6 +93,32 @@ object HbaseConnection extends Serializable {
     } finally if (table != null) table.close
   }
 
+  def dataAppend(hbaseTable: String, dataAppends: Seq[Append], zkList: String, zkPort: String): Unit = {
+    val table = getTable(hbaseTable, zkList, zkPort)
+    try {
+      dataAppends.foreach(
+        append => table.append(append)
+      )
+    }
+    catch {
+      case e: Throwable => logger.error("hbase append error:", e)
+        throw e
+    } finally if (table != null) table.close
+  }
+
+  def dataIncrement(hbaseTable: String, dataIncrements: Seq[Increment], zkList: String, zkPort: String): Unit = {
+    val table = getTable(hbaseTable, zkList, zkPort)
+    try {
+      dataIncrements.foreach(
+        increment => table.increment(increment)
+      )
+    }
+    catch {
+      case e: Throwable => logger.error("hbase increment error:", e)
+        throw e
+    } finally if (table != null) table.close
+  }
+
   def getDatasFromHbase(tableName: String, family: String, saveAsStr: Boolean, rowKeys: Seq[String], column: Seq[(String, String)], zkList: String, zkPort: String): Map[String, Map[String, Any]] = {
     val table = getTable(tableName, zkList, zkPort)
     val dataMap = mutable.HashMap.empty[String, Map[String, Any]]
