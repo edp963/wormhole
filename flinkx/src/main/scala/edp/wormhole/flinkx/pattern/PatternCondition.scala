@@ -29,7 +29,7 @@ import edp.wormhole.flinkx.pattern.Condition._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.{object2TrueValue, s2TrueValue}
 import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.table.api.Types
+import org.apache.flink.api.common.typeinfo.Types
 import org.apache.flink.types.Row
 import edp.wormhole.util.DateUtils.{dt2sqlDate, dt2timestamp}
 import org.joda.time.DateTime
@@ -41,23 +41,23 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
 
   def doFilter(conditions: JSONObject, event: Row): Boolean = {
     try{
-    val op = conditions.getString(OPERATOR.toString)
-    LogicOperator.logicOperator(op) match {
-      case LogicOperator.SINGLE =>
-        val logic = conditions.getJSONObject(LOGIC.toString)
-        val fieldName = logic.getString(FIELDNAME.toString)
-        val compareType = logic.getString(COMPARETYPE.toString)
-        val value = logic.getString(VALUE.toString)
-        eventFilter(fieldName, value, compareType, event)
-      case LogicOperator.AND =>
-        val logicArray = conditions.getJSONArray(LOGIC.toString)
-        println("find and operator:):):)")
-        doFilter(logicArray.getJSONObject(leftConditionIndex), event) && doFilter(logicArray.getJSONObject(rightConditionIndex), event)
-      case LogicOperator.OR =>
-        val logicArray = conditions.getJSONArray(LOGIC.toString)
-        println("find or operator{:{:{:")
-        doFilter(logicArray.getJSONObject(leftConditionIndex), event) || doFilter(logicArray.getJSONObject(rightConditionIndex), event)
-    }}catch{
+      val op = conditions.getString(OPERATOR.toString)
+      LogicOperator.logicOperator(op) match {
+        case LogicOperator.SINGLE =>
+          val logic = conditions.getJSONObject(LOGIC.toString)
+          val fieldName = logic.getString(FIELDNAME.toString)
+          val compareType = logic.getString(COMPARETYPE.toString)
+          val value = logic.getString(VALUE.toString)
+          eventFilter(fieldName, value, compareType, event)
+        case LogicOperator.AND =>
+          val logicArray = conditions.getJSONArray(LOGIC.toString)
+          println("find and operator:):):)")
+          doFilter(logicArray.getJSONObject(leftConditionIndex), event) && doFilter(logicArray.getJSONObject(rightConditionIndex), event)
+        case LogicOperator.OR =>
+          val logicArray = conditions.getJSONArray(LOGIC.toString)
+          println("find or operator{:{:{:")
+          doFilter(logicArray.getJSONObject(leftConditionIndex), event) || doFilter(logicArray.getJSONObject(rightConditionIndex), event)
+      }}catch{
       case e:Throwable =>
         e.printStackTrace()
         val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
@@ -91,7 +91,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
         case Types.LONG => rowFieldValue.asInstanceOf[Long] > compareValue.toLong
         case Types.FLOAT => rowFieldValue.asInstanceOf[Float] > compareValue.toFloat
         case Types.DOUBLE => rowFieldValue.asInstanceOf[Double] > compareValue.toDouble
-        case Types.DECIMAL => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) > 0
+        case Types.BIG_DEC => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) > 0
         case Types.SQL_DATE => dt2sqlDate(value).compareTo(dt2sqlDate(compareValue)) > 0
         case Types.SQL_TIMESTAMP => dt2timestamp(value).compareTo(dt2timestamp(compareValue)) > 0
       }
@@ -101,7 +101,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
         case Types.LONG => rowFieldValue.asInstanceOf[Long] < compareValue.toLong
         case Types.FLOAT => rowFieldValue.asInstanceOf[Float] < compareValue.toFloat
         case Types.DOUBLE => rowFieldValue.asInstanceOf[Double] < compareValue.toDouble
-        case Types.DECIMAL => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) < 0
+        case Types.BIG_DEC => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) < 0
         case Types.SQL_DATE => dt2sqlDate(value).compareTo(dt2sqlDate(compareValue)) < 0
         case Types.SQL_TIMESTAMP => dt2timestamp(value).compareTo(dt2timestamp(compareValue)) < 0
       }
@@ -111,7 +111,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
         case Types.LONG => rowFieldValue.asInstanceOf[Long] >= compareValue.toLong
         case Types.FLOAT => rowFieldValue.asInstanceOf[Float] >= compareValue.toFloat
         case Types.DOUBLE => rowFieldValue.asInstanceOf[Double] >= compareValue.toDouble
-        case Types.DECIMAL => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) >= 0
+        case Types.BIG_DEC => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) >= 0
         case Types.SQL_DATE => dt2sqlDate(value).compareTo(dt2sqlDate(compareValue)) >= 0
         case Types.SQL_TIMESTAMP => dt2timestamp(value).compareTo(dt2timestamp(compareValue)) >= 0
       }
@@ -121,7 +121,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
         case Types.LONG => rowFieldValue.asInstanceOf[Long] <= compareValue.toLong
         case Types.FLOAT => rowFieldValue.asInstanceOf[Float] <= compareValue.toFloat
         case Types.DOUBLE => rowFieldValue.asInstanceOf[Double] <= compareValue.toDouble
-        case Types.DECIMAL => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) <= 0
+        case Types.BIG_DEC => new java.math.BigDecimal(value).stripTrailingZeros().compareTo(new java.math.BigDecimal(compareValue).stripTrailingZeros()) <= 0
         case Types.SQL_DATE => dt2sqlDate(value).compareTo(dt2sqlDate(compareValue)) <= 0
         case Types.SQL_TIMESTAMP => dt2timestamp(value).compareTo(dt2timestamp(compareValue)) <= 0
       }

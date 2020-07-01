@@ -70,14 +70,14 @@ object FlinkxUtils {
     try {
       specialConfig match {
         case Some(_) =>
-          specialConfig.get.useDefaultKey.getOrElse(false)
+          specialConfig.get.useDefaultKey.getOrElse(true)
         case None =>
-          false
+          true
       }
     } catch {
       case e: Throwable =>
         logger.error("parse stream specialConfig error, ", e)
-        false
+        true
     }
   }
 

@@ -26,7 +26,7 @@ import java.util.Date
 import edp.wormhole.flinkx.ordering.OrderingImplicit._
 import edp.wormhole.flinkx.pattern.Functions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.table.api.Types
+import org.apache.flink.api.common.typeinfo.Types
 import org.apache.flink.types.Row
 import edp.wormhole.util.DateUtils
 
@@ -53,7 +53,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
       case Types.LONG => sumLong()
       case Types.FLOAT => sumFloat()
       case Types.DOUBLE => sumDouble()
-      case Types.DECIMAL => sumDecimal()
+      case Types.BIG_DEC => sumDecimal()
       case _ => throw new UnsupportedOperationException(s"Unsupported type to sum: $fieldType")
     }
   }
@@ -65,7 +65,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
       case Types.LONG => sumLong() / flattenInputSize
       case Types.FLOAT => sumFloat() / flattenInputSize
       case Types.DOUBLE => sumDouble() / flattenInputSize
-      case Types.DECIMAL => sumDecimal().divide(new java.math.BigDecimal(flattenInputSize))
+      case Types.BIG_DEC => sumDecimal().divide(new java.math.BigDecimal(flattenInputSize))
       case _ => throw new UnsupportedOperationException(s"Unsupported type to sum: $fieldType")
     }
   }
@@ -79,7 +79,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
       case Types.DOUBLE => input.flatten.map(row => row.getField(fieldIndex).asInstanceOf[Double]).max
       case Types.SQL_DATE => input.flatten.map(row => DateUtils.dt2sqlDate(row.getField(fieldIndex).asInstanceOf[String])).max(Ordering[Date])
       case Types.SQL_TIMESTAMP => input.flatten.map(row => DateUtils.dt2timestamp(row.getField(fieldIndex).asInstanceOf[String])).max(Ordering[Timestamp])
-      case Types.DECIMAL => input.flatten.map(row => BigDecimal(row.getField(fieldIndex).asInstanceOf[String])).max(Ordering[BigDecimal])
+      case Types.BIG_DEC => input.flatten.map(row => BigDecimal(row.getField(fieldIndex).asInstanceOf[String])).max(Ordering[BigDecimal])
       case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
     }
   }
@@ -93,7 +93,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
       case Types.DOUBLE => input.flatten.map(row => row.getField(fieldIndex).asInstanceOf[Double]).min
       case Types.SQL_DATE => input.flatten.map(row => DateUtils.dt2sqlDate(row.getField(fieldIndex).asInstanceOf[String])).min(Ordering[Date])
       case Types.SQL_TIMESTAMP => input.flatten.map(row => DateUtils.dt2timestamp(row.getField(fieldIndex).asInstanceOf[String])).min(Ordering[Timestamp])
-      case Types.DECIMAL => input.flatten.map(row => BigDecimal(row.getField(fieldIndex).asInstanceOf[String])).min(Ordering[BigDecimal])
+      case Types.BIG_DEC => input.flatten.map(row => BigDecimal(row.getField(fieldIndex).asInstanceOf[String])).min(Ordering[BigDecimal])
       case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
     }
   }
