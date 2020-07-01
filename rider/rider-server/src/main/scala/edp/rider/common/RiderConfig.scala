@@ -379,8 +379,8 @@ object RiderConfig {
     getIntConfig("flink.feedback.state.count", 100),
     getIntConfig("flink.feedback.interval", 30),
     1,
-    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.7.2-0.6.3-jar-with-dependencies.jar"),
-    getStringConfig("flink.wormhole.debug.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.7.2-0.6.3-shaded.jar"),
+    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.9.0-0.6.3-jar-with-dependencies.jar"),
+    getStringConfig("flink.wormhole.debug.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.9.0-0.6.3-shaded.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
     getIntConfig("spark.kafka.session.timeout", 30000),
     getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000))

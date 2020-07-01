@@ -56,7 +56,7 @@ import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.{CheckpointingMode, TimeCharacteristic}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.scala.StreamTableEnvironment
-import org.apache.flink.table.api.{TableEnvironment, Types}
+import org.apache.flink.table.api.{EnvironmentSettings, TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
@@ -94,8 +94,11 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val parallelism = UmsFlowStartUtils.extractParallelism(flowConfig)
     env.setParallelism(parallelism)
     manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(config.commonConfig, flowConfig))
-    val tableEnv = TableEnvironment.getTableEnvironment(env)
-    tableEnv.config.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
+
+    // 1.9.0 使用blink查询计划
+    val settings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build()
+    val tableEnv = StreamTableEnvironment.create(env, settings)
+
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 
