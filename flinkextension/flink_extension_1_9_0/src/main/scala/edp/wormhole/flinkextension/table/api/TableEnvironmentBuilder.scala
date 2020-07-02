@@ -3,6 +3,7 @@ package edp.wormhole.flinkextension.table.api
 import java.time.ZoneId
 
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.table.api.EnvironmentSettings
 import org.apache.flink.table.api.scala.StreamTableEnvironment
 
 /**
@@ -13,7 +14,8 @@ import org.apache.flink.table.api.scala.StreamTableEnvironment
 object TableEnvironmentBuilder {
 
   def build(env: StreamExecutionEnvironment): StreamTableEnvironment = {
-    val tableEnv = StreamTableEnvironment.create(env)
+    val settings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build()
+    val tableEnv = StreamTableEnvironment.create(env, settings)
     tableEnv.getConfig.setLocalTimeZone(ZoneId.of("GMT+8"))
     tableEnv
   }
