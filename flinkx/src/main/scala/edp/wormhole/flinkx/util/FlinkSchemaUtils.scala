@@ -99,7 +99,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       if (fieldString(sIndex) == ',' && num == 0) {
         if (s.contains('(') && s.contains("as")) {
           val udfName = s.trim.substring(0, s.trim.indexOf('('))
-          val newName = s.trim.substring(s.indexOf("as") + 2).trim
+          val newName = s.trim.substring(s.trim.indexOf("as") + 2).trim
           nameMap += newName -> udfName
         }
         s = ""
@@ -111,7 +111,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     }
     if (s.contains('(') && s.contains("as")) {
       val udfName = s.trim.substring(0, s.trim.indexOf('('))
-      val newName = s.trim.substring(s.indexOf("as") + 2).trim
+      val newName = s.trim.substring(s.trim.indexOf("as") + 2).trim
       nameMap += newName -> udfName
     }
     logger.debug("nameMap:" + nameMap.toString())
