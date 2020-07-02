@@ -25,7 +25,8 @@ import java.util.UUID
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
-import edp.wormhole.flinkx.pattern.Condition._
+import edp.wormhole.flinkextension.pattern.Condition._
+import edp.wormhole.flinkextension.pattern.{AbstractPatternCondition, LogicOperator}
 import edp.wormhole.ums.UmsProtocolType
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.types.Row

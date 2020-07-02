@@ -18,18 +18,17 @@
  * >>
  */
 
-package edp.wormhole.flinkx.pattern
+package edp.wormhole.flinkextension.pattern
 
 import java.sql.{Date, Timestamp}
 
 import com.alibaba.fastjson.{JSONArray, JSONObject}
-import edp.wormhole.flinkx.ordering.OrderingImplicit._
-import edp.wormhole.flinkx.pattern.FieldType.{AGG_FIELD, FieldType, KEY_BY_FIELD, SYSTEM_FIELD}
-import edp.wormhole.flinkx.pattern.Output._
+import edp.wormhole.flinkextension.ordering.OrderingImplicit._
+import edp.wormhole.flinkextension.pattern.FieldType.{AGG_FIELD, FieldType, KEY_BY_FIELD, SYSTEM_FIELD}
+import edp.wormhole.flinkextension.pattern.Output._
 import edp.wormhole.ums.UmsSysField
 import edp.wormhole.util.DateUtils
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.table.api.Types
+import org.apache.flink.api.common.typeinfo.{TypeInformation, Types}
 import org.apache.flink.types.Row
 
 import scala.collection.mutable.ListBuffer
@@ -90,7 +89,7 @@ abstract class AbstractPatternOutput(output: JSONObject, schemaMap: Map[String, 
       case Types.DOUBLE => input.flatten.maxBy(row => row.getField(fieldIndex).asInstanceOf[Double])
       case Types.SQL_DATE => input.flatten.maxBy(row => DateUtils.dt2sqlDate(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Date])
       case Types.SQL_TIMESTAMP => input.flatten.maxBy(row => DateUtils.dt2timestamp(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Timestamp])
-      case Types.DECIMAL => input.flatten.maxBy(row => new java.math.BigDecimal(row.getField(fieldIndex).asInstanceOf[String]).stripTrailingZeros())
+      case Types.BIG_DEC => input.flatten.maxBy(row => new java.math.BigDecimal(row.getField(fieldIndex).asInstanceOf[String]).stripTrailingZeros())
       case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
     }
   }
@@ -106,7 +105,7 @@ abstract class AbstractPatternOutput(output: JSONObject, schemaMap: Map[String, 
       case Types.DOUBLE => input.flatten.minBy(row => row.getField(fieldIndex).asInstanceOf[Double])
       case Types.SQL_DATE => input.flatten.minBy(row => DateUtils.dt2sqlDate(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Date])
       case Types.SQL_TIMESTAMP => input.flatten.minBy(row => DateUtils.dt2timestamp(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Timestamp])
-      case Types.DECIMAL => input.flatten.minBy(row => new java.math.BigDecimal(row.getField(fieldIndex).asInstanceOf[String]).stripTrailingZeros())
+      case Types.BIG_DEC => input.flatten.minBy(row => new java.math.BigDecimal(row.getField(fieldIndex).asInstanceOf[String]).stripTrailingZeros())
       case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
     }
   }

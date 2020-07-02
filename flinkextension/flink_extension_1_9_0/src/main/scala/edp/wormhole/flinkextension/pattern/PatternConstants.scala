@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx.pattern
+package edp.wormhole.flinkextension.pattern
 
 object JsonFieldName extends Enumeration {
   type JsonFieldName = Value

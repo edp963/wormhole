@@ -22,8 +22,10 @@ package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
-import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
-import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput, PatternOutputFilter}
+import edp.wormhole.flinkextension.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
+import edp.wormhole.flinkextension.pattern.OutputType
+import edp.wormhole.flinkextension.swifts.{AbstractSwiftsProcess, FlinkxSwiftsConstants}
+import edp.wormhole.flinkx.pattern.{PatternGenerator, PatternOutput, PatternOutputFilter}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.util.swifts.SwiftsSql

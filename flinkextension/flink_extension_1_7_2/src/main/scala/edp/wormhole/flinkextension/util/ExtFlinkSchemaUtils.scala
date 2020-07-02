@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx.util
+package edp.wormhole.flinkextension.util
 
 import java.sql.{Date, Timestamp}
 

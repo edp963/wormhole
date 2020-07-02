@@ -28,12 +28,13 @@ import com.alibaba.fastjson
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.flinkextension.swifts.FlinkxTimeCharacteristicConstants
 import edp.wormhole.flinkextension.table.api.TableEnvironmentBuilder
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
-import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.udaf.{AdjacentSub, FirstValue, LastValue}
 import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister, WhMapToString}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._

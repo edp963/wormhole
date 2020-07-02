@@ -22,8 +22,9 @@ package edp.wormhole.flinkx.pattern
 
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.flinkx.common.{ExceptionConfig, WormholeFlinkxConfig}
-import edp.wormhole.flinkx.pattern.JsonFieldName._
-import edp.wormhole.flinkx.pattern.Quantifier.{OFTIMES, TYPE}
+import edp.wormhole.flinkextension.pattern.JsonFieldName._
+import edp.wormhole.flinkextension.pattern.{PatternType, Quantifier, Strategy}
+import edp.wormhole.flinkextension.pattern.Quantifier.{OFTIMES, TYPE}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy
 import org.apache.flink.cep.scala.pattern.Pattern

@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx.ordering
+package edp.wormhole.flinkextension.ordering
 
 import java.sql.{Date, Timestamp}
 

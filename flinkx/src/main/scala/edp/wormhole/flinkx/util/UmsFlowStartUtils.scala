@@ -24,7 +24,7 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.flinkx.common.{CommonConfig, FlinkCheckpoint}
-import edp.wormhole.flinkx.swifts.{FlinkxSwiftsConstants, FlinkxTimeCharacteristicConstants}
+import edp.wormhole.flinkextension.swifts.{FlinkxSwiftsConstants, FlinkxTimeCharacteristicConstants}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import org.apache.log4j.Logger

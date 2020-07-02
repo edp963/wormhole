@@ -22,12 +22,13 @@ package edp.wormhole.flinkx.pattern
 
 import java.sql.Timestamp
 
-import com.alibaba.fastjson.{JSONArray, JSONObject}
+import com.alibaba.fastjson.JSONObject
+import edp.wormhole.flinkextension.pattern.FieldType.{AGG_FIELD, KEY_BY_FIELD, SYSTEM_FIELD}
+import edp.wormhole.flinkextension.pattern.Functions.{HEAD, LAST, MAX, MIN}
+import edp.wormhole.flinkextension.pattern.Output._
+import edp.wormhole.flinkextension.pattern.OutputType._
+import edp.wormhole.flinkextension.pattern.{AbstractPatternOutput, Functions, OutputType, PatternAggregation}
 import edp.wormhole.flinkx.ordering.OrderingImplicit._
-import edp.wormhole.flinkx.pattern.FieldType.{AGG_FIELD, KEY_BY_FIELD, SYSTEM_FIELD}
-import edp.wormhole.flinkx.pattern.Functions.{HEAD, LAST, MAX, MIN}
-import edp.wormhole.flinkx.pattern.Output._
-import edp.wormhole.flinkx.pattern.OutputType._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.object2TrueValue
 import edp.wormhole.ums.UmsSysField

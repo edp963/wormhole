@@ -20,25 +20,21 @@
 
 package edp.wormhole.flinkx.util
 
-import java.sql.{Date, Timestamp}
-
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.flinkx.common.WormholeFlinkxConfig
-import edp.wormhole.flinkx.swifts.FlinkxSwiftsConstants
+import edp.wormhole.flinkextension.swifts.FlinkxSwiftsConstants
+import edp.wormhole.flinkextension.util.ExtFlinkSchemaUtils
 import edp.wormhole.kafka.WormholeKafkaConsumer
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.{DATA_BATCH_DATA, DATA_INCREMENT_DATA, DATA_INITIAL_DATA}
-import edp.wormhole.ums.{UmsCommonUtils, UmsSchema, UmsSysField}
-import edp.wormhole.util.DateUtils
-import org.apache.flink.api.common.typeinfo.{BasicArrayTypeInfo, SqlTimeTypeInfo, TypeInformation}
+import edp.wormhole.ums.{UmsCommonUtils, UmsSchema}
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.table.api.{TableSchema, Types}
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.apache.kafka.clients.consumer.{ConsumerRecord, ConsumerRecords}
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 object FlinkSchemaUtils extends java.io.Serializable {
 

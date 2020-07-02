@@ -18,13 +18,13 @@
  * >>
  */
 
-package edp.wormhole.flinkx.pattern
+package edp.wormhole.flinkextension.pattern
 
 import java.sql.Timestamp
 import java.util.Date
 
-import edp.wormhole.flinkx.ordering.OrderingImplicit._
-import edp.wormhole.flinkx.pattern.Functions._
+import edp.wormhole.flinkextension.ordering.OrderingImplicit._
+import edp.wormhole.flinkextension.pattern.Functions._
 import edp.wormhole.util.DateUtils
 import org.apache.flink.api.common.typeinfo.{TypeInformation, Types}
 import org.apache.flink.types.Row
