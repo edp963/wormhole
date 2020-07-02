@@ -28,6 +28,7 @@ import com.alibaba.fastjson
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.flinkextension.table.api.TableEnvironmentBuilder
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
@@ -94,8 +95,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val parallelism = UmsFlowStartUtils.extractParallelism(flowConfig)
     env.setParallelism(parallelism)
     manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(config.commonConfig, flowConfig))
-    val tableEnv = TableEnvironment.getTableEnvironment(env)
-    tableEnv.config.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
+    val tableEnv = TableEnvironmentBuilder.build(env)
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 

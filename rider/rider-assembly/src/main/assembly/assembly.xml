@@ -87,7 +87,7 @@
         </file>
         <file>
             <source>
-                ${project.parent.basedir}/flinkx/target/wormhole-ums_${ums.version}-flinkx_${flink.version}-${project.version}-jar-with-dependencies.jar
+                ${project.parent.basedir}/flinkx/target/wormhole-ums_${ums.version}-flinkx_${flink.extension.version}-${project.version}-jar-with-dependencies.jar
             </source>
             <outputDirectory>app</outputDirectory>
         </file>
