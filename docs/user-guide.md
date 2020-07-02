@@ -459,15 +459,15 @@ Java程序：
   ```
   <dependency>
      <groupId>edp.wormhole</groupId>
-     <artifactId>wormhole-flinkxinterface</artifactId>
+     <artifactId>wormhole-flink-interface_${1.7.2}</artifactId>
      <version>0.6.3</version>
   </dependency>
   ```
 
-- clone wormhole github 项目，本地安装 wormhole-flinkxinterface jar 包
+- clone wormhole github 项目，本地安装 wormhole-flink-interface_${flink.extension.version} jar 包
 
   ```
-  安装wormhole-flinkxinterface包至本地maven仓库
+  安装wormhole-flink-interface_${flink.extension.version}包至本地maven仓库
 
   wormhole/interface/flinkxinterface目录下执行
 

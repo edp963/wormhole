@@ -82,7 +82,7 @@ This project includes:
   ssl-config-core under Apache License, Version 2.0
   The Netty Project under Apache License, Version 2.0
   wormhole-dbpool under Apache License, Version 2.0
-  wormhole-flinkxinterface under Apache License, Version 2.0
+  wormhole-flink-interface_${flink.extension.version} under Apache License, Version 2.0
   wormhole-interface under Apache License, Version 2.0
   wormhole-kafka-010 under Apache License, Version 2.0
   wormhole-ums_1.3 under Apache License, Version 2.0
