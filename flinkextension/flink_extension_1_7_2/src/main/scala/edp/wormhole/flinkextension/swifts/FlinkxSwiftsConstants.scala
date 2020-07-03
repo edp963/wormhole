@@ -1,4 +1,4 @@
-package edp.wormhole.flinkx.swifts
+package edp.wormhole.flinkextension.swifts
 
 object FlinkxSwiftsConstants {
 

@@ -18,17 +18,16 @@
  * >>
  */
 
-package edp.wormhole.flinkx.pattern
+package edp.wormhole.flinkextension.pattern
 
 import java.sql.Timestamp
 import java.util.Date
 
-import edp.wormhole.flinkx.ordering.OrderingImplicit._
-import edp.wormhole.flinkx.pattern.Functions._
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.common.typeinfo.Types
-import org.apache.flink.types.Row
+import edp.wormhole.flinkextension.ordering.OrderingImplicit._
+import edp.wormhole.flinkextension.pattern.Functions._
 import edp.wormhole.util.DateUtils
+import org.apache.flink.api.common.typeinfo.{TypeInformation, Types}
+import org.apache.flink.types.Row
 
 import scala.language.existentials
 import scala.math.{BigDecimal, Ordering}
@@ -42,7 +41,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
       case SUM => sum()
       case MAX => max()
       case MIN => min()
-      case COUNT=>count()
+      case COUNT => count()
       case _ => throw new UnsupportedOperationException(s"Unsupported output type : $functionType")
     }
   }
@@ -70,7 +69,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
     }
   }
 
-  private def max() = {
+  def max() = {
     fieldType match {
       case Types.STRING => input.flatten.map(row => row.getField(fieldIndex).asInstanceOf[String]).max
       case Types.INT => input.flatten.map(row => row.getField(fieldIndex).asInstanceOf[Int]).max
@@ -84,7 +83,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
     }
   }
 
-  private def min() = {
+  def min() = {
     fieldType match {
       case Types.STRING => input.flatten.map(row => row.getField(fieldIndex).asInstanceOf[String]).min
       case Types.INT => input.flatten.map(row => row.getField(fieldIndex).asInstanceOf[Int]).min
@@ -98,8 +97,7 @@ class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, sche
     }
   }
 
-
-  private def count(): Int ={
+  def count(): Int ={
     input.flatten.size
   }
 

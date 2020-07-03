@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-scala_${scala.binary.version}</artifactId>
-            <version>${flink.version}</version>
+            <version>${flink.extension.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-collections</groupId>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-clients_${scala.binary.version}</artifactId>
-            <version>${flink.version}</version>
+            <version>${flink.extension.version}</version>
         </dependency>
     </dependencies>
     <build>

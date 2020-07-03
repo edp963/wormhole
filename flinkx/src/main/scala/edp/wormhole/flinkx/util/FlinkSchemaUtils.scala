@@ -20,26 +20,21 @@
 
 package edp.wormhole.flinkx.util
 
-import java.sql.{Date, Timestamp}
-
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.flinkx.common.WormholeFlinkxConfig
-import edp.wormhole.flinkx.swifts.FlinkxSwiftsConstants
+import edp.wormhole.flinkextension.swifts.FlinkxSwiftsConstants
+import edp.wormhole.flinkextension.util.ExtFlinkSchemaUtils
 import edp.wormhole.kafka.WormholeKafkaConsumer
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.{DATA_BATCH_DATA, DATA_INCREMENT_DATA, DATA_INITIAL_DATA}
-import edp.wormhole.ums.{UmsCommonUtils, UmsSchema, UmsSysField}
-import edp.wormhole.util.DateUtils
-import org.apache.flink.api.common.typeinfo.{BasicArrayTypeInfo, SqlTimeTypeInfo, TypeInformation}
-import org.apache.flink.table.api.TableSchema
-import org.apache.flink.api.common.typeinfo.Types
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
+import edp.wormhole.ums.{UmsCommonUtils, UmsSchema}
+import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.table.api.{TableSchema, Types}
 import org.apache.kafka.clients.consumer.{ConsumerRecord, ConsumerRecords}
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 object FlinkSchemaUtils extends java.io.Serializable {
 
@@ -84,12 +79,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
   }
 
   def tableFieldTypeArray(tableSchema: TableSchema, preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
-    tableSchema.getFieldNames.map(fieldName => {
-      val fieldType = preSchemaMap(fieldName)._1
-      if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
-        SqlTimeTypeInfo.TIMESTAMP
-      else fieldType
-    })
+    ExtFlinkSchemaUtils.tableFieldTypeArray(tableSchema, preSchemaMap)
   }
 
   def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String, udfSchemaMap: Map[String, TypeInformation[_]], specialConfigObj: JSONObject): Map[String, (TypeInformation[_], Int)] = {
@@ -231,87 +221,23 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
 
   def umsType2FlinkType(umsFieldType: UmsFieldType): TypeInformation[_] = {
-    umsFieldType match {
-      case STRING => Types.STRING
-      case INT => Types.INT
-      case LONG => Types.LONG
-      case FLOAT => Types.FLOAT
-      case DOUBLE => Types.DOUBLE
-      case BOOLEAN => Types.BOOLEAN
-      case DATE => Types.SQL_DATE
-      case DATETIME => Types.SQL_TIMESTAMP
-      case DECIMAL => Types.BIG_DEC
-    }
+    ExtFlinkSchemaUtils.umsType2FlinkType(umsFieldType)
   }
 
   def FlinkType2UmsType(dataType: TypeInformation[_]): UmsFieldType = {
-    dataType match {
-      case Types.STRING => STRING
-      case Types.INT => INT
-      case Types.LONG => LONG
-      case Types.FLOAT => FLOAT
-      case Types.DOUBLE => DOUBLE
-      case Types.BOOLEAN => BOOLEAN
-      case Types.SQL_DATE => DATE
-      case Types.SQL_TIMESTAMP => DATETIME
-      case Types.BIG_DEC => DECIMAL
-      //case _ => INT
-    }
-
+    ExtFlinkSchemaUtils.FlinkType2UmsType(dataType)
   }
 
   def s2FlinkType(fieldType: String): TypeInformation[_] = {
-    fieldType match {
-      case "datetime" => Types.SQL_TIMESTAMP
-      case "date" => Types.SQL_DATE
-      case "decimal" => Types.BIG_DEC
-      case "int" => Types.INT
-      case "long" => Types.LONG
-      case "float" => Types.FLOAT
-      case "double" => Types.DOUBLE
-      case "string" => Types.STRING
-      case "binary" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
-
-      case unknown =>
-        throw new Exception("unknown type:" + unknown)
-    }
+    ExtFlinkSchemaUtils.s2FlinkType(fieldType)
   }
 
-  def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = if (value == null) null
-  else flinkType match {
-    case Types.STRING =>  value.asInstanceOf[String].trim
-    case Types.INT => value.asInstanceOf[Int]
-    case Types.LONG => value match {
-      case _: Int => value.asInstanceOf[Int].toLong
-      case _ => value.asInstanceOf[Long]
-    }
-    case Types.FLOAT => value.asInstanceOf[Float]
-    case Types.DOUBLE => value match {
-      case _: Float => value.asInstanceOf[Float].toDouble
-      case _ => value.asInstanceOf[Double]
-    }
-    case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => value match {
-      case _:Timestamp => DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp])
-      case _=>DateUtils.dt2sqlDate(value.asInstanceOf[Date])
-    }
-    case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
-    case Types.BIG_DEC => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].stripTrailingZeros().toPlainString)
-    case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
+  def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = {
+    ExtFlinkSchemaUtils.object2TrueValue(flinkType, value)
   }
 
-  def s2TrueValue(flinkType: TypeInformation[_], value: String): Any = if (value == null) null
-  else flinkType match {
-    case Types.STRING => value.trim
-    case Types.INT => value.trim.toInt
-    case Types.LONG => value.trim.toLong
-    case Types.FLOAT => value.trim.toFloat
-    case Types.DOUBLE => value.trim.toDouble
-    case Types.BOOLEAN => value.trim.toBoolean
-    case Types.SQL_DATE => DateUtils.dt2sqlDate(value.trim)
-    case Types.SQL_TIMESTAMP => DateUtils.dt2timestamp(value.trim)
-    case Types.BIG_DEC => new java.math.BigDecimal(value.trim).stripTrailingZeros()
-    case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
+  def s2TrueValue(flinkType: TypeInformation[_], value: String): Any = {
+    ExtFlinkSchemaUtils.s2TrueValue(flinkType, value)
   }
 
   def getRelValue(fieldIndex: Int, value: String, schemaMap: Map[String, (TypeInformation[_], Int)]): Any =
@@ -325,4 +251,5 @@ object FlinkSchemaUtils extends java.io.Serializable {
   def checkOtherData(protocolType: String): Boolean = {
     protocolType.startsWith("directive_") || protocolType.endsWith("_heartbeat") || protocolType.endsWith("_termination")
   }
+
 }

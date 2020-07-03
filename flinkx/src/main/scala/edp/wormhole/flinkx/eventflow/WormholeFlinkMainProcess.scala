@@ -28,11 +28,13 @@ import com.alibaba.fastjson
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.flinkextension.swifts.FlinkxTimeCharacteristicConstants
+import edp.wormhole.flinkextension.table.api.TableEnvironmentBuilder
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
-import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.udaf.{AdjacentSub, FirstValue, LastValue}
 import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister, WhMapToString}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
@@ -56,7 +58,7 @@ import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.{CheckpointingMode, TimeCharacteristic}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.scala.StreamTableEnvironment
-import org.apache.flink.table.api.{EnvironmentSettings, TableEnvironment, Types}
+import org.apache.flink.table.api.{TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
@@ -94,11 +96,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val parallelism = UmsFlowStartUtils.extractParallelism(flowConfig)
     env.setParallelism(parallelism)
     manageCheckpoint(env, UmsFlowStartUtils.extractCheckpointConfig(config.commonConfig, flowConfig))
-
-    // 1.9.0 使用blink查询计划
-    val settings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build()
-    val tableEnv = StreamTableEnvironment.create(env, settings)
-
+    val tableEnv = TableEnvironmentBuilder.build(env)
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 

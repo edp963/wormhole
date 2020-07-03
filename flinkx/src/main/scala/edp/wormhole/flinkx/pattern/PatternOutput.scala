@@ -20,40 +20,32 @@
 
 package edp.wormhole.flinkx.pattern
 
-import java.sql.{Date, Timestamp}
+import java.sql.Timestamp
 
-import com.alibaba.fastjson.{JSONArray, JSONObject}
+import com.alibaba.fastjson.JSONObject
+import edp.wormhole.flinkextension.pattern.FieldType.{AGG_FIELD, KEY_BY_FIELD, SYSTEM_FIELD}
+import edp.wormhole.flinkextension.pattern.Functions.{HEAD, LAST, MAX, MIN}
+import edp.wormhole.flinkextension.pattern.Output._
+import edp.wormhole.flinkextension.pattern.OutputType._
+import edp.wormhole.flinkextension.pattern.{AbstractPatternOutput, Functions, OutputType, PatternAggregation}
 import edp.wormhole.flinkx.ordering.OrderingImplicit._
-import edp.wormhole.flinkx.pattern.FieldType.{AGG_FIELD, FieldType, KEY_BY_FIELD, SYSTEM_FIELD}
-import edp.wormhole.flinkx.pattern.Functions.{HEAD, LAST, MAX, MIN}
-import edp.wormhole.flinkx.pattern.Output._
-import edp.wormhole.flinkx.pattern.OutputType._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.object2TrueValue
 import edp.wormhole.ums.UmsSysField
-import edp.wormhole.util.DateUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.PatternStream
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.api.common.typeinfo.Types
 import org.apache.flink.types.Row
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.language.existentials
 import scala.math.Ordering
 
-class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)]) extends java.io.Serializable {
+class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)]) extends AbstractPatternOutput(output, schemaMap) {
 
   private lazy val logger = LoggerFactory.getLogger(this.getClass)
   private lazy val outputType = output.getString(TYPE.toString)
-  private lazy val outputFieldArray: JSONArray =
-    if (output.containsKey(FIELD_LIST.toString)) {
-      output.getJSONArray(FIELD_LIST.toString)
-    } else {
-      null.asInstanceOf[JSONArray]
-    }
 
   def getOutputType: String = {
     outputType
@@ -103,11 +95,11 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
 
   /**
-   *
-   * agg build row with key_by fields
-   * and ums_ts,ums_id,ums_op (if contains)
-   *
-   **/
+    *
+    * agg build row with key_by fields
+    * and ums_ts,ums_id,ums_op (if contains)
+    *
+    **/
 
   private def buildRow(input: Iterable[Iterable[Row]], keyByFields: String) = {
     val outputFieldList = getOutputFieldList(keyByFields)
@@ -143,45 +135,9 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     row
   }
 
-
   /**
-   * @param keyByFields key1,key2
-   *                    outputFieldList: [{"function_type":"max","field_name":"col1","alias_name":"maxCol1"}]
-   *                    systemFieldArray: ums_id_ ,ums_ts_, ums_op_
-   * @return keyByFields+systemFields++originalFields if keyByFields are not empty,
-   *         else systemFields++originalFields
-   */
-
-  private def getOutputFieldList(keyByFields: String): ListBuffer[(String, TypeInformation[_], FieldType)] = {
-    val outPutFieldListBuffer = ListBuffer.empty[(String, TypeInformation[_], FieldType)]
-    if (schemaMap.contains(UmsSysField.ID.toString)) outPutFieldListBuffer.append((UmsSysField.ID.toString, schemaMap(UmsSysField.ID.toString)._1, SYSTEM_FIELD))
-    if (schemaMap.contains(UmsSysField.TS.toString)) outPutFieldListBuffer.append((UmsSysField.TS.toString, schemaMap(UmsSysField.TS.toString)._1, SYSTEM_FIELD))
-    if (schemaMap.contains(UmsSysField.OP.toString)) outPutFieldListBuffer.append((UmsSysField.OP.toString, schemaMap(UmsSysField.OP.toString)._1, SYSTEM_FIELD))
-
-    for (i <- 0 until outputFieldArray.size()) {
-      val outputFieldJsonObj = outputFieldArray.getJSONObject(i)
-      val originalFieldName = outputFieldJsonObj.getString(FIELD_NAME.toString)
-      val aliasName =
-        if (outputFieldJsonObj.getString(ALIAS_NAME.toString) == "") originalFieldName
-        else outputFieldJsonObj.getString(ALIAS_NAME.toString)
-      val fieldType = if (schemaMap.contains(originalFieldName))
-        schemaMap(originalFieldName)._1
-      else Types.INT
-      outPutFieldListBuffer.append((aliasName, fieldType, AGG_FIELD))
-    }
-    if (keyByFields != null && keyByFields.nonEmpty) {
-      val keyByFiledArray = keyByFields.split(",")
-      keyByFiledArray.foreach(field => outPutFieldListBuffer.append((field, schemaMap(field)._1, KEY_BY_FIELD)))
-      outPutFieldListBuffer
-    }
-    else
-      outPutFieldListBuffer
-  }
-
-
-  /**
-   * map[renameField,(originalField,functionType)]
-   */
+    * map[renameField,(originalField,functionType)]
+    */
 
   private def getAggFieldMap: mutable.Map[String, (String, String)] = {
     val aggFieldMap = mutable.HashMap.empty[String, (String, String)]
@@ -208,39 +164,6 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
       case MAX => maxRow(input)
       case MIN => minRow(input)
       case _ => throw new UnsupportedOperationException(s"Unsupported output type : $functionType")
-    }
-  }
-
-  private def maxRow(input: Iterable[Iterable[Row]]) = {
-    val fieldNameOfMaxRow = outputFieldArray.getJSONObject(0).getString(FIELD_NAME.toString)
-    val (fieldType, fieldIndex) = schemaMap(fieldNameOfMaxRow)
-    fieldType match {
-      case Types.STRING => input.flatten.maxBy(row => row.getField(fieldIndex).asInstanceOf[String])
-      case Types.INT => input.flatten.maxBy(row => row.getField(fieldIndex).asInstanceOf[Int])
-      case Types.LONG => input.flatten.maxBy(row => row.getField(fieldIndex).asInstanceOf[Long])
-      case Types.FLOAT => input.flatten.maxBy(row => row.getField(fieldIndex).asInstanceOf[Float])
-      case Types.DOUBLE => input.flatten.maxBy(row => row.getField(fieldIndex).asInstanceOf[Double])
-      case Types.SQL_DATE => input.flatten.maxBy(row => DateUtils.dt2sqlDate(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Date])
-      case Types.SQL_TIMESTAMP => input.flatten.maxBy(row => DateUtils.dt2timestamp(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Timestamp])
-      case Types.BIG_DEC => input.flatten.maxBy(row => new java.math.BigDecimal(row.getField(fieldIndex).asInstanceOf[String]).stripTrailingZeros())
-      case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
-    }
-  }
-
-
-  private def minRow(input: Iterable[Iterable[Row]]) = {
-    val fieldNameOfMinRow = outputFieldArray.getJSONObject(0).getString(FIELD_NAME.toString)
-    val (fieldType, fieldIndex) = schemaMap(fieldNameOfMinRow)
-    fieldType match {
-      case Types.STRING => input.flatten.minBy(row => row.getField(fieldIndex).asInstanceOf[String])
-      case Types.INT => input.flatten.minBy(row => row.getField(fieldIndex).asInstanceOf[Int])
-      case Types.LONG => input.flatten.minBy(row => row.getField(fieldIndex).asInstanceOf[Long])
-      case Types.FLOAT => input.flatten.minBy(row => row.getField(fieldIndex).asInstanceOf[Float])
-      case Types.DOUBLE => input.flatten.minBy(row => row.getField(fieldIndex).asInstanceOf[Double])
-      case Types.SQL_DATE => input.flatten.minBy(row => DateUtils.dt2sqlDate(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Date])
-      case Types.SQL_TIMESTAMP => input.flatten.minBy(row => DateUtils.dt2timestamp(row.getField(fieldIndex).asInstanceOf[String]))(Ordering[Timestamp])
-      case Types.BIG_DEC => input.flatten.minBy(row => new java.math.BigDecimal(row.getField(fieldIndex).asInstanceOf[String]).stripTrailingZeros())
-      case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
     }
   }
 
