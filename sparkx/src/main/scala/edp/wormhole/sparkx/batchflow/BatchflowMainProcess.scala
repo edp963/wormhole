@@ -121,10 +121,15 @@ object BatchflowMainProcess extends EdpLogging {
           if(e.getMessage.contains("Failed to construct kafka consumer")){
             logError("kafka consumer error ,stop spark streaming")
 
-            SparkxUtils.setFlowErrorMessage(List.empty[String],
-              topicPartitionOffset, config, "testkerberos", "testkerberos", -1,
-              e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
-              -config.spark_config.stream_id, ErrorPattern.StreamError)
+            try {
+              SparkxUtils.setFlowErrorMessage(List.empty[String],
+                topicPartitionOffset, config, "testkerberos", "testkerberos", -1,
+                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                -config.spark_config.stream_id, ErrorPattern.StreamError)
+            } catch {
+              case e: Exception =>
+                logAlert("send flow error message failed", e)
+            }
 
             stream.stop()
 
@@ -134,13 +139,18 @@ object BatchflowMainProcess extends EdpLogging {
         case e: Throwable =>
           logAlert("batch error", e)
 
-          ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
-            sinks.foreach { case (sinkNamespace, flowConfig) =>
-              SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
-                topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
-                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
-                flowConfig.flowId, ErrorPattern.StreamError)
+          try {
+            ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
+              sinks.foreach { case (sinkNamespace, flowConfig) =>
+                SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
+                  topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
+                  e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                  flowConfig.flowId, ErrorPattern.StreamError)
+              }
             }
+          } catch {
+            case e: Exception =>
+              logAlert("send flow error message failed", e)
           }
       }
       logInfo("commit offsets")
