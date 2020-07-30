@@ -104,7 +104,7 @@ object JsonParseUtils {
             val dataTypeProcessed = dataTypeProcess(dataType)
             if (dataTypeProcessed == "jsonobject") {
               val subFieldsInfo = subFields.get
-              val jsonParseRes = jsonValue.getJSONObject(name)
+              val jsonParseRes = if(jsonValue.containsKey(name)) jsonValue.getJSONObject(name) else new JSONObject()
               subFieldsInfo.foreach(subField => {
                 arrayProcess(subField, jsonParseRes)
               }
@@ -145,7 +145,7 @@ object JsonParseUtils {
                 val iudMap = mappingRule.split(",").map(_.split("\\:")).map(arr => arr(1) -> arr(0)).toMap
                 record.append(iudMap(jsonValue.getString(name)))
               }
-              else record.append(jsonValue.getString(name))
+              else record.append(if(jsonValue.containsKey(name)) jsonValue.getString(name) else null)
             }
 
           }
@@ -158,7 +158,7 @@ object JsonParseUtils {
       }
       else if (dataTypeProcessed == "jsonobject") {
         val subFieldsInfo = subFields.get
-        val jsonParseRes = jsonValue.getJSONObject(name)
+        val jsonParseRes = if(jsonValue.containsKey(name)) jsonValue.getJSONObject(name) else new JSONObject()
         subFieldsInfo.foreach(subField => {
           dataProcess(subField, jsonParseRes)
         }
@@ -173,7 +173,7 @@ object JsonParseUtils {
           val iudMap = mappingRule.split(",").map(_.split("\\:")).map(arr => arr(1) -> arr(0)).toMap
           oneRecord.append(iudMap(jsonValue.getString(name)))
         }
-        else oneRecord.append(jsonValue.getString(name))
+        else oneRecord.append(if(jsonValue.containsKey(name)) jsonValue.getString(name) else null)
       }
     }
     allFieldsInfo.foreach(fieldInfo => {
