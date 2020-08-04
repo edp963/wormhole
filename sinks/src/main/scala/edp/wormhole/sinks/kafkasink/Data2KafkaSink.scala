@@ -34,6 +34,7 @@ import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
+import scala.math.abs
 
 class Data2KafkaSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
@@ -44,9 +45,11 @@ class Data2KafkaSink extends SinkProcessor {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
+    val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
     val sinkNamespaceSeq = sinkNamespaceOrg.split("\\.")
-    val sourceNamespaceSeq = sourceNamespace.split("\\.")
-    val sinkNamespace = s"${sinkNamespaceSeq(0)}.${sinkNamespaceSeq(1)}.${sinkNamespaceSeq(2)}.${sinkNamespaceSeq(3)}.${sourceNamespaceSeq(4)}.${sourceNamespaceSeq(5)}.${sourceNamespaceSeq(6)}"
+    //val sourceNamespaceSeq = sourceNamespace.split("\\.")
+    val sinkVersion = schemaHash(schemaList)
+    val sinkNamespace = s"${sinkNamespaceSeq(0)}.${sinkNamespaceSeq(1)}.${sinkNamespaceSeq(2)}.${sinkNamespaceSeq(3)}.$sinkVersion.0.0"
 
     if(tupleList.nonEmpty) {
       logger.info(s"In Data2KafkaSink ${tupleList.head}, size is ${tupleList.size}")
@@ -55,7 +58,7 @@ class Data2KafkaSink extends SinkProcessor {
     val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None, None, None)
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters, sinkSpecificConfig.kerberos.getOrElse(false))
 
-    val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
+
     val protocol: UmsProtocol =
       if (sinkSpecificConfig.topic.nonEmpty && sinkSpecificConfig.topic.get.nonEmpty)
         UmsProtocol(UmsProtocolType.DATA_BATCH_DATA)
@@ -134,5 +137,12 @@ class Data2KafkaSink extends SinkProcessor {
         payload = Some(seqUmsTuple)))
       WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     })
+  }
+
+  def schemaHash(schemaList: Seq[(String, (Int, UmsFieldType, Boolean))]): Int = {
+    val fieldList = schemaList.map(schema => {
+      schema._1
+    })
+    abs(fieldList.toString().hashCode)
   }
 }

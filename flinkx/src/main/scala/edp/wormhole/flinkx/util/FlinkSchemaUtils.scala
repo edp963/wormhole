@@ -156,13 +156,14 @@ object FlinkSchemaUtils extends java.io.Serializable {
     })
   }
 
-  def getSchemaFromZk(zkAddress: String, realZkPath: String): String = {
-    val schemaGetFromZk: String = new String(WormholeZkClient.getData(zkAddress, realZkPath))
-    WormholeZkClient.closeZkClient()
-    schemaGetFromZk
-  }
-
-  def findJsonSchema(config: WormholeFlinkxConfig, zkAddress: String, zkPath: String, sourceNamespace: String): UmsSchema = {
+  /**
+   * In order to find the correct umsSchema
+   * The function need to read from kafka to find the corresponding sourceNamespace data
+   * @param config
+   * @param sourceNamespace
+   * @return
+   */
+  def findUmsSchemaFromKafka(config: WormholeFlinkxConfig, sourceNamespace: String): UmsSchema = {
     val consumer = WormholeKafkaConsumer.initConsumer(config.kafka_input.kafka_base_config.brokers, config.kafka_input.kafka_base_config.group_id, None, config.kafka_input.kafka_base_config.kerberos)
     WormholeKafkaConsumer.subscribeTopicFromOffset(consumer, new WormholeFlinkxConfigUtils(config).getTopicOffsetMap)
     var correctData = false
@@ -193,13 +194,12 @@ object FlinkSchemaUtils extends java.io.Serializable {
         } else logger.debug("continue")
       }
     } catch {
-      case e: Throwable => logger.error("findJsonSchema", e)
+      case e: Throwable => logger.error("findUmsSchemaFromKafka", e)
     }
 
     WormholeKafkaConsumer.close(consumer)
     val umsSchema: UmsSchema = record
-    //    WormholeZkClient.createAndSetData(zkAddress, zkPath, jsonSchema.getBytes("UTF-8"))
-    //    WormholeZkClient.closeZkClient()
+
     umsSchema
   }
 

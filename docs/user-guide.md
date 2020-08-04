@@ -657,9 +657,7 @@ Job中Spark SQL表名为“increment”。例如：
 
 ## 监控预警
 
-Stream运行过程中会将每批处理的错误信息，offset信息，数据量信息和延时等信息发送至wormhole_feedback topic中。Wormhole Web应用负责消费这些信息，其中错误信息和offset信息保存在MySQL数据库中，数据量信息和延时统计信息保存在Elasticsearch中。
-
-Wormhole项目内Performance页面通过嵌入Grafana Dashboard展示每个项目下Stream/Flow吞吐和延时信息。（使用此功能Wormhole配置文件中须配置Grafana/Elasticsearch信息） 
+Stream运行过程中会将每批处理的错误信息，offset信息，数据量信息和延时等信息发送至wormhole_feedback topic中。Wormhole Web应用负责消费这些信息，其中错误信息保存在MySQL数据库中，数据量信息和延时统计信息保存在Elasticsearch或者es中。
 
 吞吐和延时信息从Stream/Flow两个维度展示，监控项说明如下。
 

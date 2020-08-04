@@ -23,6 +23,7 @@ package edp.wormhole.externalclient.hadoop
 
 import java.io._
 import java.net.URI
+import java.nio.charset.StandardCharsets
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs._
@@ -311,8 +312,9 @@ trait HdfsUtils {
     val fs = FileSystem.newInstance(conf)
     val path = new Path(hdfsUrl)
 
-    val output = new ObjectOutputStream(fs.create(path))
-    output.writeUTF(obj)
+    val content = obj.getBytes(StandardCharsets.UTF_8)
+    val output = fs.create(path)
+    output.write(content)
     output.close()
     fs.close()
   }
