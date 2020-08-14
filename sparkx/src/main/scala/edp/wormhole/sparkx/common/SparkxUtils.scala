@@ -26,7 +26,7 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.{StreamSpecialConfig, WormholeConfig}
+import edp.wormhole.sparkxinterface.swifts.{KafkaKeyConfig, StreamSpecialConfig, WormholeConfig}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
@@ -36,6 +36,7 @@ import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object SparkxUtils extends EdpLogging{
@@ -382,23 +383,25 @@ object SparkxUtils extends EdpLogging{
     }
   }
 
-  def getDefaultKey(key: String, namespaces: Set[String], defaultKey: Boolean): String = {
-/*    if(key != null) {
-      log.info(s"getDefaultKey: key $key")
-    } else {
-      log.info(s"getDefaultKey: key null")
-    }
-    if(namespaces != null) {
-      log.info(s"getDefaultKey: namespaces $namespaces, defaultKey $defaultKey")
-    } else {
-      log.info(s"getDefaultKey: namespaces null, $defaultKey")
-    }*/
-    if(!isRightKey(key) && null != namespaces && namespaces.nonEmpty && defaultKey) {
-      //log.info(s"getDefaultKey: use default namespace ${namespaces.head} as kafka key, all namespace is $namespaces")
-      UmsProtocolType.DATA_INCREMENT_DATA.toString + "." + namespaces.head
-    } else {
-      key
-    }
+  def getDefaultKey(key: String, topic: String, namespaces: Set[String], kafkaKeyConfig: Option[KafkaKeyConfig]): String = {
+    val renameKey =
+      if(kafkaKeyConfig.isDefined) {
+        if (kafkaKeyConfig.get.useDefaultKey.getOrElse(false) && null != namespaces && namespaces.nonEmpty) {
+          UmsProtocolType.DATA_INCREMENT_DATA.toString + "." + namespaces.head
+        } else {
+          val renameTopicKeyMap = kafkaKeyConfig.get.renameTopicKeyMap.getOrElse(Map())
+          val renameElementKeyMap = kafkaKeyConfig.get.renameElementKeyMap.getOrElse(Map())
+          if (renameTopicKeyMap.contains(topic)) {
+            renameTopicKeyMap.getOrElse(topic, key)
+          } else {
+            renameElementKeyMap.getOrElse((topic, key), key)
+          }
+        }
+      } else {
+        key
+      }
+    log.debug(s"original key is $key, rename key is $renameKey")
+    renameKey
   }
 
   def isRightKey(key: String): Boolean = {
@@ -412,5 +415,31 @@ object SparkxUtils extends EdpLogging{
       }
     }
   }
+
+  def getKafkaKeyConfig(streamSpecialConfig: Option[StreamSpecialConfig]): Option[KafkaKeyConfig] = {
+    if(streamSpecialConfig.isDefined) {
+      val configGet = streamSpecialConfig.get
+      if(configGet.renameKeyConfig.isDefined) {
+        val keyConfig = configGet.renameKeyConfig.get
+        val renameTopicKeyMap = mutable.HashMap[String, String]()
+        val renameElementKeyMap = mutable.HashMap[(String, String), String]()
+        keyConfig.foreach(key => {
+          if(key.originKey.isDefined) {
+            renameElementKeyMap((key.topicName, key.originKey.get)) = key.renameKey
+          } else {
+            renameTopicKeyMap(key.topicName) = key.renameKey
+          }
+        })
+        Some(KafkaKeyConfig(configGet.useDefaultKey, Some(renameTopicKeyMap.toMap), Some(renameElementKeyMap.toMap)))
+
+      } else {
+        Some(KafkaKeyConfig(configGet.useDefaultKey, None, None))
+      }
+    } else {
+      None
+    }
+  }
+
+
 
 }

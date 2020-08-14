@@ -46,6 +46,7 @@ object RouterMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
+    val kafkaKeyConfig = SparkxUtils.getKafkaKeyConfig(config.special_config)
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val batchId = UUID.randomUUID().toString
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
@@ -64,12 +65,12 @@ object RouterMainProcess extends EdpLogging {
         val routerKeys = ConfMemoryStorage.getRouterKeys
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => {
-            val rowKey = SparkxUtils.getDefaultKey(row.key, routerKeys, SparkxUtils.getDefaultKeyConfig(config.special_config))
+            val rowKey = SparkxUtils.getDefaultKey(row.key, row.topic(), routerKeys, kafkaKeyConfig)
             (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
           }).repartition(config.rdd_partition_number)
           else {
             streamRdd.map(row => {
-              val rowKey = SparkxUtils.getDefaultKey(row.key, routerKeys, SparkxUtils.getDefaultKeyConfig(config.special_config))
+              val rowKey = SparkxUtils.getDefaultKey(row.key, row.topic(), routerKeys, kafkaKeyConfig)
               (UmsCommonUtils.checkAndGetKey(rowKey, row.value), row.value)
             })
           }

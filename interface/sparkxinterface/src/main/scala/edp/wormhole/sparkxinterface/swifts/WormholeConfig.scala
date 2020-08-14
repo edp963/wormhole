@@ -97,6 +97,21 @@ case class KafkaTopicConfig(topic_name: String,
 
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
+
+case class RenameKeyConfig(
+                            topicName: String,
+                            originKey: Option[String] = None,
+                            renameKey: String
+                          )
+
+
 case class StreamSpecialConfig(
-                                useDefaultKey: Option[Boolean]
+                                useDefaultKey: Option[Boolean] = None,
+                                renameKeyConfig: Option[Seq[RenameKeyConfig]] = None
                               )
+
+case class KafkaKeyConfig(
+                           useDefaultKey: Option[Boolean] = None,
+                           renameTopicKeyMap: Option[Map[String, String]] = None,
+                           renameElementKeyMap: Option[Map[(String, String), String]] = None
+                         )

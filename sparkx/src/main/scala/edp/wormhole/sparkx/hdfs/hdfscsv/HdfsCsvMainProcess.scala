@@ -23,6 +23,7 @@ package edp.wormhole.sparkx.hdfs.hdfscsv
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
+import java.security.cert.PKIXRevocationChecker.Option
 import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
@@ -36,7 +37,7 @@ import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.hdfs.{HdfsDirective, HdfsFinder, HdfsFlowConfig, PartitionResult}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, WormholeConfig}
+import edp.wormhole.sparkxinterface.swifts.{KafkaInputConfig, KafkaKeyConfig, WormholeConfig}
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.hadoop.conf.Configuration
@@ -67,9 +68,11 @@ object HdfsCsvMainProcess extends EdpLogging {
   val rightFlag = "right"
   val wrongFlag = "wrong"
   var hdfsActiveUrl = ""
+  var kafkaKeyConfig: scala.Option[KafkaKeyConfig] = None
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig, ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
+    kafkaKeyConfig = SparkxUtils.getKafkaKeyConfig(config.special_config)
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val batchId = UUID.randomUUID().toString
 
@@ -276,11 +279,11 @@ object HdfsCsvMainProcess extends EdpLogging {
   private def formatRDD(config: WormholeConfig, streamRdd: RDD[ConsumerRecord[String, String]]): RDD[((String, String), String)] = {
     val sourceNamespaceSet = ConfMemoryStorage.getHdfscsvNamespaceSet
     val dataParRdd: RDD[((String, String), String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => {
-      val rowKey = SparkxUtils.getDefaultKey(row.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+      val rowKey = SparkxUtils.getDefaultKey(row.key, row.topic(), sourceNamespaceSet, kafkaKeyConfig)
       (UmsCommonUtils.checkAndGetProtocolNamespace(rowKey, row.value), row.value)
     }).repartition(config.rdd_partition_number)
     else streamRdd.map(row => {
-      val rowKey = SparkxUtils.getDefaultKey(row.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+      val rowKey = SparkxUtils.getDefaultKey(row.key, row.topic(), sourceNamespaceSet, kafkaKeyConfig)
       (UmsCommonUtils.checkAndGetProtocolNamespace(rowKey, row.value), row.value)
     })
     dataParRdd
