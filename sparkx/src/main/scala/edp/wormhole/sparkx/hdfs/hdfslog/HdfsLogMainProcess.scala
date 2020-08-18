@@ -72,6 +72,7 @@ object HdfsLogMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig,session: SparkSession, appId: String, kafkaInput: KafkaInputConfig,ssc: StreamingContext): Unit = {
     var zookeeperFlag = false
+    val kafkaKeyConfig = SparkxUtils.getKafkaKeyConfig(config.special_config)
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val batchId = UUID.randomUUID().toString
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
@@ -87,7 +88,7 @@ object HdfsLogMainProcess extends EdpLogging {
 
         val sourceNamespaceSet = ConfMemoryStorage.getHdfslogNamespaceSet
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
-          val messageKey = SparkxUtils.getDefaultKey(message.key, sourceNamespaceSet, SparkxUtils.getDefaultKeyConfig(config.special_config))
+          val messageKey = SparkxUtils.getDefaultKey(message.key, message.topic(), sourceNamespaceSet, kafkaKeyConfig)
           if (messageKey == null || messageKey.trim.isEmpty) {
             val namespace = UmsCommonUtils.getFieldContentFromJson(message.value, "namespace")
             var protocolType = UmsCommonUtils.getProtocolTypeFromUms(message.value)

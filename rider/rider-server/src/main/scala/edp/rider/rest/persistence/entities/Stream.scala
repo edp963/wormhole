@@ -67,9 +67,16 @@ case class StreamDetail(stream: Stream,
                         disableActions: String,
                         hideActions: String)
 
+case class RenameKeyConfig(
+                            topicName: Option[String] = None,
+                            originKey: Option[String] = None,
+                            renameKey: Option[String] = None
+                          )
+
 
 case class StreamSpecialConfig(
-                                useDefaultKey: Option[Boolean]
+                                useDefaultKey: Option[Boolean] = None,
+                                renameKeyConfig: Option[Seq[RenameKeyConfig]] = None
                               )
 
 case class StreamKafka(instance: String, connUrl: String)
