@@ -140,7 +140,8 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   required: true,
                   message: locale === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                 }, {
-                  validator: this.checkStreamName
+                  // FIXED: remove validate
+                  // validator: this.checkStreamName
                 }]
               })(
                 <Input placeholder="Name" disabled={streamMode === 'edit'} />
