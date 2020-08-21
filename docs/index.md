@@ -91,7 +91,6 @@ Please download the latest RELEASE(链接:https://pan.baidu.com/s/1nDzcHYKIVCT6a
 
 ## Get Help
 
-- **Mailing list**: edp_support@groups.163.com
 - **WeChat**: edpstack <img src="https://github.com/edp963/edp-resource/raw/master/WeChat.jpg" alt="" width="100"/>
 
 ## License
