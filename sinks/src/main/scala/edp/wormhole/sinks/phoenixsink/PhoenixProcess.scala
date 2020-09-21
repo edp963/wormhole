@@ -54,32 +54,22 @@ class PhoenixProcess(sinkNamespace: String, sinkProcessConfig: SinkProcessConfig
 
   def doInsert(tupleList: Seq[Seq[String]]) = {
     val columnNames = baseFieldNames.map(field=>field.toUpperCase()).map(col=> "\""+col+"\"").mkString(", ")
-    val sql = s"UPSERT INTO "+ "\""+tableName+ "\""+s" ($columnNames,"+ "\""+s"${UmsSysField.ACTIVE.toString.toUpperCase}"+"\""+") VALUES " +
+    //NameSpace不需要""拼接
+    val sql = s"UPSERT INTO "+tableName+s" ($columnNames,"+ "\""+s"${UmsSysField.ACTIVE.toString.toUpperCase}"+"\""+") VALUES " +
       (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
+    //    val sql = s"UPSERT INTO "+ "\""+tableName+ "\""+s" ($columnNames,"+ "\""+s"${UmsSysField.ACTIVE.toString.toUpperCase}"+"\""+") VALUES " +
+    //      (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
     val batchSize = specificConfig.`phoenix.BatchSize.get`
     executeSql(tupleList, sql, batchSize)
   }
 
-  //
-  //  def ums2DbType(fieldType: DataType): Int = fieldType match {
-  //    case StringType => java.sql.Types.VARCHAR
-  //    case IntegerType => java.sql.Types.INTEGER
-  //    case LongType => java.sql.Types.BIGINT
-  //    case FloatType => java.sql.Types.FLOAT
-  //    case DoubleType => java.sql.Types.DOUBLE
-  //    case BinaryType => java.sql.Types.BINARY
-  //    //    case DecimalType => java.sql.Types.DECIMAL
-  //    case BooleanType => java.sql.Types.BIT
-  //    case DateType => java.sql.Types.DATE
-  //    case TimestampType => java.sql.Types.TIMESTAMP
-  //    case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
-  //  }
 
   private def psSetValue(fieldName: String, parameterIndex: Int, tuple: Seq[String], ps: PreparedStatement) = {
     val value = fieldValue(fieldName, schemaMap, tuple) //this what?
     if (value == null) ps.setNull(parameterIndex, fieldSqlTypeMap(fieldName))
     else ps.setObject(parameterIndex, value, fieldSqlTypeMap(fieldName)) //how to use it?
   }
+
 
   def executeSql(tupleList: Seq[Seq[String]], sql: String, batchSize: Int) = {
     var count = 0
