@@ -16,4 +16,4 @@ PORT=`grep port $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | 
 echo "wormholeServer port: $PORT"
 
 echo "[WormholeServer] is starting..."
-java -Xmx4G -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.6.3.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -Xmx4G -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.7.0.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
