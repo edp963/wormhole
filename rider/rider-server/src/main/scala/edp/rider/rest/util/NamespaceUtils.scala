@@ -48,7 +48,7 @@ object NamespaceUtils extends RiderLogger {
 
   def getConnUrl(instance: Instance, db: NsDatabase, connType: String = "sink") = {
     instance.nsSys match {
-      case "mysql" | "postgresql" | "phoenix" | "vertica" =>
+      case "mysql" | "postgresql" | "vertica" =>
         db.config match {
           case Some(conf) =>
             if (conf != "") {
@@ -57,6 +57,17 @@ object NamespaceUtils extends RiderLogger {
               s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}?$confStr"
             } else s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
           case None => s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
+        }
+      //PhoenixUrl jdbc:xxxx://dbname/ -> jdbc:xxxx:dbname/
+      case "phoenix" =>
+        db.config match {
+          case Some(conf) =>
+            if (conf != "") {
+              val confStr =
+                (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
+              s"jdbc:${instance.nsSys}:${instance.connUrl}/${db.nsDatabase}?$confStr"
+            } else s"jdbc:${instance.nsSys}:${instance.connUrl}/${db.nsDatabase}"
+          case None => s"jdbc:${instance.nsSys}:${instance.connUrl}/${db.nsDatabase}"
         }
       case "clickhouse" =>
         instance.connUrl.split(",").map(url => {
@@ -230,21 +241,21 @@ object NamespaceUtils extends RiderLogger {
     }
   }
 
-/*  def namespaceMatch(flowNs: String, matchNsSeq: Seq[String]): Boolean = {
-    val sourceNsSeq = flowNs.split("\\.")
-    var matchResult = false
-    matchNsSeq.foreach(matchNs => {
-      val matchNsSeq = matchNs.split("\\.")
-      if(sourceNsSeq(1) == "*" && sourceNsSeq(0) == matchNsSeq(0)) {
-        matchResult = true
-      } else if(sourceNsSeq(2) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1)) {
-        matchResult = true
-      } else if(sourceNsSeq(3) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2)) {
-        matchResult = true
-      } else if(sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2) && sourceNsSeq(3) == matchNsSeq(3)){
-        matchResult = true
-      }
-    })
-    matchResult
-  }*/
+  /*  def namespaceMatch(flowNs: String, matchNsSeq: Seq[String]): Boolean = {
+      val sourceNsSeq = flowNs.split("\\.")
+      var matchResult = false
+      matchNsSeq.foreach(matchNs => {
+        val matchNsSeq = matchNs.split("\\.")
+        if(sourceNsSeq(1) == "*" && sourceNsSeq(0) == matchNsSeq(0)) {
+          matchResult = true
+        } else if(sourceNsSeq(2) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1)) {
+          matchResult = true
+        } else if(sourceNsSeq(3) == "*" && sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2)) {
+          matchResult = true
+        } else if(sourceNsSeq(0) == matchNsSeq(0) && sourceNsSeq(1) == matchNsSeq(1) && sourceNsSeq(2) == matchNsSeq(2) && sourceNsSeq(3) == matchNsSeq(3)){
+          matchResult = true
+        }
+      })
+      matchResult
+    }*/
 }

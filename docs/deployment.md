@@ -32,11 +32,11 @@ mysql-connector-java-{your-db-version}.jar
 
 #### 下载安装包
 
-**下载 wormhole-0.6.3.tar.gz 包 (链接:https://pan.baidu.com/s/1nDzcHYKIVCT6atq9wAuK9Q  密码:5cqn)，或者自编译 mvn clean install -Pwormhole**
+**下载 wormhole-0.7.0.tar.gz 包 (链接:https://pan.baidu.com/s/1cJqlTKdeudkqY-vD4F8cqQ  密码:mhq4)，或者自编译 mvn clean install -Pwormhole**
 
 ```
-下载wormhole-0.6.3.tar.gz安装包
-tar -xvf wormhole-0.6.3.tar.gz
+下载wormhole-0.7.0.tar.gz安装包
+tar -xvf wormhole-0.7.0.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole
@@ -409,7 +409,7 @@ topic name：wormhole_heartbeat partitions: 1
 
 ## 升级
 
-#### 0.6.1-0.6.2版本升级到0.6.3版本
+#### 0.6.1-0.6.2版本升级到0.7.0版本
 
 （1）如果有使用custom class，需要按照新接口修改使用的custom class
 
