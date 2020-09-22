@@ -37,7 +37,24 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 
 #### 消费kafka中无key数据
 
-如果绑定的topic中数据没有key，则可设定是否启用默认的kafka key，在specail config中设置{"useDefaultKey":true}，会将注册到该stream的第一个flow的source namespace作为这个topic中数据的key，该stream中同source namespace的flow就可以消费这个topic。如果绑定的topic中数据有key，则按照数据的key进行处理（0.6.3及之后版本支持）
+如果绑定的topic中数据没有key，则可设定是否启用默认的kafka key，在specail config中设置{"useDefaultKey":true}，会将注册到该stream的第一个flow的source namespace作为这个topic中数据的key，该stream中同source namespace的flow就可以消费这个topic。如果绑定的topic中数据有key，则按照数据的key进行处理。
+
+renameKeyConfig中originKey为原始的key，renameKey为要消费的namespace（0.6.3之后版本支持）
+
+```
+{
+  "useDefaultKey":true/false      //使用flow的sourcenamespace作为key，这个配置项和下面的配置项选择一个就可以
+  "renameKeyConfig": [
+    {
+      "topicName": "topicl",
+      "originKey": "topicl_ums", //如果topic中没有原始key这个配置项可以省略
+      "renameKey": "data_increment_data.kafka.kafka01022.topicl.ums.*.*.*"
+    }
+  ]
+}
+```
+
+
 
 #### Topic 绑定
 
@@ -194,8 +211,6 @@ Sink hbase可以设置列版本号字段，进行幂等：{"hbase.version.column
 index时间后缀配置，配置项为index_extend_config，例如{"index_extend_config":"_yyyy-MM-dd"}
 访问header配置，配置项header_config，例如{"header_config":{"content-type":"application/json"}}（0.6.3之后版本支持）
 
-Sink hbase可以设置列版本号字段，进行幂等：{"hbase.version.column":"ums_id_"}，如果不配置，则按照wormhole原来的方式进行幂等（0.6.3及之后版本支持）
-
 #### 配置安全认证的sink kafka
 
 在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
@@ -203,6 +218,38 @@ Sink hbase可以设置列版本号字段，进行幂等：{"hbase.version.column
 #### sink clickhouse
 
 wormhole sink clickhouse支持分布式和本地写两种，如果instance是distributed节点，可以值sink config中配置{"ch.engine":"distributed"}。如果是merge tree节点连接地址用逗号分隔即可，sink config中配置{"ch.engine":"mergetree"}。按照merger tree 方式写入，现在wh支持的分发方式是xxHash64
+
+
+
+#### sink http
+
+{"method_type":"put","url_params":"${projectId}/streams/${streamId}/jobs/${jobId}/basic","transform_type":"form/json"}
+
+配置介绍：
+
+${}会替换成流上对应的字段的值
+
+{"method_type":"put/post/get"}
+
+{"transform_type":"form/json"}，请求格式form，其他的为json格式
+
+header配置需要添加在instance config中
+
+
+
+#### sink rocketMQ
+
+{"producerGroup":"test_producer","format":"flattenJson","preserveSystemField":true}
+
+配置介绍：
+
+producerGroup：group组
+
+format：ums/flattenJson
+
+preserveSystemField：是否保留系统字段
+
+
 
 #### 用户自定义sink
 
