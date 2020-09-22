@@ -32,7 +32,7 @@ mysql-connector-java-{your-db-version}.jar
 
 #### 下载安装包
 
-**下载 wormhole-0.7.0.tar.gz 包 (链接:https://pan.baidu.com/s/1nDzcHYKIVCT6atq9wAuK9Q  密码:5cqn)，或者自编译 mvn clean install -Pwormhole**
+**下载 wormhole-0.7.0.tar.gz 包 (链接:https://pan.baidu.com/s/1cJqlTKdeudkqY-vD4F8cqQ  密码:mhq4)，或者自编译 mvn clean install -Pwormhole**
 
 ```
 下载wormhole-0.7.0.tar.gz安装包
