@@ -275,6 +275,12 @@ high-availability.zookeeper.quorum: ip:port
 high-availability.zookeeper.path.root: /flink
 ```
 
+#### flink监控配置
+
+（1）将wormhole/app下的wormhole-flink-reporter包放到flink jars下
+
+（2）将application.conf中flink feedback设置为true
+
 #### Feedback State 存储位置配置
 
 wormhole 在 0.6 版本之前的 feedback state 默认存储在 ES 中，在 0.6 版本之后，将支持用户根据需求在 ES 与 MySQL 中间选择合适的存储库进行数据存储。如果需要将存储位置由 ES 迁往 MySQL，可以参照下面的步骤进行配置。通过配置 monitor.database.type 选择存储位置
