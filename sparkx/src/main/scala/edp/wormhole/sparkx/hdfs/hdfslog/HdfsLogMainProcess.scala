@@ -313,7 +313,7 @@ object HdfsLogMainProcess extends EdpLogging {
     logInfo("metaName:" + metaName)
     HdfsUtils.createPath(configuration, metaName)
     HdfsUtils.createPath(configuration, dataName)
-    HdfsUtils.writeString(configuration, metaContent, metaName)
+    HdfsUtils.writeStringByOutputStream(configuration, metaContent, metaName)
     (metaContent, dataName)
   }
 
@@ -599,11 +599,11 @@ object HdfsLogMainProcess extends EdpLogging {
     } else {
       newMetaContent = splitCurrentMetaContent(0) + "_1_" + splitCurrentMetaContent(2) + "_" + DateUtils.currentyyyyMMddHHmmssmls
     }
-    HdfsUtils.writeString(configuration, newMetaContent, metaName)
+    HdfsUtils.writeStringByOutputStream(configuration, newMetaContent, metaName)
   }
 
   def updateMeta(metaName: String, metaContent: String, configuration: Configuration): Unit = {
-    HdfsUtils.writeString(configuration, metaContent, metaName)
+    HdfsUtils.writeStringByOutputStream(configuration, metaContent, metaName)
   }
 
   def getMetaName(fileName: String): String = {
