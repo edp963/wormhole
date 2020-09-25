@@ -319,6 +319,19 @@ trait HdfsUtils {
     fs.close()
   }
 
+
+  def writeStringByOutputStream(conf: Configuration, obj: String, hdfsUrl: String): Unit = {
+    //   val conf = new Configuration()
+    conf.setBoolean("fs.hdfs.impl.disable.cache", true)
+    val fs = FileSystem.newInstance(conf)
+    val path = new Path(hdfsUrl)
+
+    val output = new ObjectOutputStream(fs.create(path))
+    output.writeUTF(obj)
+    output.close()
+    fs.close()
+  }
+
   def writeString(obj: String, hdfsUrl: String): Unit = {
     val conf = new Configuration()
     writeString(conf, obj, hdfsUrl)
