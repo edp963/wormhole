@@ -528,14 +528,14 @@ object KuduConnection extends Serializable {
           } else {
             if (fieldContent == null) row.setNull(fieldName) else row.addString(fieldName, fieldContent)
           }
-        case UmsFieldType.BOOLEAN => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addBoolean(fieldName, fieldContent.toBoolean)
-        case UmsFieldType.BINARY => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addBinary(fieldName, fieldContent.getBytes())
-        case UmsFieldType.DECIMAL => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent).stripTrailingZeros())
-        case UmsFieldType.DOUBLE => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDouble(fieldName, fieldContent.toDouble)
-        case UmsFieldType.INT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addInt(fieldName, fieldContent.toInt)
-        case UmsFieldType.FLOAT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
-        case UmsFieldType.LONG => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, fieldContent.toLong)
-        case UmsFieldType.DATETIME => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addLong(fieldName, DateUtils.dt2long(fieldContent))
+        case UmsFieldType.BOOLEAN => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addBoolean(fieldName, fieldContent.toBoolean)
+        case UmsFieldType.BINARY => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addBinary(fieldName, fieldContent.getBytes())
+        case UmsFieldType.DECIMAL => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent).stripTrailingZeros())
+        case UmsFieldType.DOUBLE => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addDouble(fieldName, fieldContent.toDouble)
+        case UmsFieldType.INT => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addInt(fieldName, fieldContent.toInt)
+        case UmsFieldType.FLOAT => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
+        case UmsFieldType.LONG => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addLong(fieldName, fieldContent.toLong)
+        case UmsFieldType.DATETIME => if (fieldContent == null || fieldContent.trim.isEmpty) row.setNull(fieldName) else row.addLong(fieldName, DateUtils.dt2long(fieldContent))
         case _ => if (fieldContent == null) row.setNull(fieldName) else row.addString(fieldName, fieldContent)
       }
     })

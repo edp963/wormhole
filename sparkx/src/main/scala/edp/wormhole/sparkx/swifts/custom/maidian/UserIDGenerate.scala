@@ -33,10 +33,12 @@ class UserIDGenerate extends EdpLogging {
       val resultData = ListBuffer.empty[Row]
       val cc = ConnectionConfig(qcp.jdbcUrl, Some(qcp.username), Some(qcp.password), None)
       val selectPartSql = getSelectPartSql(qcp)
+      logInfo(s"selectPartSql:$selectPartSql")
       var errorCount = 0
       p.foreach((row: Row) => {
 
         val (queryResult, selectFieldValue, umsId) = generateOneRowID(qcp, row, selectPartSql, cc, schemaMap)
+        logInfo(s"UserIDGenerate transform queryResult:$queryResult, selectFieldValue:$selectFieldValue, umsId:$umsId")
         if (queryResult == -1) {
           errorCount += 1
         }
@@ -101,7 +103,7 @@ class UserIDGenerate extends EdpLogging {
       val conditionArray = qcp.conditions(i)
       i += 1
       val (tmpQueryResult, tmpSelectFieldValue, tmpUmsId) = queryByCondition(selectPartSql, cc, qcp.selectFieldName, conditionArray, row, schemaMap)
-
+   logInfo(s"UserIDGenerate queryByCondition return：tmpQueryResult:$tmpQueryResult, tmpSelectFieldValue:$tmpSelectFieldValue, tmpUmsId:$tmpUmsId")
       //tmpQueryResult 有三种值  1.“1”找到一条已存在的   2. “-1”条件中有空值   3. “0”没找到
 
       //跳出循环的条件  1.所有条件已检查完   2.找到一个已存在的记录 3.没找到且条件不为空
@@ -127,6 +129,7 @@ class UserIDGenerate extends EdpLogging {
 
   def queryByCondition(selectPartSql: String, cc: ConnectionConfig, selectFieldName: String, conditionArray: Array[(String, String)],
                        row: Row, schemaMap: Map[String, StructField]): (Int, String, Long) = {
+    logInfo(s"queryByCondition selectPartSql: $selectPartSql")
     var hasNull = false
     for (i <- conditionArray.indices) {
       val fieldValue = getFieldValue(schemaMap, conditionArray(i)._1, row)
