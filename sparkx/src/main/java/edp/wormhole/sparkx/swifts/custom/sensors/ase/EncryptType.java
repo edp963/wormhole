@@ -21,17 +21,17 @@ public enum EncryptType {
      * App加密解密使用的key
      */
     @Deprecated
-    private static String LEGACY_SECURITY_AES_KEY = "0C5E75A210884F61";
+    private static String LEGACY_SECURITY_AES_KEY = "";
 
     /**
      * yingApi内部加密解密使用的key
      */
-    private static String API_INTERAL_AES_KEY = "5FF2712BF8444D13A01244904D611F8E";
+    private static String API_INTERAL_AES_KEY = "";
 
     /**
      * p2pService加密解密使用的key
      */
-    private static String YRD_PARAM_KEY = "JCQ15PykRU2j/Diqe2uPtQ==";
+    private static String YRD_PARAM_KEY = "";
 
     static {
         OLD_PARAMETER.aesKey = LEGACY_SECURITY_AES_KEY;
