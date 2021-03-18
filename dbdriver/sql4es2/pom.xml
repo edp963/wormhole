@@ -31,7 +31,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <elasticsearch.version>2.4.3</elasticsearch.version>
+        <elasticsearch.version>6.8.13</elasticsearch.version>
         <lucene.version>5.5.2</lucene.version>
     </properties>
 
